@@ -4,10 +4,9 @@ import SkillRadar from './SkillRadar';
 import profileData from '../../data/profile.json';
 import skillsData from '../../data/skills.json';
 
-const Dashboard = () => {
+const Dashboard = ({ onSkillClick }) => {
   return (
     <section className="w-full max-w-6xl mx-auto px-4 py-8">
-      {/* Header Section */}
       <div className="mb-8 text-center md:text-left">
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
           {profileData.basics.name}
@@ -20,11 +19,10 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* KPI Cards */}
       <KPIGrid metrics={profileData.metrics} />
 
-      {/* Analytics Section */}
-      <SkillRadar skills={skillsData} />
+      {/* Pass the click handler down to the chart */}
+      <SkillRadar skills={skillsData} onSkillClick={onSkillClick} />
     </section>
   );
 };

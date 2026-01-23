@@ -4,9 +4,6 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 
-/**
- * Custom Tooltip for the Radar Chart
- */
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -19,15 +16,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-/**
- * Dual-Zone Radar Chart
- * Visualizes the balance between "Strategy" and "Tech"
- */
-const SkillRadar = ({ skills }) => {
-  // Merge the two categories for a unified view, or switch based on state
-  // For the dashboard, we will display two charts side-by-side on desktop
-  // or stacked on mobile.
-
+const SkillRadar = ({ skills, onSkillClick }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {skills.map((category, idx) => (
@@ -39,16 +28,30 @@ const SkillRadar = ({ skills }) => {
           className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center"
         >
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
+          <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={category.data}>
                 <PolarGrid stroke="#e2e8f0" />
+                
+                {/* 🎯 INTERACTIVITY LAYER
+                   We add onClick to the Axis so users can tap "React" 
+                   cursor-pointer makes it obvious it's clickable
+                */}
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#64748b', fontSize: 12 }} 
+                  tick={{ 
+                    fill: '#64748b', 
+                    fontSize: 12, 
+                    cursor: 'pointer',
+                    className: 'hover:fill-blue-600 transition-colors font-semibold'
+                  }} 
+                  onClick={({ value }) => onSkillClick(value)}
                 />
+                
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                
                 <Radar
                   name={category.label}
                   dataKey="A"

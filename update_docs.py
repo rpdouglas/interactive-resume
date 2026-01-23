@@ -2,7 +2,7 @@ import os
 import json
 
 # ==========================================
-# 0. DYNAMIC DATA FETCHER (The New SSOT)
+# 0. DYNAMIC DATA FETCHER (SSOT)
 # ==========================================
 def get_current_version():
     """Reads the version directly from package.json"""
@@ -30,21 +30,25 @@ print(f"🔹 Detected System Version: {current_version}")
 status_lines = [
     "# 📌 Project Status: Interactive Resume",
     "",
-    "**Current Phase:** Phase 4 - The Matrix (Interaction)",
+    "**Current Phase:** Phase 6 - Polish & Performance",
     f"**Version:** {current_version}", 
     "",
-    "## 🎯 Current Sprint: The Matrix",
-    "* [ ] **Cross-Filtering:** Clicking a Skill filters the Timeline.",
-    "* [ ] **State Management:** Lift state up to `App.jsx`.",
+    "## 🎯 Current Sprint: Polish",
+    "* [ ] **Lighthouse Tuning:** Optimize images and bundle size.",
+    "* [ ] **OG Tags:** Add social media preview meta tags.",
     "",
     "## ✅ Completed Features",
-    f"* **Phase 5: Architecture** (System Versioning v{current_version})",
-    "* **Phase 4: The Narrative** (Timeline)",
+    f"* **Phase 4: The Matrix** (Cross-Filtering v{current_version})",
+    "    * [x] Lifted State to `App.jsx`.",
+    "    * [x] Interactive Radar Chart.",
+    "    * [x] Animated Filtering in Timeline.",
+    "* **Phase 5: Architecture** (System Versioning)",
     "* **Phase 3.5: Testing** (Vitest)",
     "* **Phase 3: DevOps** (CI/CD)",
     "",
     "## 📋 Product Backlog",
-    "* Phase 6: Polish (Lighthouse Tuning)"
+    "* Accessibility Audit (A11y)",
+    "* PDF Download Option"
 ]
 
 # ==========================================
@@ -56,31 +60,41 @@ context_lines = [
     "**Test Stack:** Vitest + React Testing Library",
     f"**Version:** {current_version}",
     "",
+    "## Component Architecture",
+    "* **App (Brain):** Holds `activeSkill` state.",
+    "* **Dashboard (Trigger):** Sends click events up.",
+    "* **Experience (Receiver):** Filters data based on props.",
+    "",
     "## Architecture Rules (STRICT)",
     "1. **SSOT:** Version is controlled by `package.json`.",
-    "2. **Data-Driven:** All content separated into JSON files.",
+    "2. **State:** Global interactions live in `App.jsx` (Lifted State).",
     "3. **Testing:** New components require `.test.jsx`."
 ]
 
 # ==========================================
-# 3. CHANGELOG (The History)
+# 3. CHANGELOG
 # ==========================================
 changelog_lines = [
     "# 📜 Changelog",
     "",
     f"## [{current_version}] - 2026-01-22",
     "### Added",
+    "* **The Matrix (Cross-Filtering):**",
+    "    * Lifted `activeSkill` state to `App.jsx`.",
+    "    * Made Radar Chart nodes clickable via `PolarAngleAxis` event.",
+    "    * Implemented filtering logic in `ExperienceSection`.",
+    "    * Added `AnimatePresence` for smooth layout transitions.",
+    "    * Added Unit Tests for Filtering Logic.",
+    "",
+    "## [v0.5.0] - 2026-01-22",
+    "### Added",
     "* **System Versioning Architecture:**",
     "    * Migrated version control to `package.json` (SSOT).",
-    "    * Configured `vite.config.js` to expose version env vars.",
     "    * Created `Footer` component with dynamic version display.",
-    "    * Added Unit Tests for Version Injection.",
     "",
     "## [v0.4.0] - 2026-01-22",
     "### Added",
-    "* **Experience Timeline:**",
-    "    * Implemented `TimelineContainer` and `TimelineCard`.",
-    "    * Added Unit Tests (`TimelineCard.test.jsx`).",
+    "* **Experience Timeline:** Vertical 'Scroll Spy' layout.",
     "",
     "## [v0.3.0] - 2026-01-22",
     "### Added",

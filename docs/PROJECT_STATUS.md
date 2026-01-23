@@ -1,17 +1,21 @@
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 4 - The Matrix (Interaction)
-**Version:** v0.5.0
+**Current Phase:** Phase 6 - Polish & Performance
+**Version:** v0.6.0
 
-## 🎯 Current Sprint: The Matrix
-* [ ] **Cross-Filtering:** Clicking a Skill filters the Timeline.
-* [ ] **State Management:** Lift state up to `App.jsx`.
+## 🎯 Current Sprint: Polish
+* [ ] **Lighthouse Tuning:** Optimize images and bundle size.
+* [ ] **OG Tags:** Add social media preview meta tags.
 
 ## ✅ Completed Features
-* **Phase 5: Architecture** (System Versioning vv0.5.0)
-* **Phase 4: The Narrative** (Timeline)
+* **Phase 4: The Matrix** (Cross-Filtering vv0.6.0)
+    * [x] Lifted State to `App.jsx`.
+    * [x] Interactive Radar Chart.
+    * [x] Animated Filtering in Timeline.
+* **Phase 5: Architecture** (System Versioning)
 * **Phase 3.5: Testing** (Vitest)
 * **Phase 3: DevOps** (CI/CD)
 
 ## 📋 Product Backlog
-* Phase 6: Polish (Lighthouse Tuning)
+* Accessibility Audit (A11y)
+* PDF Download Option

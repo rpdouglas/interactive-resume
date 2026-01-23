@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Thu Jan 22 18:12:52 EST 2026
+**Date:** Thu Jan 22 22:36:43 EST 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -7,17 +7,20 @@
 {
   "name": "interactive-resume",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
     "clsx": "^2.1.1",
+    "firebase": "^12.8.0",
     "framer-motion": "^12.29.0",
     "lucide-react": "^0.562.0",
     "react": "^19.2.0",
@@ -27,6 +30,8 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
@@ -35,9 +40,11 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
+    "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
-    "vite": "^7.2.4"
+    "vite": "^7.2.4",
+    "vitest": "^4.0.18"
   }
 }
 
@@ -49,6 +56,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import packageJson from './package.json'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -56,7 +64,50 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  define: {
+    // This exposes the version from package.json as a global variable
+    'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version),
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    css: true,
+  },
 })
+
+```
+---
+
+## FILE: firebase.json
+```json
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
+
+```
+---
+
+## FILE: .firebaserc
+```firebaserc
+{
+  "projects": {
+    "default": "ryandouglas-resume"
+  }
+}
 
 ```
 ---
@@ -113,30 +164,92 @@ export default defineConfig({
 ```jsx
 import React from 'react';
 import Dashboard from './components/dashboard/Dashboard';
+import ExperienceSection from './sections/ExperienceSection';
+// 👇 IMPORT THE MISSING COMPONENT
+import Footer from './components/Footer';
 
 function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-accent selection:text-white">
       <main>
         <Dashboard />
+        <ExperienceSection />
       </main>
       
-      {/* Simple Footer */}
-      <footer className="text-center py-8 text-slate-400 text-sm">
-        <p>© {new Date().getFullYear()} - Built with React & Recharts</p>
-      </footer>
+      {/* 👇 Use the Smart Footer (contains Version v0.4.0) */}
+      <Footer />
     </div>
   );
 }
 
 export default App;
-
 ```
 ---
 
 ## FILE: src/assets/react.svg
 ```svg
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+```
+---
+
+## FILE: src/components/Footer.jsx
+```jsx
+import React from 'react';
+
+const Footer = () => {
+  // Access the variable we defined in vite.config.js
+  // The '||' provides a fallback for local dev if the env var isn't ready
+  const version = import.meta.env.PACKAGE_VERSION || 'v0.0.0';
+
+  return (
+    <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center mt-20">
+      <p className="text-slate-500 text-sm">
+        &copy; {new Date().getFullYear()} Ryan Douglas. All rights reserved.
+      </p>
+      <div className="mt-2 text-xs font-mono text-slate-700 flex justify-center items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-green-500/50"></span>
+        <span>System Version: v{version}</span>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;
+
+```
+---
+
+## FILE: src/components/__tests__/Footer.test.jsx
+```jsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect } from 'vitest';
+import Footer from '../Footer';
+
+describe('Footer Component', () => {
+  it('renders the correct copyright year', () => {
+    render(<Footer />);
+    const currentYear = new Date().getFullYear().toString();
+    
+    // Use regex to find the year anywhere in the text
+    expect(screen.getByText(new RegExp(currentYear))).toBeDefined();
+  });
+
+  it('renders the System Version indicator', () => {
+    render(<Footer />);
+    
+    // We look for the specific label "System Version: v"
+    // This confirms the Footer is attempting to display version data
+    expect(screen.getByText(/System Version: v/i)).toBeDefined();
+  });
+
+  it('renders the build status', () => {
+    render(<Footer />);
+    // Just ensuring the structure is consistent
+    expect(screen.getByText(/Ryan Douglas/i)).toBeDefined();
+  });
+});
+
 ```
 ---
 
@@ -327,46 +440,200 @@ export default SkillRadar;
 ```
 ---
 
+## FILE: src/components/timeline/TimelineCard.jsx
+```jsx
+import React from 'react';
+import { motion } from 'framer-motion';
+
+const TimelineCard = ({ data, index }) => {
+  return (
+    <div className="relative pl-8 md:pl-12 py-6 group">
+      {/* 🟢 The Node (Dot on the Spine) */}
+      <div 
+        className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 shadow-[0_0_10px_rgba(59,130,246,0.5)] z-10 group-hover:scale-125 transition-transform duration-300"
+        aria-hidden="true"
+      />
+
+      {/* 📄 The Content Card */}
+      <motion.div 
+        initial={{ opacity: 0, x: 20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true, margin: "-100px" }}
+        transition={{ duration: 0.5, delay: index * 0.1 }}
+        className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg"
+      >
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
+          <div>
+            <h3 className="text-xl font-bold text-white">{data.role}</h3>
+            <span className="text-blue-400 font-medium text-sm">{data.company}</span>
+          </div>
+          <span className="text-slate-400 text-sm font-mono mt-1 sm:mt-0">{data.date}</span>
+        </div>
+
+        {/* PAR Framework (The Narrative) */}
+        <div className="space-y-3 text-sm text-slate-300">
+          <p><strong className="text-blue-300">Problem:</strong> {data.par.problem}</p>
+          <p><strong className="text-green-300">Action:</strong> {data.par.action}</p>
+          <p><strong className="text-purple-300">Result:</strong> {data.par.result}</p>
+        </div>
+
+        {/* Skills Chips */}
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-700/50">
+          {data.skills.map(skill => (
+            <span key={skill} className="px-2 py-1 text-xs rounded-md bg-slate-900 text-slate-400 border border-slate-700">
+              {skill}
+            </span>
+          ))}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default TimelineCard;
+
+```
+---
+
+## FILE: src/components/timeline/TimelineContainer.jsx
+```jsx
+import React from 'react';
+import TimelineCard from './TimelineCard';
+
+const TimelineContainer = ({ experienceData }) => {
+  return (
+    <div className="relative max-w-3xl mx-auto">
+      {/* 📏 The Vertical Spine (Absolute Left) */}
+      <div className="absolute left-[2px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-transparent opacity-50" />
+
+      {/* List of Items */}
+      <div className="flex flex-col space-y-2">
+        {experienceData.map((job, index) => (
+          <TimelineCard key={job.id} data={job} index={index} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default TimelineContainer;
+
+```
+---
+
+## FILE: src/components/timeline/__tests__/TimelineCard.test.jsx
+```jsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import TimelineCard from '../TimelineCard';
+
+// 1. Mock Framer Motion
+// We replace the animated component with a standard div so tests run instantly
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, className }) => <div className={className}>{children}</div>,
+  },
+}));
+
+describe('TimelineCard Component', () => {
+  // 2. Define Mock Data (The "Fixture")
+  const mockData = {
+    id: "test_1",
+    role: "Senior Developer",
+    company: "Tech Corp",
+    date: "2020 - Present",
+    logo: "🚀",
+    skills: ["React", "Vitest", "Node.js"],
+    summary: "A test summary.",
+    par: {
+      problem: "Legacy code was slow.",
+      action: "Refactored to React 19.",
+      result: "Performance improved by 50%."
+    }
+  };
+
+  it('renders the role, company, and date correctly', () => {
+    render(<TimelineCard data={mockData} index={0} />);
+    
+    expect(screen.getByText('Senior Developer')).toBeDefined();
+    expect(screen.getByText('Tech Corp')).toBeDefined();
+    expect(screen.getByText('2020 - Present')).toBeDefined();
+  });
+
+  it('renders the PAR (Problem, Action, Result) narrative', () => {
+    render(<TimelineCard data={mockData} index={0} />);
+
+    // Check for the labels
+    expect(screen.getByText('Problem:')).toBeDefined();
+    expect(screen.getByText('Action:')).toBeDefined();
+    expect(screen.getByText('Result:')).toBeDefined();
+
+    // Check for the content
+    expect(screen.getByText(/Legacy code was slow/i)).toBeDefined();
+    expect(screen.getByText(/Refactored to React 19/i)).toBeDefined();
+    expect(screen.getByText(/Performance improved by 50%/i)).toBeDefined();
+  });
+
+  it('renders the correct number of skill chips', () => {
+    render(<TimelineCard data={mockData} index={0} />);
+    
+    const chip1 = screen.getByText('React');
+    const chip2 = screen.getByText('Vitest');
+    const chip3 = screen.getByText('Node.js');
+
+    expect(chip1).toBeDefined();
+    expect(chip2).toBeDefined();
+    expect(chip3).toBeDefined();
+  });
+});
+
+```
+---
+
 ## FILE: src/data/experience.json
 ```json
 [
   {
-    "id": "exp-1",
-    "role": "Senior Management Consultant",
-    "company": "Consulting Firm",
-    "period": "2015 - Present",
-    "type": "work",
-    "skills": ["Business Transformation", "System Implementation", "Change Mgmt"],
+    "id": "job_1",
+    "role": "Management Consultant & Power BI Developer",
+    "company": "Freelance / Independent",
+    "date": "2022 - Present",
+    "logo": "📊",
+    "skills": ["Power BI", "React", "Azure", "DAX"],
+    "summary": "Leading business transformation projects and building custom data visualization solutions.",
     "par": {
-      "problem": "Large-scale organizations struggling with inefficient legacy systems and undefined business processes.",
-      "action": "Led complex business transformation initiatives, implementing new system architectures and managing stakeholder expectations across multiple departments.",
-      "result": "Delivered sustainable operational improvements and successful system migrations for high-value clients."
+      "problem": "Clients struggled to bridge the gap between complex data warehouses and actionable business strategy.",
+      "action": "Developed interactive Power BI dashboards and React-based web apps to visualize KPIs in real-time.",
+      "result": "Reduced reporting latency by 40% and enabled executive teams to make data-driven decisions instantly."
     }
   },
   {
-    "id": "exp-2",
-    "role": "Power BI Developer",
-    "company": "Freelance / Contract",
-    "period": "2022 - Present",
-    "type": "work",
-    "skills": ["Power BI", "DAX", "Data Visualization"],
+    "id": "job_2",
+    "role": "Business Transformation Lead",
+    "company": "Previous Firm",
+    "date": "2015 - 2022",
+    "logo": "💼",
+    "skills": ["Change Management", "Process Optimization", "SQL"],
+    "summary": "Directed large-scale system implementations for Fortune 500 clients.",
     "par": {
-      "problem": "Clients possessed vast amounts of data but lacked actionable insights due to poor reporting infrastructure.",
-      "action": "Designed and deployed interactive Power BI dashboards, utilizing advanced DAX formulas to calculate custom KPIs.",
-      "result": "Enabled data-driven decision-making, reducing reporting time by 40% and identifying key revenue drivers."
+      "problem": "Legacy systems were creating data silos, resulting in a 15% annual revenue leakage.",
+      "action": "Spearheaded the migration to a unified cloud ERP and implemented automated reconciliation workflows.",
+      "result": "Recovered $2.5M in lost revenue within the first year of implementation."
     }
   },
   {
-    "id": "edu-1",
-    "role": "Computer Programmer Graduate",
-    "company": "Fanshawe College",
-    "period": "2001 - 2003",
-    "type": "education",
-    "skills": ["Software Development", "Logic", "Foundations"],
+    "id": "job_3",
+    "role": "Computer Programmer",
+    "company": "Early Career",
+    "date": "2003 - 2015",
+    "logo": "💻",
+    "skills": ["C++", "Java", "Systems Analysis"],
+    "summary": "Foundational experience in software development and systems logic.",
     "par": {
-      "problem": "N/A",
-      "action": "Completed rigorous coursework in computer programming, algorithms, and database management.",
-      "result": "Graduated with strong foundational knowledge that bridges the gap between modern consulting and technical execution."
+      "problem": "Manual data entry processes were prone to a high error rate.",
+      "action": "Wrote custom scripts to automate data ingestion and validation.",
+      "result": "Eliminated manual entry for 90% of workflows."
     }
   }
 ]
@@ -470,6 +737,33 @@ body {
 ```
 ---
 
+## FILE: src/lib/firebase.js
+```js
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+
+// Use environment variables (Vite requires VITE_ prefix)
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_API_KEY,
+  authDomain: import.meta.env.VITE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_APP_ID,
+  measurementId: import.meta.env.VITE_MEASUREMENT_ID
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialize Analytics (only in production/browser)
+const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+export { app, analytics };
+
+```
+---
+
 ## FILE: src/main.jsx
 ```jsx
 import { StrictMode } from 'react'
@@ -486,34 +780,155 @@ createRoot(document.getElementById('root')).render(
 ```
 ---
 
+## FILE: src/sections/ExperienceSection.jsx
+```jsx
+import React from 'react';
+import TimelineContainer from '../components/timeline/TimelineContainer';
+import experienceData from '../data/experience.json';
+
+const ExperienceSection = () => {
+  return (
+    <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden">
+      <div className="container mx-auto px-4">
+        {/* Section Header */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Professional <span className="text-blue-500">History</span>
+          </h2>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            15 years of bridging the gap between Business Strategy and Technical Execution.
+          </p>
+        </div>
+
+        {/* The Timeline */}
+        <TimelineContainer experienceData={experienceData} />
+      </div>
+    </section>
+  );
+};
+
+export default ExperienceSection;
+
+```
+---
+
+## FILE: src/test/setup.js
+```js
+import { cleanup } from '@testing-library/react';
+import { afterEach } from 'vitest';
+
+// Runs a cleanup after each test case (e.g. clearing jsdom)
+afterEach(() => {
+  cleanup();
+});
+
+```
+---
+
+## FILE: docs/AI_WORKFLOW.md
+```md
+# 🤖 AI Development Framework
+
+This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant must adopt a specific "Hat" depending on the phase of the SDLC.
+
+## 1. The Architect ("The Thinker")
+* **Trigger:** `docs/PROMPT_FEATURE_REQUEST.md`
+* **Goal:** Analyze requirements, propose 3 options, and manage trade-offs.
+* **Output:** Analysis & Options Table.
+* **Behavior:** Creative, skeptical of "easy" answers, focused on UX & Engineering Strategy.
+* **Forbidden:** Writing production code (Scaffolding only).
+
+## 2. The Builder ("The Doer")
+* **Trigger:** `docs/PROMPT_APPROVAL.md`
+* **Goal:** Execute the chosen Architectural Option with precision.
+* **Output:** `install_feature.sh` (Bash) or `App.jsx` (React).
+* **Behavior:** Compliant, strict, type-safe, focused on "One-Shot" execution.
+* **Key Constraint:** Must generate executable scripts (Bash/Python) to minimize manual copy-pasting.
+
+## 3. The Maintainer ("The Librarian")
+* **Trigger:** `docs/PROMPT_POST_FEATURE.md`
+* **Goal:** Synchronize documentation with reality.
+* **Output:** `update_docs.py` (Python).
+* **Behavior:** Detail-oriented, consistent, focused on longevity and history.
+* **Key Constraint:** Uses Python for text processing to avoid syntax errors.
+
+---
+
+## 🔄 The Loop
+1.  **Architect** designs the feature.
+2.  **Builder** implements the feature.
+3.  **Maintainer** updates the records.
+
+## 4. The Tester ("The Skeptic")
+* **Trigger:** \`docs/PROMPT_TESTING.md\`
+* **Goal:** Verify logic and prevent regressions.
+* **Output:** \`src/__tests__/*.test.jsx\`
+* **Behavior:** Paranoid, pedantic, focused on edge cases (e.g., "What if data is empty?").
+* **Key Constraint:** Must use \`@testing-library/react\` principles (test behavior, not implementation).
+
+```
+---
+
+## FILE: docs/CHANGELOG.md
+```md
+# 📜 Changelog
+
+## [v0.5.0] - 2026-01-22
+### Added
+* **System Versioning Architecture:**
+    * Migrated version control to `package.json` (SSOT).
+    * Configured `vite.config.js` to expose version env vars.
+    * Created `Footer` component with dynamic version display.
+    * Added Unit Tests for Version Injection.
+
+## [v0.4.0] - 2026-01-22
+### Added
+* **Experience Timeline:**
+    * Implemented `TimelineContainer` and `TimelineCard`.
+    * Added Unit Tests (`TimelineCard.test.jsx`).
+
+## [v0.3.0] - 2026-01-22
+### Added
+* **Testing Infrastructure:** Configured Vitest & JSDOM.
+```
+---
+
 ## FILE: docs/CONTEXT_DUMP.md
 ```md
 # Interactive Resume: Context Dump
-**Stack:** React + Vite + Tailwind CSS + Framer Motion + Recharts
-**Version:** v0.1.0 (Scaffolding)
-**Architecture:** Single Page Application (SPA) with Section-based Navigation.
-
-## 🧠 The "Prime Directive"
-**The Medium is the Message.**
-This website is not just a resume; it is a demonstration of the skills listed on the resume.
-1.  **Clarity First:** Animations must serve the data, not distract from it.
-2.  **Performance:** 100/100 Lighthouse score is a requirement.
-3.  **Responsiveness:** Must look as good on a phone (Recruiter in an Uber) as on a Desktop (CTO in office).
+**Stack:** React + Vite + Tailwind CSS (v4) + Framer Motion + Recharts
+**Test Stack:** Vitest + React Testing Library
+**Version:** v0.5.0
 
 ## Architecture Rules (STRICT)
-1.  **Data-Driven:** All content (Jobs, Skills, Projects) must be separated into JSON files (`src/data/`). No hardcoded HTML text.
-2.  **No "Canvas" (Mostly):** Use DOM/SVG for charts (Recharts) to ensure accessibility and crisp text. Use Canvas only for the "Data Universe" 3D visualization if implemented later.
-3.  **Component Modularity:** `Dashboard`, `Timeline`, and `Matrix` must be isolated features.
-4.  **No Partial Updates:** Code provided by AI must always be full file contents.
+1. **SSOT:** Version is controlled by `package.json`.
+2. **Data-Driven:** All content separated into JSON files.
+3. **Testing:** New components require `.test.jsx`.
+```
+---
 
-## Data Schema (JSON Strategy)
-- **`profile.json`**: Name, Title, Bio, Social Links.
-- **`skills.json`**: Categories (Tech, Strategy), Proficiency (0-100), Years Experience.
-- **`experience.json`**: Array of Roles.
-    - `company`, `role`, `dates`, `logo`
-    - `par`: { `problem`: "...", `action`: "...", `result`: "..." } (The Consulting Format)
-    - `techStack`: Array of skill IDs used in this role.
+## FILE: docs/DEPLOYMENT.md
+```md
+# ☁️ Deployment & Infrastructure Manual
 
+## 1. The Pipeline
+We use a **GitHub Actions** workflow to automate deployments to Firebase Hosting.
+
+| Environment | Trigger | URL | Status |
+| :--- | :--- | :--- | :--- |
+| **Production** | Push to `main` | `ryandouglas-resume.web.app` | Live |
+| **Preview** | Open Pull Request | (Generated in PR Comment) | Ephemeral |
+
+## 2. Secrets Management
+* `FIREBASE_SERVICE_ACCOUNT`
+* `FIREBASE_PROJECT_ID`
+* `VITE_*` (Env Vars)
+
+## 3. Manual Deployment
+```bash
+npm run build
+npx firebase deploy
+```
 ```
 ---
 
@@ -561,30 +976,21 @@ This website is not just a resume; it is a demonstration of the skills listed on
 ```md
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 1 - Scaffolding & Data Entry
-**Version:** v0.1.0
-**Context:** Personal Brand Building / Job Hunt
+**Current Phase:** Phase 4 - The Matrix (Interaction)
+**Version:** v0.5.0
 
-> **Mission:** To demonstrate Management Consulting and Power BI expertise through a React-based interactive application.
+## 🎯 Current Sprint: The Matrix
+* [ ] **Cross-Filtering:** Clicking a Skill filters the Timeline.
+* [ ] **State Management:** Lift state up to `App.jsx`.
 
-## 🎯 Current Sprint: Foundation
-* [x] Project Scaffolding (Vite/React/Tailwind)
-* [x] Methodology Documentation Setup
-* [ ] **Data Entry:** Populate `src/data/experience.json` and `skills.json` with actual resume content.
-* [ ] **Component:** Build the basic `Dashboard` layout.
+## ✅ Completed Features
+* **Phase 5: Architecture** (System Versioning vv0.5.0)
+* **Phase 4: The Narrative** (Timeline)
+* **Phase 3.5: Testing** (Vitest)
+* **Phase 3: DevOps** (CI/CD)
 
 ## 📋 Product Backlog
-### Phase 2: The Dashboard
-* Implement "Hybrid Radar Chart" (Tech vs. Strategy).
-* Implement KPI Cards (Years, Certs, Projects).
-
-### Phase 3: The Timeline
-* Build Vertical Timeline component.
-* Implement "Scroll Spy" to update Dashboard based on scroll position.
-
-### Phase 4: The Matrix
-* Implement Cross-Filtering (Clicking a skill filters the timeline).
-
+* Phase 6: Polish (Lighthouse Tuning)
 ```
 ---
 
@@ -725,6 +1131,102 @@ Do **NOT** write code yet. Instead, analyze the request and propose **3 Distinct
 [PASTE_FULL_CODEBASE_CONTEXT_HERE]
 
 **Reply "Context Received. Ready to build." if you understand.**
+
+```
+---
+
+## FILE: docs/PROMPT_POST_FEATURE.md
+```md
+# 📝 AI Documentation Audit Prompt (The Maintainer)
+
+**Instructions:**
+Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified in Production.
+
+---
+
+### **Prompt Template**
+
+**Role:** You are the Lead Technical Writer and Open Source Maintainer for this project.
+**Task:** Perform a comprehensive documentation audit and synchronization.
+
+**Trigger:** We have just completed and deployed the feature: **[INSERT FEATURE NAME]**.
+
+**Current Context:**
+* The code is live.
+* The tests (or manual checks) have passed.
+* I need to close this sprint and prepare the repo for the next phase.
+
+**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that updates the following files to reflect the new state of the application:
+
+1.  **`docs/PROJECT_STATUS.md`**:
+    * Mark the current feature as `[x] Completed`.
+    * Update the "Current Phase" and "Version" if applicable.
+    * Select the next logical item from the Backlog to be the "Current Sprint".
+
+2.  **`docs/CHANGELOG.md`**:
+    * Add a new entry under the current version.
+    * List key technical changes (e.g., "Added Recharts", "Configured CI/CD").
+
+3.  **`docs/CONTEXT_DUMP.md`**:
+    * Update the "Stack" if new libraries were added.
+    * Update the "Architecture Rules" if we established new patterns (e.g., "Use Python for text generation").
+
+4.  **`README.md` (Root)**:
+    * Ensure badges are correct.
+    * Update the "Architecture" diagram if the data flow changed.
+
+**🛑 STOP & THINK: The Consistency Check**
+Before writing the script, ask yourself:
+* *Did we add new Environment Variables?* If yes, does `docs/DEPLOYMENT.md` need an update?
+* *Did we change the project structure?* If yes, does the `CONTEXT_DUMP` file structure section need verification?
+
+**Output Requirement:**
+* Provide a single, robust **Python Script** (using the `write_lines` list approach to avoid syntax errors).
+* Do NOT use Bash for writing markdown files.
+
+---
+
+**Codebase Context:**
+[PASTE RELEVANT DOCS OR FILE LIST IF NEEDED]
+
+```
+---
+
+## FILE: docs/PROMPT_TESTING.md
+```md
+# 🧪 AI Testing Prompt (The QA Engineer)
+
+**Instructions:**
+Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Done".
+
+---
+
+### **Prompt Template**
+
+**Role:** You are the Senior SDET (Software Development Engineer in Test).
+**Task:** Write a robust Unit Test for the provided component.
+
+**Input:**
+* I will provide the component code (e.g., \`KPICard.jsx\`).
+* I will provide the relevant data context (e.g., \`profile.json\`).
+
+**Your Goal:** Generate a **Vitest** specification file (\`src/__tests__/ComponentName.test.jsx\`).
+
+**Test Strategy (The "Skeptic" Standard):**
+1.  **Happy Path:** Does it render the data correctly?
+2.  **Edge Cases:** What happens if the data is missing/null?
+3.  **Interaction:** If there is a button, fire a click event and check the result.
+4.  **Accessibility:** Does it use semantic HTML (headers, buttons)?
+
+**Output Requirements:**
+* **Complete File:** Provide the full \`.test.jsx\` file content.
+* **Imports:** Ensure \`render\`, \`screen\`, and \`fireEvent\` are imported from \`@testing-library/react\`.
+* **Mocking:** If the component uses external hooks (like \`useRouter\` or complex animations), mock them.
+
+**Example Scenario:**
+"If the KPI value is 15, does the screen display '15'? If I pass a custom color, is the class applied?"
+
+**Wait:** Ask me to paste the Component Code to begin.
 
 ```
 ---
@@ -913,6 +1415,69 @@ cat << 'EOF' > "$DATA_DIR/experience.json"
 EOF
 
 echo "✅ Data Layer Updated Successfully!"
+```
+---
+
+## FILE: .github/workflows/deploy-preview.yml
+```yml
+name: Deploy to Preview Channel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build_and_preview:
+    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Firebase Preview
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+
+```
+---
+
+## FILE: .github/workflows/deploy-prod.yml
+```yml
+name: Deploy to Live Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Live
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          channelId: live
+
 ```
 ---
 
