@@ -30,22 +30,23 @@ print(f"🔹 Detected System Version: {current_version}")
 status_lines = [
     "# 📌 Project Status: Interactive Resume",
     "",
-    "**Current Phase:** Phase 9 - Project Portfolio",
+    "**Current Phase:** Phase 10 - Insights & Immersion",
     f"**Version:** {current_version}", 
     "",
-    "## 🎯 Current Sprint: Polish & Analytics",
-    "* [x] **Core Refactor:** Moved to Nested Project Architecture.",
-    "* [ ] **Analytics:** Integrate Google Analytics 4.",
-    "* [ ] **UX Polish:** Sticky Navigation & Dynamic Hero.",
+    "## 🎯 Current Sprint: v1.0.0 Gold Master Prep",
+    "* [x] **Polish:** Sticky Header & Typewriter Hero.",
+    "* [x] **Insights:** Google Analytics 4 Integration.",
+    "* [ ] **Final Build:** Production build verification.",
+    "* [ ] **Launch:** Tag v1.0.0 and deploy to Production.",
     "",
     "## ✅ Completed Features",
-    f"* **Phase 9: Project Portfolio** (Nested Architecture v{current_version})",
-    "    * [x] Refactored `experience.json` to support 1-to-Many relationships.",
-    "    * [x] Implemented Accordion UI for Timeline Cards.",
-    "    * [x] Updated 'Smart Expansion' logic for Cross-Filtering.",
+    f"* **Phase 10: Polish** (UX & Analytics v{current_version})",
+    "    * [x] Implemented `useAnalytics` for custom event tracking.",
+    "    * [x] Created `useTypewriter` custom hook for Hero section.",
+    "    * [x] Built Glassmorphic Sticky Header.",
+    "* **Phase 9: Project Portfolio** (Nested Architecture)",
     "* **Phase 8: Content Injection** (Real Data)",
     "* **Phase 7: Universal Access** (A11y & Print)",
-    "* **Phase 4: The Matrix** (Cross-Filtering)",
     "",
     "## 📋 Product Backlog",
     "* v1.0.0 Release (Gold Master)"
@@ -56,14 +57,14 @@ status_lines = [
 # ==========================================
 context_lines = [
     "# Interactive Resume: Context Dump",
-    "**Stack:** React + Vite + Tailwind CSS (v4) + Framer Motion + Recharts",
+    "**Stack:** React + Vite + Tailwind CSS (v4) + Framer Motion + Recharts + Firebase Analytics",
     "**Test Stack:** Vitest + React Testing Library",
     f"**Version:** {current_version}",
     "",
     "## Architecture Rules (STRICT)",
     "1. **SSOT:** Version is controlled by `package.json`.",
-    "2. **Data Structure:** `Experience -> Jobs -> [Projects]`. Do not revert to flat list.",
-    "3. **Interaction:** Filtering a skill MUST auto-expand the relevant job card."
+    "2. **Hooks:** Logic must be extracted to `src/hooks/*.js` (e.g., `useAnalytics`, `useTypewriter`).",
+    "3. **Analytics:** User interactions (clicks/filters) must be logged via `logUserInteraction`."
 ]
 
 # ==========================================
@@ -73,19 +74,20 @@ changelog_lines = [
     "# 📜 Changelog",
     "",
     f"## [{current_version}] - 2026-01-23",
+    "### Added",
+    "* **Insights & Immersion (Phase 10):**",
+    "    * **Sticky Header:** Glassmorphic navigation bar for better long-page UX.",
+    "    * **Dynamic Hero:** Typewriter effect cycling through professional titles.",
+    "    * **Google Analytics 4:** Custom event tracking for Skill Filtering.",
+    "    * **Custom Hooks:** `useTypewriter` and `useAnalytics` for clean logic separation.",
+    "",
+    "## [v0.10.0] - 2026-01-23",
     "### Changed",
-    "* **Architecture Refactor:** Moved from Flat Role list to Nested Project Portfolio.",
-    "    * `experience.json` now supports `projects` array per job.",
-    "    * `TimelineCard.jsx` now uses an Accordion pattern.",
-    "    * `ExperienceSection.jsx` filtering logic now traverses nested projects.",
+    "* **Architecture Refactor:** Nested Project Portfolio (Job -> Projects).",
     "",
     "## [v0.9.0] - 2026-01-22",
     "### Added",
-    "* **Content Injection:** Real career data from PDFs.",
-    "",
-    "## [v0.8.0] - 2026-01-22",
-    "### Added",
-    "* **Universal Access:** Print Styles & Accessibility features."
+    "* **Content Injection:** Real career data from PDFs."
 ]
 
 # ==========================================
@@ -105,6 +107,7 @@ readme_lines = [
     "",
     "## 🏗️ Architecture",
     "Strict Data-Driven Architecture. Content flows from `src/data/*.json`.",
+    "Uses Custom Hooks (`src/hooks/`) for logic separation.",
     "",
     "## 🚀 Quick Start",
     "```bash",

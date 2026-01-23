@@ -2,8 +2,13 @@ import React, { useState } from 'react';
 import Dashboard from './components/dashboard/Dashboard';
 import ExperienceSection from './sections/ExperienceSection';
 import Footer from './components/Footer';
+import Header from './components/Header';
+import { useAnalytics } from './hooks/useAnalytics';
 
 function App() {
+  // 📊 Initialize Analytics
+  useAnalytics();
+
   // 🧠 The Brain: Shared State for Cross-Filtering
   const [activeSkill, setActiveSkill] = useState(null);
 
@@ -26,7 +31,10 @@ function App() {
         Skip to Content
       </a>
 
-      <main id="main-content">
+      {/* 🧭 Sticky Navigation */}
+      <Header />
+
+      <main id="main-content" className="pt-20"> {/* pt-20 to offset fixed header */}
         {/* 1. Dashboard triggers the filter */}
         <Dashboard onSkillClick={handleSkillClick} />
         

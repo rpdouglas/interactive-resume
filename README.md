@@ -3,7 +3,7 @@
 ![Build Status](https://github.com/rpdouglas/interactive-resume/actions/workflows/deploy-prod.yml/badge.svg)
 ![React](https://img.shields.io/badge/React-v19-blue)
 ![Vitest](https://img.shields.io/badge/Tested_with-Vitest-green)
-![Version](https://img.shields.io/badge/Version-v0.10.0-purple)
+![Version](https://img.shields.io/badge/Version-v0.11.0-purple)
 
 > **Live Demo:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)
 
@@ -11,6 +11,7 @@ An interactive, data-driven visualization of my 15-year career in **Management C
 
 ## 🏗️ Architecture
 Strict Data-Driven Architecture. Content flows from `src/data/*.json`.
+Uses Custom Hooks (`src/hooks/`) for logic separation.
 
 ## 🚀 Quick Start
 ```bash
