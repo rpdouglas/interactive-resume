@@ -1,0 +1,18 @@
+{
+  "basics": {
+    "name": "Your Name",
+    "label": "Management Consultant & Power BI Developer",
+    "email": "your.email@example.com",
+    "phone": "(555) 555-5555",
+    "location": "Cornwall, Ontario",
+    "summary": "A results-driven Management Consultant with 15 years of experience leading complex business transformation projects. Certified Microsoft Power BI Developer specializing in bridging the gap between strategic business goals and technical data implementations.",
+    "website": "https://yourwebsite.com",
+    "github": "https://github.com/yourusername",
+    "linkedin": "https://linkedin.com/in/yourusername"
+  },
+  "metrics": {
+    "yearsExperience": 15,
+    "projectsDelivered": 45,
+    "certifications": 2
+  }
+}

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "strategy",
+    "label": "Business Strategy",
+    "data": [
+      { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
+      { "subject": "Stakeholder Analysis", "A": 90, "fullMark": 100 },
+      { "subject": "Process Optimization", "A": 85, "fullMark": 100 },
+      { "subject": "System Implementation", "A": 90, "fullMark": 100 },
+      { "subject": "TOWS Analysis", "A": 80, "fullMark": 100 }
+    ]
+  },
+  {
+    "id": "technical",
+    "label": "Technical Stack",
+    "data": [
+      { "subject": "Power BI", "A": 95, "fullMark": 100 },
+      { "subject": "DAX / SQL", "A": 85, "fullMark": 100 },
+      { "subject": "React / JS", "A": 75, "fullMark": 100 },
+      { "subject": "Zoho Analytics", "A": 80, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 }
+    ]
+  }
+]
