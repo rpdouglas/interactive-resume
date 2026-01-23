@@ -1,41 +1,44 @@
 [
   {
-    "id": "exp-1",
-    "role": "Senior Management Consultant",
-    "company": "Consulting Firm",
-    "period": "2015 - Present",
-    "type": "work",
-    "skills": ["Business Transformation", "System Implementation", "Change Mgmt"],
+    "id": "job_1",
+    "role": "Management Consultant & Power BI Developer",
+    "company": "Freelance / Independent",
+    "date": "2022 - Present",
+    "logo": "📊",
+    "skills": ["Power BI", "React", "Azure", "DAX"],
+    "summary": "Leading business transformation projects and building custom data visualization solutions.",
     "par": {
-      "problem": "Large-scale organizations struggling with inefficient legacy systems and undefined business processes.",
-      "action": "Led complex business transformation initiatives, implementing new system architectures and managing stakeholder expectations across multiple departments.",
-      "result": "Delivered sustainable operational improvements and successful system migrations for high-value clients."
+      "problem": "Clients struggled to bridge the gap between complex data warehouses and actionable business strategy.",
+      "action": "Developed interactive Power BI dashboards and React-based web apps to visualize KPIs in real-time.",
+      "result": "Reduced reporting latency by 40% and enabled executive teams to make data-driven decisions instantly."
     }
   },
   {
-    "id": "exp-2",
-    "role": "Power BI Developer",
-    "company": "Freelance / Contract",
-    "period": "2022 - Present",
-    "type": "work",
-    "skills": ["Power BI", "DAX", "Data Visualization"],
+    "id": "job_2",
+    "role": "Business Transformation Lead",
+    "company": "Previous Firm",
+    "date": "2015 - 2022",
+    "logo": "💼",
+    "skills": ["Change Management", "Process Optimization", "SQL"],
+    "summary": "Directed large-scale system implementations for Fortune 500 clients.",
     "par": {
-      "problem": "Clients possessed vast amounts of data but lacked actionable insights due to poor reporting infrastructure.",
-      "action": "Designed and deployed interactive Power BI dashboards, utilizing advanced DAX formulas to calculate custom KPIs.",
-      "result": "Enabled data-driven decision-making, reducing reporting time by 40% and identifying key revenue drivers."
+      "problem": "Legacy systems were creating data silos, resulting in a 15% annual revenue leakage.",
+      "action": "Spearheaded the migration to a unified cloud ERP and implemented automated reconciliation workflows.",
+      "result": "Recovered $2.5M in lost revenue within the first year of implementation."
     }
   },
   {
-    "id": "edu-1",
-    "role": "Computer Programmer Graduate",
-    "company": "Fanshawe College",
-    "period": "2001 - 2003",
-    "type": "education",
-    "skills": ["Software Development", "Logic", "Foundations"],
+    "id": "job_3",
+    "role": "Computer Programmer",
+    "company": "Early Career",
+    "date": "2003 - 2015",
+    "logo": "💻",
+    "skills": ["C++", "Java", "Systems Analysis"],
+    "summary": "Foundational experience in software development and systems logic.",
     "par": {
-      "problem": "N/A",
-      "action": "Completed rigorous coursework in computer programming, algorithms, and database management.",
-      "result": "Graduated with strong foundational knowledge that bridges the gap between modern consulting and technical execution."
+      "problem": "Manual data entry processes were prone to a high error rate.",
+      "action": "Wrote custom scripts to automate data ingestion and validation.",
+      "result": "Eliminated manual entry for 90% of workflows."
     }
   }
 ]
