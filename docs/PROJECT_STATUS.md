@@ -1,25 +1,18 @@
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 1 - Scaffolding & Data Entry
-**Version:** v0.1.0
-**Context:** Personal Brand Building / Job Hunt
+**Current Phase:** Phase 3 - The Experience Timeline
+**Version:** v0.3.0
 
-> **Mission:** To demonstrate Management Consulting and Power BI expertise through a React-based interactive application.
+## 🎯 Current Sprint: The Narrative
+* [ ] **Timeline Component:** Build the vertical 'Scroll Spy' timeline.
+* [ ] **Mobile Layout:** Ensure the timeline stacks correctly on small screens.
 
-## 🎯 Current Sprint: Foundation
-* [x] Project Scaffolding (Vite/React/Tailwind)
-* [x] Methodology Documentation Setup
-* [ ] **Data Entry:** Populate `src/data/experience.json` and `skills.json` with actual resume content.
-* [ ] **Component:** Build the basic `Dashboard` layout.
+## ✅ Completed Features
+* **Phase 1: Foundation** (Vite/React/Tailwind v4)
+* **Phase 2: The Dashboard** (KPI Cards, Radar Chart)
+* **Phase 3: DevOps** (GitHub Actions, Firebase)
+* **Phase 4: Testing Infra** (Vitest, RTL, JSDOM)
 
 ## 📋 Product Backlog
-### Phase 2: The Dashboard
-* Implement "Hybrid Radar Chart" (Tech vs. Strategy).
-* Implement KPI Cards (Years, Certs, Projects).
-
-### Phase 3: The Timeline
-* Build Vertical Timeline component.
-* Implement "Scroll Spy" to update Dashboard based on scroll position.
-
-### Phase 4: The Matrix
-* Implement Cross-Filtering (Clicking a skill filters the timeline).
+* Phase 4: The Matrix (Cross-Filtering)
+* Phase 5: Polish (Lighthouse Tuning)
