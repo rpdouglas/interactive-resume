@@ -30,22 +30,21 @@ print(f"🔹 Detected System Version: {current_version}")
 status_lines = [
     "# 📌 Project Status: Interactive Resume",
     "",
-    "**Current Phase:** Phase 8 - Content Complete",
+    "**Current Phase:** Phase 9 - Project Portfolio",
     f"**Version:** {current_version}", 
     "",
-    "## 🎯 Current Sprint: Pre-Launch QA",
-    "* All features implemented.",
-    "* All real data injected.",
-    "* [ ] **Final Manual Review:** Check for typos in the parsed resume data.",
-    "* [ ] **Deployment:** Final push to Production.",
+    "## 🎯 Current Sprint: Polish & Analytics",
+    "* [x] **Core Refactor:** Moved to Nested Project Architecture.",
+    "* [ ] **Analytics:** Integrate Google Analytics 4.",
+    "* [ ] **UX Polish:** Sticky Navigation & Dynamic Hero.",
     "",
     "## ✅ Completed Features",
-    f"* **Phase 8: Content Injection** (Real Data v{current_version})",
-    "    * [x] Parsed 15-year career history from PDFs.",
-    "    * [x] Applied PAR Framework to Experience.",
-    "    * [x] Added Data Schema Validation Tests.",
+    f"* **Phase 9: Project Portfolio** (Nested Architecture v{current_version})",
+    "    * [x] Refactored `experience.json` to support 1-to-Many relationships.",
+    "    * [x] Implemented Accordion UI for Timeline Cards.",
+    "    * [x] Updated 'Smart Expansion' logic for Cross-Filtering.",
+    "* **Phase 8: Content Injection** (Real Data)",
     "* **Phase 7: Universal Access** (A11y & Print)",
-    "* **Phase 6: The Polish** (SEO & OG Tags)",
     "* **Phase 4: The Matrix** (Cross-Filtering)",
     "",
     "## 📋 Product Backlog",
@@ -63,8 +62,8 @@ context_lines = [
     "",
     "## Architecture Rules (STRICT)",
     "1. **SSOT:** Version is controlled by `package.json`.",
-    "2. **Data:** `src/data/*.json` contains ACTUAL user career history (Do not overwrite with placeholders).",
-    "3. **Integrity:** `SchemaValidation.test.js` must pass before any data commit."
+    "2. **Data Structure:** `Experience -> Jobs -> [Projects]`. Do not revert to flat list.",
+    "3. **Interaction:** Filtering a skill MUST auto-expand the relevant job card."
 ]
 
 # ==========================================
@@ -73,24 +72,20 @@ context_lines = [
 changelog_lines = [
     "# 📜 Changelog",
     "",
-    f"## [{current_version}] - 2026-01-22",
+    f"## [{current_version}] - 2026-01-23",
+    "### Changed",
+    "* **Architecture Refactor:** Moved from Flat Role list to Nested Project Portfolio.",
+    "    * `experience.json` now supports `projects` array per job.",
+    "    * `TimelineCard.jsx` now uses an Accordion pattern.",
+    "    * `ExperienceSection.jsx` filtering logic now traverses nested projects.",
+    "",
+    "## [v0.9.0] - 2026-01-22",
     "### Added",
-    "* **Content Injection (Real Data):**",
-    "    * Replaced placeholders with actual career history (PwC, Biond, Teleperformance).",
-    "    * Synthesized skills matrix based on 15 years of experience.",
-    "    * Added `SchemaValidation.test.js` to prevent data corruption.",
+    "* **Content Injection:** Real career data from PDFs.",
     "",
     "## [v0.8.0] - 2026-01-22",
     "### Added",
-    "* **Universal Access:** Print Styles & Accessibility features.",
-    "",
-    "## [v0.7.0] - 2026-01-22",
-    "### Added",
-    "* **SEO & Polish:** Open Graph Tags & Metadata.",
-    "",
-    "## [v0.6.0] - 2026-01-22",
-    "### Added",
-    "* **The Matrix:** Interactive Cross-Filtering."
+    "* **Universal Access:** Print Styles & Accessibility features."
 ]
 
 # ==========================================

@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Thu Jan 22 22:36:43 EST 2026
+**Date:** Fri Jan 23 00:04:07 EST 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -7,7 +7,7 @@
 {
   "name": "interactive-resume",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -162,27 +162,53 @@ export default defineConfig({
 
 ## FILE: src/App.jsx
 ```jsx
-import React from 'react';
+import React, { useState } from 'react';
 import Dashboard from './components/dashboard/Dashboard';
 import ExperienceSection from './sections/ExperienceSection';
-// 👇 IMPORT THE MISSING COMPONENT
 import Footer from './components/Footer';
 
 function App() {
+  // 🧠 The Brain: Shared State for Cross-Filtering
+  const [activeSkill, setActiveSkill] = useState(null);
+
+  const handleSkillClick = (skillName) => {
+    // If clicking the same skill, toggle it off
+    setActiveSkill(prev => prev === skillName ? null : skillName);
+  };
+
+  const handleClearFilter = () => {
+    setActiveSkill(null);
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-accent selection:text-white">
-      <main>
-        <Dashboard />
-        <ExperienceSection />
+      {/* ♿ A11y: Skip Link (Hidden until Tabbed) */}
+      <a 
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 px-6 py-3 bg-blue-600 text-white font-bold rounded shadow-lg transition-transform"
+      >
+        Skip to Content
+      </a>
+
+      <main id="main-content">
+        {/* 1. Dashboard triggers the filter */}
+        <Dashboard onSkillClick={handleSkillClick} />
+        
+        {/* 2. Timeline reacts to the filter */}
+        <ExperienceSection 
+          activeFilter={activeSkill} 
+          onClear={handleClearFilter} 
+        />
       </main>
       
-      {/* 👇 Use the Smart Footer (contains Version v0.4.0) */}
+      {/* Footer is hidden in print via utility class in component */}
       <Footer />
     </div>
   );
 }
 
 export default App;
+
 ```
 ---
 
@@ -202,11 +228,14 @@ const Footer = () => {
   const version = import.meta.env.PACKAGE_VERSION || 'v0.0.0';
 
   return (
-    <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center mt-20">
-      <p className="text-slate-500 text-sm">
-        &copy; {new Date().getFullYear()} Ryan Douglas. All rights reserved.
+    <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center mt-20 print:bg-white print:border-t-2 print:border-gray-200 print:mt-10 print:py-4">
+      <p className="text-slate-500 text-sm print:text-gray-600">
+        &copy; {new Date().getFullYear()} Ryan Douglas. 
+        <span className="hidden print:inline"> - ryandouglas-resume.web.app</span>
       </p>
-      <div className="mt-2 text-xs font-mono text-slate-700 flex justify-center items-center gap-2">
+      
+      {/* 🖨️ PRINT: Hide the system version blob, it's irrelevant on paper */}
+      <div className="mt-2 text-xs font-mono text-slate-700 flex justify-center items-center gap-2 print:hidden">
         <span className="w-2 h-2 rounded-full bg-green-500/50"></span>
         <span>System Version: v{version}</span>
       </div>
@@ -261,10 +290,9 @@ import SkillRadar from './SkillRadar';
 import profileData from '../../data/profile.json';
 import skillsData from '../../data/skills.json';
 
-const Dashboard = () => {
+const Dashboard = ({ onSkillClick }) => {
   return (
     <section className="w-full max-w-6xl mx-auto px-4 py-8">
-      {/* Header Section */}
       <div className="mb-8 text-center md:text-left">
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
           {profileData.basics.name}
@@ -277,11 +305,10 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* KPI Cards */}
       <KPIGrid metrics={profileData.metrics} />
 
-      {/* Analytics Section */}
-      <SkillRadar skills={skillsData} />
+      {/* Pass the click handler down to the chart */}
+      <SkillRadar skills={skillsData} onSkillClick={onSkillClick} />
     </section>
   );
 };
@@ -373,9 +400,6 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 
-/**
- * Custom Tooltip for the Radar Chart
- */
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
@@ -388,15 +412,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-/**
- * Dual-Zone Radar Chart
- * Visualizes the balance between "Strategy" and "Tech"
- */
-const SkillRadar = ({ skills }) => {
-  // Merge the two categories for a unified view, or switch based on state
-  // For the dashboard, we will display two charts side-by-side on desktop
-  // or stacked on mobile.
-
+const SkillRadar = ({ skills, onSkillClick }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {skills.map((category, idx) => (
@@ -408,16 +424,30 @@ const SkillRadar = ({ skills }) => {
           className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center"
         >
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
+          <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
           <div className="w-full h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={category.data}>
                 <PolarGrid stroke="#e2e8f0" />
+                
+                {/* 🎯 INTERACTIVITY LAYER
+                   We add onClick to the Axis so users can tap "React" 
+                   cursor-pointer makes it obvious it's clickable
+                */}
                 <PolarAngleAxis 
                   dataKey="subject" 
-                  tick={{ fill: '#64748b', fontSize: 12 }} 
+                  tick={{ 
+                    fill: '#64748b', 
+                    fontSize: 12, 
+                    cursor: 'pointer',
+                    className: 'hover:fill-blue-600 transition-colors font-semibold'
+                  }} 
+                  onClick={({ value }) => onSkillClick(value)}
                 />
+                
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                
                 <Radar
                   name={category.label}
                   dataKey="A"
@@ -449,17 +479,19 @@ const TimelineCard = ({ data, index }) => {
   return (
     <div className="relative pl-8 md:pl-12 py-6 group">
       {/* 🟢 The Node (Dot on the Spine) */}
-      <div 
+      <motion.div 
+        layout
         className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 shadow-[0_0_10px_rgba(59,130,246,0.5)] z-10 group-hover:scale-125 transition-transform duration-300"
         aria-hidden="true"
       />
 
       {/* 📄 The Content Card */}
       <motion.div 
+        layout
         initial={{ opacity: 0, x: 20 }}
-        whileInView={{ opacity: 1, x: 0 }}
-        viewport={{ once: true, margin: "-100px" }}
-        transition={{ duration: 0.5, delay: index * 0.1 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.3 }}
         className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg"
       >
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-4">
@@ -470,7 +502,7 @@ const TimelineCard = ({ data, index }) => {
           <span className="text-slate-400 text-sm font-mono mt-1 sm:mt-0">{data.date}</span>
         </div>
 
-        {/* PAR Framework (The Narrative) */}
+        {/* PAR Framework */}
         <div className="space-y-3 text-sm text-slate-300">
           <p><strong className="text-blue-300">Problem:</strong> {data.par.problem}</p>
           <p><strong className="text-green-300">Action:</strong> {data.par.action}</p>
@@ -498,19 +530,22 @@ export default TimelineCard;
 ## FILE: src/components/timeline/TimelineContainer.jsx
 ```jsx
 import React from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import TimelineCard from './TimelineCard';
 
 const TimelineContainer = ({ experienceData }) => {
   return (
     <div className="relative max-w-3xl mx-auto">
-      {/* 📏 The Vertical Spine (Absolute Left) */}
+      {/* 📏 The Vertical Spine */}
       <div className="absolute left-[2px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-transparent opacity-50" />
 
-      {/* List of Items */}
+      {/* List of Items with Animation */}
       <div className="flex flex-col space-y-2">
-        {experienceData.map((job, index) => (
-          <TimelineCard key={job.id} data={job} index={index} />
-        ))}
+        <AnimatePresence mode='popLayout'>
+          {experienceData.map((job, index) => (
+            <TimelineCard key={job.id} data={job} index={index} />
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );
@@ -591,49 +626,114 @@ describe('TimelineCard Component', () => {
 ```
 ---
 
+## FILE: src/data/__tests__/SchemaValidation.test.js
+```js
+import { describe, it, expect } from 'vitest';
+import profile from '../profile.json';
+import skills from '../skills.json';
+import experience from '../experience.json';
+
+describe('Data Integrity (Schema Validation)', () => {
+
+  // 1. PROFILE TEST
+  it('Profile Data has required structure', () => {
+    expect(profile.basics).toBeDefined();
+    expect(profile.basics.name).toBeTypeOf('string');
+    expect(profile.basics.label).toBeTypeOf('string');
+    expect(profile.metrics).toBeDefined();
+    expect(profile.metrics.yearsExperience).toBeTypeOf('number');
+  });
+
+  // 2. SKILLS TEST
+  it('Skills Data is structured correctly for Radar Chart', () => {
+    expect(Array.isArray(skills)).toBe(true);
+    expect(skills.length).toBeGreaterThan(0);
+
+    skills.forEach(category => {
+      // Check Category Structure
+      expect(category.id).toBeDefined();
+      expect(category.label).toBeDefined();
+      expect(Array.isArray(category.data)).toBe(true);
+      
+      // Check individual skills
+      category.data.forEach(skill => {
+        expect(skill.subject).toBeTypeOf('string');
+        expect(skill.A).toBeTypeOf('number');
+        expect(skill.fullMark).toBe(100);
+      });
+    });
+  });
+
+  // 3. EXPERIENCE TEST
+  it('Experience Data follows the PAR Framework', () => {
+    expect(Array.isArray(experience)).toBe(true);
+    expect(experience.length).toBeGreaterThan(0);
+
+    experience.forEach(job => {
+      // Check Core Fields
+      expect(job.id).toBeDefined();
+      expect(job.role).toBeTypeOf('string');
+      expect(job.company).toBeTypeOf('string');
+      expect(Array.isArray(job.skills)).toBe(true);
+      
+      // Check PAR Structure (Crucial for the component)
+      expect(job.par).toBeDefined();
+      expect(job.par.problem).toBeTypeOf('string');
+      expect(job.par.action).toBeTypeOf('string');
+      expect(job.par.result).toBeTypeOf('string');
+      
+      // Ensure no fields are empty strings (Quality Check)
+      expect(job.par.problem.length).toBeGreaterThan(5);
+    });
+  });
+});
+
+```
+---
+
 ## FILE: src/data/experience.json
 ```json
 [
   {
     "id": "job_1",
-    "role": "Management Consultant & Power BI Developer",
-    "company": "Freelance / Independent",
-    "date": "2022 - Present",
-    "logo": "📊",
-    "skills": ["Power BI", "React", "Azure", "DAX"],
-    "summary": "Leading business transformation projects and building custom data visualization solutions.",
+    "role": "Manager (Data & Analytics)",
+    "company": "PwC Canada LLP",
+    "date": "2012 - 2024",
+    "logo": "💼",
+    "skills": ["Power BI", "Change Management", "Digital Strategy", "SQL"],
+    "summary": "Leading data-driven transformation projects and advising senior government leaders while engineering hands-on analytics solutions.",
     "par": {
-      "problem": "Clients struggled to bridge the gap between complex data warehouses and actionable business strategy.",
-      "action": "Developed interactive Power BI dashboards and React-based web apps to visualize KPIs in real-time.",
-      "result": "Reduced reporting latency by 40% and enabled executive teams to make data-driven decisions instantly."
+      "problem": "Public sector and enterprise clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+      "action": "Architected target operating models and deployed advanced Power BI/SSRS dashboards to track customer journeys and workforce performance.",
+      "result": "Delivered sustainable digital transformation and aligned technical execution with strategic business objectives for high-stakes government initiatives."
     }
   },
   {
     "id": "job_2",
-    "role": "Business Transformation Lead",
-    "company": "Previous Firm",
-    "date": "2015 - 2022",
-    "logo": "💼",
-    "skills": ["Change Management", "Process Optimization", "SQL"],
-    "summary": "Directed large-scale system implementations for Fortune 500 clients.",
+    "role": "Business Intelligence Developer",
+    "company": "Biond Consulting",
+    "date": "2011 - 2012",
+    "logo": "📊",
+    "skills": ["SSIS", "Data Warehousing", "ETL", "SSRS"],
+    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
     "par": {
-      "problem": "Legacy systems were creating data silos, resulting in a 15% annual revenue leakage.",
-      "action": "Spearheaded the migration to a unified cloud ERP and implemented automated reconciliation workflows.",
-      "result": "Recovered $2.5M in lost revenue within the first year of implementation."
+      "problem": "Major retail and distribution clients lacked a unified view of their data, hindering their ability to respond to market trends.",
+      "action": "Built and optimized complex ETL pipelines using SSIS and architected enterprise-grade data warehouses to integrate disparate source systems.",
+      "result": "Successfully transitioned clients to new analytics platforms, significantly strengthening executive decision-making capabilities."
     }
   },
   {
     "id": "job_3",
-    "role": "Computer Programmer",
-    "company": "Early Career",
-    "date": "2003 - 2015",
-    "logo": "💻",
-    "skills": ["C++", "Java", "Systems Analysis"],
-    "summary": "Foundational experience in software development and systems logic.",
+    "role": "Manager, Data and Analytics",
+    "company": "Teleperformance",
+    "date": "2005 - 2011",
+    "logo": "🌍",
+    "skills": ["C# / VB.NET", "SSRS", "SharePoint", "Automation"],
+    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
     "par": {
-      "problem": "Manual data entry processes were prone to a high error rate.",
-      "action": "Wrote custom scripts to automate data ingestion and validation.",
-      "result": "Eliminated manual entry for 90% of workflows."
+      "problem": "International contact centers relied on manual processes that created data latency and operational inefficiencies.",
+      "action": "Managed the full SDLC of automated reporting solutions using SSRS, C#, and SharePoint to standardize performance tracking globally.",
+      "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
     }
   }
 ]
@@ -645,19 +745,19 @@ describe('TimelineCard Component', () => {
 ```json
 {
   "basics": {
-    "name": "Your Name",
+    "name": "Ryan Douglas",
     "label": "Management Consultant & Power BI Developer",
-    "email": "your.email@example.com",
-    "phone": "(555) 555-5555",
+    "email": "rpdouglas@gmail.com",
+    "phone": "613.936.6341",
     "location": "Cornwall, Ontario",
-    "summary": "A results-driven Management Consultant with 15 years of experience leading complex business transformation projects. Certified Microsoft Power BI Developer specializing in bridging the gap between strategic business goals and technical data implementations.",
-    "website": "https://yourwebsite.com",
-    "github": "https://github.com/yourusername",
-    "linkedin": "https://linkedin.com/in/yourusername"
+    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
+    "website": "https://ryandouglas-resume.web.app",
+    "github": "https://github.com/rpdouglas",
+    "linkedin": "https://linkedin.com/in/ryandouglas"
   },
   "metrics": {
     "yearsExperience": 15,
-    "projectsDelivered": 45,
+    "projectsDelivered": 40,
     "certifications": 2
   }
 }
@@ -673,21 +773,21 @@ describe('TimelineCard Component', () => {
     "label": "Business Strategy",
     "data": [
       { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
-      { "subject": "Stakeholder Analysis", "A": 90, "fullMark": 100 },
-      { "subject": "Process Optimization", "A": 85, "fullMark": 100 },
-      { "subject": "System Implementation", "A": 90, "fullMark": 100 },
-      { "subject": "TOWS Analysis", "A": 80, "fullMark": 100 }
+      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
+      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
+      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
+      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
     ]
   },
   {
     "id": "technical",
     "label": "Technical Stack",
     "data": [
-      { "subject": "Power BI", "A": 95, "fullMark": 100 },
-      { "subject": "DAX / SQL", "A": 85, "fullMark": 100 },
-      { "subject": "React / JS", "A": 75, "fullMark": 100 },
-      { "subject": "Zoho Analytics", "A": 80, "fullMark": 100 },
-      { "subject": "Data Modeling", "A": 90, "fullMark": 100 }
+      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
+      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
+      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
+      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
     ]
   }
 ]
@@ -700,23 +800,27 @@ describe('TimelineCard Component', () => {
 @import "tailwindcss";
 
 @theme {
-  /* Migrate custom colors from tailwind.config.js */
+  /* Core Variables */
   --color-brand-dark: #0f172a;  /* Slate 900 */
   --color-brand-accent: #3b82f6; /* Blue 500 */
   --color-brand-light: #f8fafc; /* Slate 50 */
   
-  /* Migrate font family */
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-/* Apply base styles using the new variables.
-   Note: In v4, we use the variables we just defined in the theme.
-*/
+/* Base Styles */
 body {
   background-color: var(--color-brand-light);
   color: var(--color-brand-dark);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 🟢 A11Y: High-Visibility Focus Rings for Keyboard Users */
+:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Custom Scrollbar */
@@ -732,6 +836,46 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* 🖨️ PRINT STYLES: The "White Paper" Transformation */
+@media print {
+  /* 1. Global Reset for Paper */
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 2. Invert specific dark sections to white */
+  section, footer, main, div {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important; /* Slate 300 for borders */
+  }
+
+  /* 3. Text adjustments */
+  h1, h2, h3, h4, p, span, strong {
+    color: black !important;
+    text-shadow: none !important;
+  }
+
+  /* 4. Formatting tweaks */
+  a {
+    text-decoration: underline;
+    color: #2563eb !important; /* Blue 600 for links */
+  }
+
+  /* 5. Page Breaks */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
 }
 
 ```
@@ -783,31 +927,220 @@ createRoot(document.getElementById('root')).render(
 ## FILE: src/sections/ExperienceSection.jsx
 ```jsx
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Filter, X } from 'lucide-react';
 import TimelineContainer from '../components/timeline/TimelineContainer';
 import experienceData from '../data/experience.json';
 
-const ExperienceSection = () => {
+const ExperienceSection = ({ activeFilter, onClear }) => {
+  
+  // 🔍 The Logic: Filter the JSON based on the prop
+  const filteredData = activeFilter 
+    ? experienceData.filter(job => 
+        // We use some loose matching to catch "React" vs "React / JS"
+        job.skills.some(skill => 
+          skill.toLowerCase().includes(activeFilter.toLowerCase()) ||
+          activeFilter.toLowerCase().includes(skill.toLowerCase())
+        )
+      )
+    : experienceData;
+
   return (
-    <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden">
+    <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden min-h-[600px] print:bg-white print:text-black print:py-0">
       <div className="container mx-auto px-4">
-        {/* Section Header */}
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Professional <span className="text-blue-500">History</span>
+        
+        {/* Header with Filter State */}
+        {/* 🖨️ PRINT: Hide the 'Filter' controls as they are useless on paper */}
+        <div className="text-center mb-12 print:mb-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 print:text-black">
+            Professional <span className="text-blue-500 print:text-black">History</span>
           </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto">
-            15 years of bridging the gap between Business Strategy and Technical Execution.
+          
+          <div className="print:hidden">
+            <AnimatePresence mode='wait'>
+              {activeFilter ? (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="flex items-center justify-center gap-3"
+                >
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/50 rounded-full text-blue-300">
+                    <Filter size={16} />
+                    <span>Filtering by: <strong>{activeFilter}</strong></span>
+                    <button 
+                      onClick={onClear}
+                      className="ml-2 p-1 hover:bg-blue-500/30 rounded-full transition-colors"
+                      aria-label="Clear Filter"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-slate-400 max-w-2xl mx-auto"
+                >
+                  15 years of bridging the gap between Business Strategy and Technical Execution.
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+          
+          {/* Print-only description replacement */}
+          <p className="hidden print:block text-sm text-gray-600 mt-2">
+             Full chronological work history.
           </p>
         </div>
 
-        {/* The Timeline */}
-        <TimelineContainer experienceData={experienceData} />
+        {/* The Filtered Timeline */}
+        <TimelineContainer experienceData={filteredData} />
+        
+        {/* Empty State if no matches */}
+        {filteredData.length === 0 && (
+          <div className="text-center text-slate-500 mt-12 italic">
+            No specific roles found matching "{activeFilter}" (Check skills list).
+          </div>
+        )}
       </div>
     </section>
   );
 };
 
 export default ExperienceSection;
+
+```
+---
+
+## FILE: src/sections/__tests__/ExperienceSection.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import ExperienceSection from '../ExperienceSection';
+
+// 1. Mock Framer Motion
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, className, ...props }) => <div className={className} {...props}>{children}</div>,
+    p: ({ children, className }) => <p className={className}>{children}</p>,
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+// 2. Mock Child Components (CORRECTED PATHS)
+// Note the '../../' to escape the __tests__ folder AND the sections folder
+vi.mock('../../components/timeline/TimelineContainer', () => ({
+  default: ({ experienceData }) => (
+    <div data-testid="timeline-container">
+      Count: {experienceData.length}
+      <ul>
+        {experienceData.map(job => <li key={job.id}>{job.role}</li>)}
+      </ul>
+    </div>
+  ),
+}));
+
+// 3. Mock Data Source (CORRECTED PATHS)
+vi.mock('../../data/experience.json', () => ({
+  default: [
+    { id: '1', role: 'React Dev', skills: ['React', 'JavaScript'] },
+    { id: '2', role: 'Power BI Analyst', skills: ['Power BI', 'SQL'] },
+    { id: '3', role: 'Full Stack', skills: ['React', 'Node.js'] },
+  ]
+}));
+
+describe('ExperienceSection (Matrix Filter)', () => {
+  
+  it('shows ALL jobs when no filter is active', () => {
+    render(<ExperienceSection activeFilter={null} />);
+    
+    // Should see all 3 mock jobs
+    expect(screen.getByText('Count: 3')).toBeDefined();
+    expect(screen.getByText('React Dev')).toBeDefined();
+    expect(screen.getByText('Power BI Analyst')).toBeDefined();
+  });
+
+  it('filters jobs correctly when activeFilter is provided', () => {
+    // Filter by "React" -> Should show Job 1 & 3, hide Job 2
+    render(<ExperienceSection activeFilter="React" />);
+    
+    expect(screen.getByText('Count: 2')).toBeDefined();
+    expect(screen.getByText('React Dev')).toBeDefined();
+    expect(screen.getByText('Full Stack')).toBeDefined();
+    
+    // Power BI Analyst should NOT be there
+    expect(screen.queryByText('Power BI Analyst')).toBeNull();
+  });
+
+  it('displays the Active Filter label and Clear button', () => {
+    render(<ExperienceSection activeFilter="Power BI" />);
+    
+    // Check for "Filtering by: Power BI"
+    // We use getAllByText because "Power BI" might exist in the mock data chips too
+    // We specifically look for the one in the filter UI
+    const filterPills = screen.getAllByText('Power BI');
+    expect(filterPills.length).toBeGreaterThan(0);
+    
+    // Check for Clear Button (X icon)
+    expect(screen.getByLabelText('Clear Filter')).toBeDefined();
+  });
+
+  it('calls onClear when the X button is clicked', () => {
+    const handleClear = vi.fn();
+    render(<ExperienceSection activeFilter="Power BI" onClear={handleClear} />);
+    
+    const button = screen.getByLabelText('Clear Filter');
+    fireEvent.click(button);
+    
+    expect(handleClear).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a message if no jobs match the filter', () => {
+    render(<ExperienceSection activeFilter="Cobol" />);
+    
+    expect(screen.getByText('Count: 0')).toBeDefined();
+    expect(screen.getByText(/No specific roles found/i)).toBeDefined();
+  });
+});
+
+```
+---
+
+## FILE: src/sections/__tests__/ExperienceSectionA11y.test.jsx
+```jsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import ExperienceSection from '../ExperienceSection';
+
+// Mock dependencies
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, className }) => <div className={className}>{children}</div>,
+    p: ({ children }) => <p>{children}</p>,
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+vi.mock('../components/timeline/TimelineContainer', () => ({ default: () => <div>Timeline</div> }));
+vi.mock('../data/experience.json', () => ({ default: [] }));
+
+describe('ExperienceSection Accessibility', () => {
+  it('renders the Clear Filter button with an accessible label', () => {
+    // Render with an active filter so the button appears
+    render(<ExperienceSection activeFilter="React" />);
+    
+    // The button has no text, only an Icon. 
+    // Screen readers MUST rely on aria-label="Clear Filter".
+    // getByLabelText will fail if the aria-label is missing, ensuring we are compliant.
+    const clearButton = screen.getByLabelText('Clear Filter');
+    
+    expect(clearButton).toBeDefined();
+    expect(clearButton.tagName).toBe('BUTTON');
+  });
+});
 
 ```
 ---
@@ -873,23 +1206,24 @@ This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant mu
 ```md
 # 📜 Changelog
 
-## [v0.5.0] - 2026-01-22
+## [v0.9.0] - 2026-01-22
 ### Added
-* **System Versioning Architecture:**
-    * Migrated version control to `package.json` (SSOT).
-    * Configured `vite.config.js` to expose version env vars.
-    * Created `Footer` component with dynamic version display.
-    * Added Unit Tests for Version Injection.
+* **Content Injection (Real Data):**
+    * Replaced placeholders with actual career history (PwC, Biond, Teleperformance).
+    * Synthesized skills matrix based on 15 years of experience.
+    * Added `SchemaValidation.test.js` to prevent data corruption.
 
-## [v0.4.0] - 2026-01-22
+## [v0.8.0] - 2026-01-22
 ### Added
-* **Experience Timeline:**
-    * Implemented `TimelineContainer` and `TimelineCard`.
-    * Added Unit Tests (`TimelineCard.test.jsx`).
+* **Universal Access:** Print Styles & Accessibility features.
 
-## [v0.3.0] - 2026-01-22
+## [v0.7.0] - 2026-01-22
 ### Added
-* **Testing Infrastructure:** Configured Vitest & JSDOM.
+* **SEO & Polish:** Open Graph Tags & Metadata.
+
+## [v0.6.0] - 2026-01-22
+### Added
+* **The Matrix:** Interactive Cross-Filtering.
 ```
 ---
 
@@ -898,12 +1232,12 @@ This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant mu
 # Interactive Resume: Context Dump
 **Stack:** React + Vite + Tailwind CSS (v4) + Framer Motion + Recharts
 **Test Stack:** Vitest + React Testing Library
-**Version:** v0.5.0
+**Version:** v0.9.0
 
 ## Architecture Rules (STRICT)
 1. **SSOT:** Version is controlled by `package.json`.
-2. **Data-Driven:** All content separated into JSON files.
-3. **Testing:** New components require `.test.jsx`.
+2. **Data:** `src/data/*.json` contains ACTUAL user career history (Do not overwrite with placeholders).
+3. **Integrity:** `SchemaValidation.test.js` must pass before any data commit.
 ```
 ---
 
@@ -976,21 +1310,26 @@ npx firebase deploy
 ```md
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 4 - The Matrix (Interaction)
-**Version:** v0.5.0
+**Current Phase:** Phase 8 - Content Complete
+**Version:** v0.9.0
 
-## 🎯 Current Sprint: The Matrix
-* [ ] **Cross-Filtering:** Clicking a Skill filters the Timeline.
-* [ ] **State Management:** Lift state up to `App.jsx`.
+## 🎯 Current Sprint: Pre-Launch QA
+* All features implemented.
+* All real data injected.
+* [ ] **Final Manual Review:** Check for typos in the parsed resume data.
+* [ ] **Deployment:** Final push to Production.
 
 ## ✅ Completed Features
-* **Phase 5: Architecture** (System Versioning vv0.5.0)
-* **Phase 4: The Narrative** (Timeline)
-* **Phase 3.5: Testing** (Vitest)
-* **Phase 3: DevOps** (CI/CD)
+* **Phase 8: Content Injection** (Real Data vv0.9.0)
+    * [x] Parsed 15-year career history from PDFs.
+    * [x] Applied PAR Framework to Experience.
+    * [x] Added Data Schema Validation Tests.
+* **Phase 7: Universal Access** (A11y & Print)
+* **Phase 6: The Polish** (SEO & OG Tags)
+* **Phase 4: The Matrix** (Cross-Filtering)
 
 ## 📋 Product Backlog
-* Phase 6: Polish (Lighthouse Tuning)
+* v1.0.0 Release (Gold Master)
 ```
 ---
 

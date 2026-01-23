@@ -1,21 +1,20 @@
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 8 - Content Complete
-**Version:** v0.9.0
+**Current Phase:** Phase 9 - Project Portfolio
+**Version:** v0.10.0
 
-## 🎯 Current Sprint: Pre-Launch QA
-* All features implemented.
-* All real data injected.
-* [ ] **Final Manual Review:** Check for typos in the parsed resume data.
-* [ ] **Deployment:** Final push to Production.
+## 🎯 Current Sprint: Polish & Analytics
+* [x] **Core Refactor:** Moved to Nested Project Architecture.
+* [ ] **Analytics:** Integrate Google Analytics 4.
+* [ ] **UX Polish:** Sticky Navigation & Dynamic Hero.
 
 ## ✅ Completed Features
-* **Phase 8: Content Injection** (Real Data vv0.9.0)
-    * [x] Parsed 15-year career history from PDFs.
-    * [x] Applied PAR Framework to Experience.
-    * [x] Added Data Schema Validation Tests.
+* **Phase 9: Project Portfolio** (Nested Architecture vv0.10.0)
+    * [x] Refactored `experience.json` to support 1-to-Many relationships.
+    * [x] Implemented Accordion UI for Timeline Cards.
+    * [x] Updated 'Smart Expansion' logic for Cross-Filtering.
+* **Phase 8: Content Injection** (Real Data)
 * **Phase 7: Universal Access** (A11y & Print)
-* **Phase 6: The Polish** (SEO & OG Tags)
 * **Phase 4: The Matrix** (Cross-Filtering)
 
 ## 📋 Product Backlog

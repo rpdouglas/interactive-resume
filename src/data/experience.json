@@ -1,44 +1,95 @@
 [
   {
-    "id": "job_1",
+    "id": "job_pwc",
     "role": "Manager (Data & Analytics)",
     "company": "PwC Canada LLP",
     "date": "2012 - 2024",
     "logo": "💼",
-    "skills": ["Power BI", "Change Management", "Digital Strategy", "SQL"],
-    "summary": "Leading data-driven transformation projects and advising senior government leaders while engineering hands-on analytics solutions.",
-    "par": {
-      "problem": "Public sector and enterprise clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
-      "action": "Architected target operating models and deployed advanced Power BI/SSRS dashboards to track customer journeys and workforce performance.",
-      "result": "Delivered sustainable digital transformation and aligned technical execution with strategic business objectives for high-stakes government initiatives."
-    }
+    "summary": "Senior management consultant leading data-driven transformation projects and advising government leaders while engineering hands-on analytics solutions.",
+    "skills": ["Digital Strategy", "Leadership", "Stakeholder Mgmt"],
+    "projects": [
+      {
+        "id": "pwc_proj_1",
+        "title": "Public Sector Digital Transformation",
+        "skills": ["Power BI", "SQL", "Change Management"],
+        "par": {
+          "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+          "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
+          "result": "Delivered sustainable digital transformation, aligning technical execution with strategic business objectives."
+        }
+      },
+      {
+        "id": "pwc_proj_2",
+        "title": "Omnichannel Contact Center Modernization",
+        "skills": ["Data Modeling", "Azure", "Risk Assessment"],
+        "par": {
+          "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
+          "action": "Led the design and deployment of modern BI solutions, integrating data from multiple channels for a unified view.",
+          "result": "Enhanced operational efficiency and enabled real-time reporting for high-stakes regulatory environments."
+        }
+      }
+    ]
   },
   {
-    "id": "job_2",
+    "id": "job_biond",
     "role": "Business Intelligence Developer",
     "company": "Biond Consulting",
     "date": "2011 - 2012",
     "logo": "📊",
-    "skills": ["SSIS", "Data Warehousing", "ETL", "SSRS"],
     "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
-    "par": {
-      "problem": "Major retail and distribution clients lacked a unified view of their data, hindering their ability to respond to market trends.",
-      "action": "Built and optimized complex ETL pipelines using SSIS and architected enterprise-grade data warehouses to integrate disparate source systems.",
-      "result": "Successfully transitioned clients to new analytics platforms, significantly strengthening executive decision-making capabilities."
-    }
+    "skills": ["Microsoft BI Stack", "Consulting"],
+    "projects": [
+      {
+        "id": "biond_proj_1",
+        "title": "Retail Analytics Platform Migration",
+        "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "par": {
+          "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
+          "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
+          "result": "Successfully transitioned client to a modern analytics platform, significantly enhancing strategic insight capabilities."
+        }
+      },
+      {
+        "id": "biond_proj_2",
+        "title": "Distributor Reporting Solution",
+        "skills": ["SSRS", "SQL", "KPI Definition"],
+        "par": {
+          "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
+          "action": "Collaborated with clients to define critical KPIs and delivered a custom SSRS reporting solution.",
+          "result": "Strengthened executive decision-making and improved business responsiveness post-implementation."
+        }
+      }
+    ]
   },
   {
-    "id": "job_3",
+    "id": "job_tele",
     "role": "Manager, Data and Analytics",
     "company": "Teleperformance",
     "date": "2005 - 2011",
     "logo": "🌍",
-    "skills": ["C# / VB.NET", "SSRS", "SharePoint", "Automation"],
     "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
-    "par": {
-      "problem": "International contact centers relied on manual processes that created data latency and operational inefficiencies.",
-      "action": "Managed the full SDLC of automated reporting solutions using SSRS, C#, and SharePoint to standardize performance tracking globally.",
-      "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
-    }
+    "skills": ["Team Leadership", "Process Improvement"],
+    "projects": [
+      {
+        "id": "tp_proj_1",
+        "title": "Global Contact Center Automation",
+        "skills": ["C#", "SharePoint", "Automation"],
+        "par": {
+          "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
+          "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
+          "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
+        }
+      },
+      {
+        "id": "tp_proj_2",
+        "title": "Executive Dashboard Suite",
+        "skills": ["SSRS", "Visual Studio", "SQL Server"],
+        "par": {
+          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
+          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
+          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
+        }
+      }
+    ]
   }
 ]
