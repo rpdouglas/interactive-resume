@@ -1,44 +1,44 @@
 [
   {
     "id": "job_1",
-    "role": "Management Consultant & Power BI Developer",
-    "company": "Freelance / Independent",
-    "date": "2022 - Present",
-    "logo": "📊",
-    "skills": ["Power BI", "React", "Azure", "DAX"],
-    "summary": "Leading business transformation projects and building custom data visualization solutions.",
+    "role": "Manager (Data & Analytics)",
+    "company": "PwC Canada LLP",
+    "date": "2012 - 2024",
+    "logo": "💼",
+    "skills": ["Power BI", "Change Management", "Digital Strategy", "SQL"],
+    "summary": "Leading data-driven transformation projects and advising senior government leaders while engineering hands-on analytics solutions.",
     "par": {
-      "problem": "Clients struggled to bridge the gap between complex data warehouses and actionable business strategy.",
-      "action": "Developed interactive Power BI dashboards and React-based web apps to visualize KPIs in real-time.",
-      "result": "Reduced reporting latency by 40% and enabled executive teams to make data-driven decisions instantly."
+      "problem": "Public sector and enterprise clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+      "action": "Architected target operating models and deployed advanced Power BI/SSRS dashboards to track customer journeys and workforce performance.",
+      "result": "Delivered sustainable digital transformation and aligned technical execution with strategic business objectives for high-stakes government initiatives."
     }
   },
   {
     "id": "job_2",
-    "role": "Business Transformation Lead",
-    "company": "Previous Firm",
-    "date": "2015 - 2022",
-    "logo": "💼",
-    "skills": ["Change Management", "Process Optimization", "SQL"],
-    "summary": "Directed large-scale system implementations for Fortune 500 clients.",
+    "role": "Business Intelligence Developer",
+    "company": "Biond Consulting",
+    "date": "2011 - 2012",
+    "logo": "📊",
+    "skills": ["SSIS", "Data Warehousing", "ETL", "SSRS"],
+    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
     "par": {
-      "problem": "Legacy systems were creating data silos, resulting in a 15% annual revenue leakage.",
-      "action": "Spearheaded the migration to a unified cloud ERP and implemented automated reconciliation workflows.",
-      "result": "Recovered $2.5M in lost revenue within the first year of implementation."
+      "problem": "Major retail and distribution clients lacked a unified view of their data, hindering their ability to respond to market trends.",
+      "action": "Built and optimized complex ETL pipelines using SSIS and architected enterprise-grade data warehouses to integrate disparate source systems.",
+      "result": "Successfully transitioned clients to new analytics platforms, significantly strengthening executive decision-making capabilities."
     }
   },
   {
     "id": "job_3",
-    "role": "Computer Programmer",
-    "company": "Early Career",
-    "date": "2003 - 2015",
-    "logo": "💻",
-    "skills": ["C++", "Java", "Systems Analysis"],
-    "summary": "Foundational experience in software development and systems logic.",
+    "role": "Manager, Data and Analytics",
+    "company": "Teleperformance",
+    "date": "2005 - 2011",
+    "logo": "🌍",
+    "skills": ["C# / VB.NET", "SSRS", "SharePoint", "Automation"],
+    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
     "par": {
-      "problem": "Manual data entry processes were prone to a high error rate.",
-      "action": "Wrote custom scripts to automate data ingestion and validation.",
-      "result": "Eliminated manual entry for 90% of workflows."
+      "problem": "International contact centers relied on manual processes that created data latency and operational inefficiencies.",
+      "action": "Managed the full SDLC of automated reporting solutions using SSRS, C#, and SharePoint to standardize performance tracking globally.",
+      "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
     }
   }
 ]

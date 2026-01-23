@@ -1,17 +1,20 @@
 # 📜 Changelog
 
+## [v0.9.0] - 2026-01-22
+### Added
+* **Content Injection (Real Data):**
+    * Replaced placeholders with actual career history (PwC, Biond, Teleperformance).
+    * Synthesized skills matrix based on 15 years of experience.
+    * Added `SchemaValidation.test.js` to prevent data corruption.
+
 ## [v0.8.0] - 2026-01-22
 ### Added
-* **Universal Access (A11y & Print):**
-    * Implemented 'Hybrid' Print Styling (CSS Variables + `print:hidden`).
-    * Added 'Skip to Content' link for keyboard navigation.
-    * Enforced global `:focus-visible` rings.
-    * Added ARIA labels to Icon-only buttons.
+* **Universal Access:** Print Styles & Accessibility features.
 
 ## [v0.7.0] - 2026-01-22
 ### Added
-* **SEO & Polish:** Open Graph Tags, robots.txt, and sitemap.xml.
+* **SEO & Polish:** Open Graph Tags & Metadata.
 
 ## [v0.6.0] - 2026-01-22
 ### Added
-* **The Matrix:** Interactive Cross-Filtering between Dashboard and Timeline.
+* **The Matrix:** Interactive Cross-Filtering.

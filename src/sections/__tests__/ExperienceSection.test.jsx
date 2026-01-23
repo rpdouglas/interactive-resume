@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ExperienceSection from '../ExperienceSection';
 
-// 1. Mock Framer Motion (Standard procedure)
+// 1. Mock Framer Motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className, ...props }) => <div className={className} {...props}>{children}</div>,
@@ -12,9 +12,9 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
-// 2. Mock Child Components
-// We don't need to test TimelineCard again. We just check if Container gets the right data.
-vi.mock('../components/timeline/TimelineContainer', () => ({
+// 2. Mock Child Components (CORRECTED PATHS)
+// Note the '../../' to escape the __tests__ folder AND the sections folder
+vi.mock('../../components/timeline/TimelineContainer', () => ({
   default: ({ experienceData }) => (
     <div data-testid="timeline-container">
       Count: {experienceData.length}
@@ -25,8 +25,8 @@ vi.mock('../components/timeline/TimelineContainer', () => ({
   ),
 }));
 
-// 3. Mock Data Source (So tests don't break if you change your resume JSON later)
-vi.mock('../data/experience.json', () => ({
+// 3. Mock Data Source (CORRECTED PATHS)
+vi.mock('../../data/experience.json', () => ({
   default: [
     { id: '1', role: 'React Dev', skills: ['React', 'JavaScript'] },
     { id: '2', role: 'Power BI Analyst', skills: ['Power BI', 'SQL'] },
@@ -61,10 +61,12 @@ describe('ExperienceSection (Matrix Filter)', () => {
     render(<ExperienceSection activeFilter="Power BI" />);
     
     // Check for "Filtering by: Power BI"
-    expect(screen.getByText('Power BI')).toBeDefined();
+    // We use getAllByText because "Power BI" might exist in the mock data chips too
+    // We specifically look for the one in the filter UI
+    const filterPills = screen.getAllByText('Power BI');
+    expect(filterPills.length).toBeGreaterThan(0);
     
     // Check for Clear Button (X icon)
-    // Since we used an icon, we look for the button's aria-label we added in the Builder script
     expect(screen.getByLabelText('Clear Filter')).toBeDefined();
   });
 

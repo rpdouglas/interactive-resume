@@ -1,18 +1,18 @@
 {
   "basics": {
-    "name": "Your Name",
+    "name": "Ryan Douglas",
     "label": "Management Consultant & Power BI Developer",
-    "email": "your.email@example.com",
-    "phone": "(555) 555-5555",
+    "email": "rpdouglas@gmail.com",
+    "phone": "613.936.6341",
     "location": "Cornwall, Ontario",
-    "summary": "A results-driven Management Consultant with 15 years of experience leading complex business transformation projects. Certified Microsoft Power BI Developer specializing in bridging the gap between strategic business goals and technical data implementations.",
-    "website": "https://yourwebsite.com",
-    "github": "https://github.com/yourusername",
-    "linkedin": "https://linkedin.com/in/yourusername"
+    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
+    "website": "https://ryandouglas-resume.web.app",
+    "github": "https://github.com/rpdouglas",
+    "linkedin": "https://linkedin.com/in/ryandouglas"
   },
   "metrics": {
     "yearsExperience": 15,
-    "projectsDelivered": 45,
+    "projectsDelivered": 40,
     "certifications": 2
   }
 }

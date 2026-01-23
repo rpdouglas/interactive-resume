@@ -4,21 +4,21 @@
     "label": "Business Strategy",
     "data": [
       { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
-      { "subject": "Stakeholder Analysis", "A": 90, "fullMark": 100 },
-      { "subject": "Process Optimization", "A": 85, "fullMark": 100 },
-      { "subject": "System Implementation", "A": 90, "fullMark": 100 },
-      { "subject": "TOWS Analysis", "A": 80, "fullMark": 100 }
+      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
+      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
+      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
+      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
     ]
   },
   {
     "id": "technical",
     "label": "Technical Stack",
     "data": [
-      { "subject": "Power BI", "A": 95, "fullMark": 100 },
-      { "subject": "DAX / SQL", "A": 85, "fullMark": 100 },
-      { "subject": "React / JS", "A": 75, "fullMark": 100 },
-      { "subject": "Zoho Analytics", "A": 80, "fullMark": 100 },
-      { "subject": "Data Modeling", "A": 90, "fullMark": 100 }
+      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
+      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
+      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
+      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
     ]
   }
 ]
