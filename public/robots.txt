@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://ryandouglas-resume.web.app/sitemap.xml
