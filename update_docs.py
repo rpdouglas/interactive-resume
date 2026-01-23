@@ -30,25 +30,25 @@ print(f"🔹 Detected System Version: {current_version}")
 status_lines = [
     "# 📌 Project Status: Interactive Resume",
     "",
-    "**Current Phase:** Phase 6 - Polish & Performance",
+    "**Current Phase:** Phase 7 - Universal Access",
     f"**Version:** {current_version}", 
     "",
-    "## 🎯 Current Sprint: Polish",
-    "* [ ] **Lighthouse Tuning:** Optimize images and bundle size.",
-    "* [ ] **OG Tags:** Add social media preview meta tags.",
+    "## 🎯 Current Sprint: Feature Complete",
+    "* All core planned features are implemented.",
+    "* [ ] **Final QA:** Manual walkthrough of all flows.",
     "",
     "## ✅ Completed Features",
-    f"* **Phase 4: The Matrix** (Cross-Filtering v{current_version})",
-    "    * [x] Lifted State to `App.jsx`.",
-    "    * [x] Interactive Radar Chart.",
-    "    * [x] Animated Filtering in Timeline.",
-    "* **Phase 5: Architecture** (System Versioning)",
-    "* **Phase 3.5: Testing** (Vitest)",
+    f"* **Phase 7: Universal Access** (A11y & Print v{current_version})",
+    "    * [x] Custom Print Styles (White Paper Mode).",
+    "    * [x] 'Skip to Content' Link.",
+    "    * [x] High-Visibility Focus Rings.",
+    "* **Phase 6: The Polish** (SEO & OG Tags)",
+    "* **Phase 4: The Matrix** (Cross-Filtering)",
     "* **Phase 3: DevOps** (CI/CD)",
     "",
     "## 📋 Product Backlog",
-    "* Accessibility Audit (A11y)",
-    "* PDF Download Option"
+    "* PDF Download Button (Optional - 'Print' is now sufficient)",
+    "* Dark Mode Toggle (Optional - System preference default)"
 ]
 
 # ==========================================
@@ -60,15 +60,10 @@ context_lines = [
     "**Test Stack:** Vitest + React Testing Library",
     f"**Version:** {current_version}",
     "",
-    "## Component Architecture",
-    "* **App (Brain):** Holds `activeSkill` state.",
-    "* **Dashboard (Trigger):** Sends click events up.",
-    "* **Experience (Receiver):** Filters data based on props.",
-    "",
     "## Architecture Rules (STRICT)",
     "1. **SSOT:** Version is controlled by `package.json`.",
-    "2. **State:** Global interactions live in `App.jsx` (Lifted State).",
-    "3. **Testing:** New components require `.test.jsx`."
+    "2. **Styling:** 'Hybrid' approach. CSS Variables for Themes, Tailwind for Utilities.",
+    "3. **A11y:** Interactive elements must have `aria-label` or visible text."
 ]
 
 # ==========================================
@@ -79,26 +74,19 @@ changelog_lines = [
     "",
     f"## [{current_version}] - 2026-01-22",
     "### Added",
-    "* **The Matrix (Cross-Filtering):**",
-    "    * Lifted `activeSkill` state to `App.jsx`.",
-    "    * Made Radar Chart nodes clickable via `PolarAngleAxis` event.",
-    "    * Implemented filtering logic in `ExperienceSection`.",
-    "    * Added `AnimatePresence` for smooth layout transitions.",
-    "    * Added Unit Tests for Filtering Logic.",
+    "* **Universal Access (A11y & Print):**",
+    "    * Implemented 'Hybrid' Print Styling (CSS Variables + `print:hidden`).",
+    "    * Added 'Skip to Content' link for keyboard navigation.",
+    "    * Enforced global `:focus-visible` rings.",
+    "    * Added ARIA labels to Icon-only buttons.",
     "",
-    "## [v0.5.0] - 2026-01-22",
+    "## [v0.7.0] - 2026-01-22",
     "### Added",
-    "* **System Versioning Architecture:**",
-    "    * Migrated version control to `package.json` (SSOT).",
-    "    * Created `Footer` component with dynamic version display.",
+    "* **SEO & Polish:** Open Graph Tags, robots.txt, and sitemap.xml.",
     "",
-    "## [v0.4.0] - 2026-01-22",
+    "## [v0.6.0] - 2026-01-22",
     "### Added",
-    "* **Experience Timeline:** Vertical 'Scroll Spy' layout.",
-    "",
-    "## [v0.3.0] - 2026-01-22",
-    "### Added",
-    "* **Testing Infrastructure:** Configured Vitest & JSDOM."
+    "* **The Matrix:** Interactive Cross-Filtering between Dashboard and Timeline."
 ]
 
 # ==========================================

@@ -1,21 +1,21 @@
 # 📌 Project Status: Interactive Resume
 
-**Current Phase:** Phase 6 - Polish & Performance
-**Version:** v0.6.0
+**Current Phase:** Phase 7 - Universal Access
+**Version:** v0.8.0
 
-## 🎯 Current Sprint: Polish
-* [ ] **Lighthouse Tuning:** Optimize images and bundle size.
-* [ ] **OG Tags:** Add social media preview meta tags.
+## 🎯 Current Sprint: Feature Complete
+* All core planned features are implemented.
+* [ ] **Final QA:** Manual walkthrough of all flows.
 
 ## ✅ Completed Features
-* **Phase 4: The Matrix** (Cross-Filtering vv0.6.0)
-    * [x] Lifted State to `App.jsx`.
-    * [x] Interactive Radar Chart.
-    * [x] Animated Filtering in Timeline.
-* **Phase 5: Architecture** (System Versioning)
-* **Phase 3.5: Testing** (Vitest)
+* **Phase 7: Universal Access** (A11y & Print vv0.8.0)
+    * [x] Custom Print Styles (White Paper Mode).
+    * [x] 'Skip to Content' Link.
+    * [x] High-Visibility Focus Rings.
+* **Phase 6: The Polish** (SEO & OG Tags)
+* **Phase 4: The Matrix** (Cross-Filtering)
 * **Phase 3: DevOps** (CI/CD)
 
 ## 📋 Product Backlog
-* Accessibility Audit (A11y)
-* PDF Download Option
+* PDF Download Button (Optional - 'Print' is now sufficient)
+* Dark Mode Toggle (Optional - System preference default)

@@ -1,23 +1,27 @@
 @import "tailwindcss";
 
 @theme {
-  /* Migrate custom colors from tailwind.config.js */
+  /* Core Variables */
   --color-brand-dark: #0f172a;  /* Slate 900 */
   --color-brand-accent: #3b82f6; /* Blue 500 */
   --color-brand-light: #f8fafc; /* Slate 50 */
   
-  /* Migrate font family */
   --font-sans: "Inter", system-ui, sans-serif;
 }
 
-/* Apply base styles using the new variables.
-   Note: In v4, we use the variables we just defined in the theme.
-*/
+/* Base Styles */
 body {
   background-color: var(--color-brand-light);
   color: var(--color-brand-dark);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 🟢 A11Y: High-Visibility Focus Rings for Keyboard Users */
+:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Custom Scrollbar */
@@ -33,4 +37,44 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* 🖨️ PRINT STYLES: The "White Paper" Transformation */
+@media print {
+  /* 1. Global Reset for Paper */
+  body {
+    background-color: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* 2. Invert specific dark sections to white */
+  section, footer, main, div {
+    background-color: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important; /* Slate 300 for borders */
+  }
+
+  /* 3. Text adjustments */
+  h1, h2, h3, h4, p, span, strong {
+    color: black !important;
+    text-shadow: none !important;
+  }
+
+  /* 4. Formatting tweaks */
+  a {
+    text-decoration: underline;
+    color: #2563eb !important; /* Blue 600 for links */
+  }
+
+  /* 5. Page Breaks */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 2rem;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
 }

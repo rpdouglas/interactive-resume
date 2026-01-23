@@ -3,7 +3,7 @@
 ![Build Status](https://github.com/rpdouglas/interactive-resume/actions/workflows/deploy-prod.yml/badge.svg)
 ![React](https://img.shields.io/badge/React-v19-blue)
 ![Vitest](https://img.shields.io/badge/Tested_with-Vitest-green)
-![Version](https://img.shields.io/badge/Version-v0.6.0-purple)
+![Version](https://img.shields.io/badge/Version-v0.8.0-purple)
 
 > **Live Demo:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)
 

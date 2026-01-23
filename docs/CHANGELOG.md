@@ -1,24 +1,17 @@
 # 📜 Changelog
 
+## [v0.8.0] - 2026-01-22
+### Added
+* **Universal Access (A11y & Print):**
+    * Implemented 'Hybrid' Print Styling (CSS Variables + `print:hidden`).
+    * Added 'Skip to Content' link for keyboard navigation.
+    * Enforced global `:focus-visible` rings.
+    * Added ARIA labels to Icon-only buttons.
+
+## [v0.7.0] - 2026-01-22
+### Added
+* **SEO & Polish:** Open Graph Tags, robots.txt, and sitemap.xml.
+
 ## [v0.6.0] - 2026-01-22
 ### Added
-* **The Matrix (Cross-Filtering):**
-    * Lifted `activeSkill` state to `App.jsx`.
-    * Made Radar Chart nodes clickable via `PolarAngleAxis` event.
-    * Implemented filtering logic in `ExperienceSection`.
-    * Added `AnimatePresence` for smooth layout transitions.
-    * Added Unit Tests for Filtering Logic.
-
-## [v0.5.0] - 2026-01-22
-### Added
-* **System Versioning Architecture:**
-    * Migrated version control to `package.json` (SSOT).
-    * Created `Footer` component with dynamic version display.
-
-## [v0.4.0] - 2026-01-22
-### Added
-* **Experience Timeline:** Vertical 'Scroll Spy' layout.
-
-## [v0.3.0] - 2026-01-22
-### Added
-* **Testing Infrastructure:** Configured Vitest & JSDOM.
+* **The Matrix:** Interactive Cross-Filtering between Dashboard and Timeline.
