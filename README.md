@@ -1,29 +1,24 @@
 # Ryan Douglas: Interactive Resume
 
 ![Build Status](https://github.com/rpdouglas/interactive-resume/actions/workflows/deploy-prod.yml/badge.svg)
-![React](https://img.shields.io/badge/React-v19-blue)
-![Vitest](https://img.shields.io/badge/Tested_with-Vitest-green)
-![Version](https://img.shields.io/badge/Version-v0.11.0-purple)
+![Version](https://img.shields.io/badge/Version-1.0.0-success)
 
-> **Live Demo:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)
+> **🚀 Live Application:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)
 
 An interactive, data-driven visualization of my 15-year career in **Management Consulting** and **Data Analytics**.
 
+## 🎯 Core Features
+* **'The Matrix' Filtering:** Click any skill in the Radar Chart to instantly filter and auto-expand relevant career projects.
+* **Project Deep Dives:** Detailed 'Problem, Action, Result' (PAR) case studies nested within job roles.
+* **Universal Access:** Fully responsive, accessible, and print-optimized.
+
 ## 🏗️ Architecture
-Strict Data-Driven Architecture. Content flows from `src/data/*.json`.
-Uses Custom Hooks (`src/hooks/`) for logic separation.
+* **Stack:** React + Vite + Tailwind CSS (v4)
+* **Data:** JSON-driven architecture (`src/data/`).
+* **Analytics:** Google Analytics 4.
 
 ## 🚀 Quick Start
 ```bash
-git clone [https://github.com/rpdouglas/interactive-resume.git](https://github.com/rpdouglas/interactive-resume.git)
 npm install
 npm run dev
 ```
-
-## 🧪 Running Tests
-```bash
-npm run test
-```
-
-## 👤 Author
-**Ryan Douglas**
