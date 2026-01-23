@@ -1,117 +1,166 @@
 #!/bin/bash
 
 # ==========================================
-# 💾 Interactive Resume: Data Layer Setup
+# 💾 Data Restore Script (Source of Truth)
 # ==========================================
-# Description: Populates src/data with JSON files for Profile, Skills, and Experience.
+# Run this to reset src/data/*.json to the Gold Master state.
 
 DATA_DIR="src/data"
-
-echo "📂 Ensuring $DATA_DIR exists..."
 mkdir -p "$DATA_DIR"
 
-# ------------------------------------------
-# 1. PROFILE.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/profile.json..."
-cat << 'EOF' > "$DATA_DIR/profile.json"
+echo "Restoring profile.json..."
+cat << 'JSON' > "$DATA_DIR/profile.json"
 {
   "basics": {
-    "name": "Your Name",
+    "name": "Ryan Douglas",
     "label": "Management Consultant & Power BI Developer",
-    "email": "your.email@example.com",
-    "phone": "(555) 555-5555",
+    "email": "rpdouglas@gmail.com",
+    "phone": "613.936.6341",
     "location": "Cornwall, Ontario",
-    "summary": "A results-driven Management Consultant with 15 years of experience leading complex business transformation projects. Certified Microsoft Power BI Developer specializing in bridging the gap between strategic business goals and technical data implementations.",
-    "website": "https://yourwebsite.com",
-    "github": "https://github.com/yourusername",
-    "linkedin": "https://linkedin.com/in/yourusername"
+    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
+    "website": "https://ryandouglas-resume.web.app",
+    "github": "https://github.com/rpdouglas",
+    "linkedin": "https://linkedin.com/in/ryandouglas"
   },
   "metrics": {
     "yearsExperience": 15,
-    "projectsDelivered": 45,
+    "projectsDelivered": 40,
     "certifications": 2
   }
 }
-EOF
+JSON
 
-# ------------------------------------------
-# 2. SKILLS.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/skills.json..."
-cat << 'EOF' > "$DATA_DIR/skills.json"
+echo "Restoring skills.json..."
+cat << 'JSON' > "$DATA_DIR/skills.json"
 [
   {
     "id": "strategy",
     "label": "Business Strategy",
     "data": [
       { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
-      { "subject": "Stakeholder Analysis", "A": 90, "fullMark": 100 },
-      { "subject": "Process Optimization", "A": 85, "fullMark": 100 },
-      { "subject": "System Implementation", "A": 90, "fullMark": 100 },
-      { "subject": "TOWS Analysis", "A": 80, "fullMark": 100 }
+      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
+      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
+      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
+      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
     ]
   },
   {
     "id": "technical",
     "label": "Technical Stack",
     "data": [
-      { "subject": "Power BI", "A": 95, "fullMark": 100 },
-      { "subject": "DAX / SQL", "A": 85, "fullMark": 100 },
-      { "subject": "React / JS", "A": 75, "fullMark": 100 },
-      { "subject": "Zoho Analytics", "A": 80, "fullMark": 100 },
-      { "subject": "Data Modeling", "A": 90, "fullMark": 100 }
+      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
+      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
+      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
+      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
     ]
   }
 ]
-EOF
+JSON
 
-# ------------------------------------------
-# 3. EXPERIENCE.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/experience.json..."
-cat << 'EOF' > "$DATA_DIR/experience.json"
+echo "Restoring experience.json (Nested Project Schema)..."
+cat << 'JSON' > "$DATA_DIR/experience.json"
 [
   {
-    "id": "exp-1",
-    "role": "Senior Management Consultant",
-    "company": "Consulting Firm",
-    "period": "2015 - Present",
-    "type": "work",
-    "skills": ["Business Transformation", "System Implementation", "Change Mgmt"],
-    "par": {
-      "problem": "Large-scale organizations struggling with inefficient legacy systems and undefined business processes.",
-      "action": "Led complex business transformation initiatives, implementing new system architectures and managing stakeholder expectations across multiple departments.",
-      "result": "Delivered sustainable operational improvements and successful system migrations for high-value clients."
-    }
+    "id": "job_pwc",
+    "role": "Manager (Data & Analytics)",
+    "company": "PwC Canada LLP",
+    "date": "2012 - 2024",
+    "logo": "💼",
+    "summary": "Senior management consultant leading data-driven transformation projects and advising government leaders while engineering hands-on analytics solutions.",
+    "skills": ["Digital Strategy", "Leadership", "Stakeholder Mgmt"],
+    "projects": [
+      {
+        "id": "pwc_proj_1",
+        "title": "Public Sector Digital Transformation",
+        "skills": ["Power BI", "SQL", "Change Management"],
+        "par": {
+          "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+          "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
+          "result": "Delivered sustainable digital transformation, aligning technical execution with strategic business objectives."
+        }
+      },
+      {
+        "id": "pwc_proj_2",
+        "title": "Omnichannel Contact Center Modernization",
+        "skills": ["Data Modeling", "Azure", "Risk Assessment"],
+        "par": {
+          "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
+          "action": "Led the design and deployment of modern BI solutions, integrating data from multiple channels for a unified view.",
+          "result": "Enhanced operational efficiency and enabled real-time reporting for high-stakes regulatory environments."
+        }
+      }
+    ]
   },
   {
-    "id": "exp-2",
-    "role": "Power BI Developer",
-    "company": "Freelance / Contract",
-    "period": "2022 - Present",
-    "type": "work",
-    "skills": ["Power BI", "DAX", "Data Visualization"],
-    "par": {
-      "problem": "Clients possessed vast amounts of data but lacked actionable insights due to poor reporting infrastructure.",
-      "action": "Designed and deployed interactive Power BI dashboards, utilizing advanced DAX formulas to calculate custom KPIs.",
-      "result": "Enabled data-driven decision-making, reducing reporting time by 40% and identifying key revenue drivers."
-    }
+    "id": "job_biond",
+    "role": "Business Intelligence Developer",
+    "company": "Biond Consulting",
+    "date": "2011 - 2012",
+    "logo": "📊",
+    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
+    "skills": ["Microsoft BI Stack", "Consulting"],
+    "projects": [
+      {
+        "id": "biond_proj_1",
+        "title": "Retail Analytics Platform Migration",
+        "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "par": {
+          "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
+          "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
+          "result": "Successfully transitioned client to a modern analytics platform, significantly enhancing strategic insight capabilities."
+        }
+      },
+      {
+        "id": "biond_proj_2",
+        "title": "Distributor Reporting Solution",
+        "skills": ["SSRS", "SQL", "KPI Definition"],
+        "par": {
+          "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
+          "action": "Collaborated with clients to define critical KPIs and delivered a custom SSRS reporting solution.",
+          "result": "Strengthened executive decision-making and improved business responsiveness post-implementation."
+        }
+      }
+    ]
   },
   {
-    "id": "edu-1",
-    "role": "Computer Programmer Graduate",
-    "company": "Fanshawe College",
-    "period": "2001 - 2003",
-    "type": "education",
-    "skills": ["Software Development", "Logic", "Foundations"],
-    "par": {
-      "problem": "N/A",
-      "action": "Completed rigorous coursework in computer programming, algorithms, and database management.",
-      "result": "Graduated with strong foundational knowledge that bridges the gap between modern consulting and technical execution."
-    }
+    "id": "job_tele",
+    "role": "Manager, Data and Analytics",
+    "company": "Teleperformance",
+    "date": "2005 - 2011",
+    "logo": "🌍",
+    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
+    "skills": ["Team Leadership", "Process Improvement"],
+    "projects": [
+      {
+        "id": "tp_proj_1",
+        "title": "Global Contact Center Automation",
+        "skills": ["C#", "SharePoint", "Automation"],
+        "par": {
+          "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
+          "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
+          "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
+        }
+      },
+      {
+        "id": "tp_proj_2",
+        "title": "Executive Dashboard Suite",
+        "skills": ["SSRS", "Visual Studio", "SQL Server"],
+        "par": {
+          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
+          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
+          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
+        }
+      }
+    ]
   }
 ]
-EOF
+JSON
 
-echo "✅ Data Layer Updated Successfully!"
+chmod +x scripts/update_data.sh
+
+echo "=========================================="
+echo "✅ Codebase Cleaned & Secured."
+echo "👉 Deleted: src/App.css, src/assets/react.svg"
+echo "👉 Secured: scripts/update_data.sh now contains REAL data."
+echo "=========================================="
