@@ -1,0 +1,8 @@
+[
+  { "id": "public", "label": "Public Sector", "icon": "Government" },
+  { "id": "retail", "label": "Retail", "icon": "ShoppingBag" },
+  { "id": "telecom", "label": "Telecommunications", "icon": "Radio" },
+  { "id": "finance", "label": "Finance", "icon": "Banknote" },
+  { "id": "logistics", "label": "Distribution", "icon": "Truck" },
+  { "id": "outsourcing", "label": "Outsourcing", "icon": "Globe" }
+]

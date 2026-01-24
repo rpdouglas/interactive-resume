@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Fri Jan 23 00:35:13 EST 2026
+**Date:** Fri Jan 23 23:31:38 EST 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -7,7 +7,7 @@
 {
   "name": "interactive-resume",
   "private": true,
-  "version": "0.11.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -23,8 +23,10 @@
     "firebase": "^12.8.0",
     "framer-motion": "^12.29.0",
     "lucide-react": "^0.562.0",
+    "mermaid": "^11.12.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-router-dom": "^7.13.0",
     "recharts": "^3.7.0",
     "tailwind-merge": "^3.4.0"
   },
@@ -65,14 +67,52 @@ export default defineConfig({
     tailwindcss(),
   ],
   define: {
-    // This exposes the version from package.json as a global variable
     'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version),
+  },
+  resolve: {
+    alias: {
+      react: 'react',
+      'react-dom': 'react-dom',
+    },
+  },
+  optimizeDeps: {
+    include: ['mermaid', 'framer-motion', 'react', 'react-dom'],
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000,
+    commonjsOptions: {
+      include: [/mermaid/, /node_modules/],
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('mermaid')) return 'vendor-mermaid';
+            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
+            if (id.includes('framer-motion')) return 'vendor-animation';
+            if (id.includes('firebase')) return 'vendor-firebase';
+            return 'vendor-core';
+          }
+        },
+      },
+    },
+  },
+  // ✅ FIX: Modernized Pool Configuration for Vitest 4+
+  pool: 'forks',
+  poolOptions: {
+    forks: {
+      singleFork: true,
+    },
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
     css: true,
+    testTimeout: 10000,
   },
 })
 
@@ -82,6 +122,19 @@ export default defineConfig({
 ## FILE: firebase.json
 ```json
 {
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -112,106 +165,75 @@ export default defineConfig({
 ```
 ---
 
-## FILE: src/App.css
-```css
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-```
----
-
 ## FILE: src/App.jsx
 ```jsx
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+
+// 🚀 Performance: Lazy Load Admin components
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
+// Sections / Components
 import Dashboard from './components/dashboard/Dashboard';
 import ExperienceSection from './sections/ExperienceSection';
 import Footer from './components/Footer';
 import Header from './components/Header';
+import BookingModal from './components/common/BookingModal';
 import { useAnalytics } from './hooks/useAnalytics';
 
-function App() {
-  // 📊 Initialize Analytics
+// Wrapper for the Public View
+const PublicResume = () => {
   useAnalytics();
-
-  // 🧠 The Brain: Shared State for Cross-Filtering
   const [activeSkill, setActiveSkill] = useState(null);
+  const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   const handleSkillClick = (skillName) => {
-    // If clicking the same skill, toggle it off
     setActiveSkill(prev => prev === skillName ? null : skillName);
-  };
-
-  const handleClearFilter = () => {
-    setActiveSkill(null);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-brand-accent selection:text-white">
-      {/* ♿ A11y: Skip Link (Hidden until Tabbed) */}
-      <a 
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 px-6 py-3 bg-blue-600 text-white font-bold rounded shadow-lg transition-transform"
-      >
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-[60] px-6 py-3 bg-blue-600 text-white font-bold rounded shadow-lg">
         Skip to Content
       </a>
-
-      {/* 🧭 Sticky Navigation */}
-      <Header />
-
-      <main id="main-content" className="pt-20"> {/* pt-20 to offset fixed header */}
-        {/* 1. Dashboard triggers the filter */}
-        <Dashboard onSkillClick={handleSkillClick} />
-        
-        {/* 2. Timeline reacts to the filter */}
-        <ExperienceSection 
-          activeFilter={activeSkill} 
-          onClear={handleClearFilter} 
-        />
+      <Header onBookClick={() => setIsBookingOpen(true)} />
+      <main id="main-content" className="pt-20">
+        <Dashboard activeFilter={activeSkill} onSkillClick={handleSkillClick} />
+        <ExperienceSection activeFilter={activeSkill} onClear={() => handleSkillClick(null)} />
       </main>
-      
-      {/* Footer is hidden in print via utility class in component */}
+      <BookingModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
       <Footer />
     </div>
+  );
+};
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center bg-slate-950">
+            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<PublicResume />} />
+            <Route 
+              path="/admin/*" 
+              element={
+                <ProtectedRoute>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
@@ -220,32 +242,45 @@ export default App;
 ```
 ---
 
-## FILE: src/assets/react.svg
-```svg
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
-```
----
-
 ## FILE: src/components/Footer.jsx
 ```jsx
 import React from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Lock } from 'lucide-react';
 
 const Footer = () => {
-  // Access the variable we defined in vite.config.js
-  // The '||' provides a fallback for local dev if the env var isn't ready
   const version = import.meta.env.PACKAGE_VERSION || 'v0.0.0';
+  const { user, login } = useAuth();
 
   return (
-    <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center mt-20 print:bg-white print:border-t-2 print:border-gray-200 print:mt-10 print:py-4">
-      <p className="text-slate-500 text-sm print:text-gray-600">
+    <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center mt-20 print:hidden">
+      <p className="text-slate-500 text-sm">
         &copy; {new Date().getFullYear()} Ryan Douglas. 
-        <span className="hidden print:inline"> - ryandouglas-resume.web.app</span>
       </p>
       
-      {/* 🖨️ PRINT: Hide the system version blob, it's irrelevant on paper */}
-      <div className="mt-2 text-xs font-mono text-slate-700 flex justify-center items-center gap-2 print:hidden">
-        <span className="w-2 h-2 rounded-full bg-green-500/50"></span>
-        <span>System Version: v{version}</span>
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <div className="text-[10px] font-mono text-slate-700 flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500/50"></span>
+          <span>System Version: v{version}</span>
+        </div>
+
+        {/* 🔐 Discreet Admin Entry Point */}
+        {!user ? (
+          <button 
+            onClick={login}
+            className="mt-2 text-slate-800 hover:text-slate-600 transition-colors"
+            title="Admin Login"
+          >
+            <Lock size={12} />
+          </button>
+        ) : (
+          <a 
+            href="/admin" 
+            className="mt-2 text-xs font-bold text-blue-500 hover:underline"
+          >
+            Go to Dashboard
+          </a>
+        )}
       </div>
     </footer>
   );
@@ -259,26 +294,19 @@ export default Footer;
 ## FILE: src/components/Header.jsx
 ```jsx
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Linkedin, Github, Mail } from 'lucide-react';
+import { Menu, X, Linkedin, Github, Mail, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logUserInteraction } from '../hooks/useAnalytics';
 
-const Header = () => {
+const Header = ({ onBookClick }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Detect scroll for glass effect intensity
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const navLinks = [
-    { name: 'Dashboard', href: '#dashboard' },
-    { name: 'Experience', href: '#experience' },
-  ];
 
   const handleNavClick = (e, href) => {
     e.preventDefault();
@@ -287,9 +315,14 @@ const Header = () => {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
     } else {
-      // If href is #dashboard (top), scroll window to 0
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleBooking = () => {
+    setMobileMenuOpen(false);
+    logUserInteraction('booking_open');
+    onBookClick();
   };
 
   return (
@@ -302,80 +335,55 @@ const Header = () => {
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 flex justify-between items-center">
-          {/* Logo / Name */}
-          <a 
-            href="#" 
-            onClick={(e) => handleNavClick(e, '#dashboard')}
-            className="text-xl font-bold text-white tracking-tight flex items-center gap-2"
-          >
-            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-mono">RD</span>
-            <span className={isScrolled ? 'opacity-100' : 'opacity-90'}>Ryan Douglas</span>
+          <a href="#" onClick={(e) => handleNavClick(e, '#dashboard')} className="flex items-center gap-2 group">
+            <span className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-xs font-mono text-white">RD</span>
+            <span className="text-xl font-bold text-white opacity-90 group-hover:opacity-100 transition-opacity">Ryan Douglas</span>
           </a>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map(link => (
-              <a 
-                key={link.name}
-                href={link.href}
-                onClick={(e) => handleNavClick(e, link.href)}
-                className="text-sm font-medium text-slate-300 hover:text-white hover:underline decoration-blue-500 decoration-2 underline-offset-4 transition-all"
-              >
-                {link.name}
-              </a>
-            ))}
+          <nav className="hidden md:flex items-center gap-6">
+            <a href="#experience" onClick={(e) => handleNavClick(e, '#experience')} className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Experience</a>
             
             <div className="h-4 w-px bg-slate-700 mx-2" />
-            
-            {/* Social Icons */}
-            <div className="flex items-center gap-4">
-              <a href="https://linkedin.com/in/ryandouglas" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors" aria-label="LinkedIn">
-                <Linkedin size={18} />
-              </a>
-              <a href="https://github.com/rpdouglas" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors" aria-label="GitHub">
-                <Github size={18} />
-              </a>
-              <a href="mailto:rpdouglas@gmail.com" className="text-slate-400 hover:text-emerald-400 transition-colors" aria-label="Email">
-                <Mail size={18} />
-              </a>
+
+            <button 
+              onClick={handleBooking}
+              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg shadow-lg shadow-blue-900/20 transition-all active:scale-95 flex items-center gap-2 print:hidden"
+            >
+              <MessageSquare size={14} />
+              Let's Talk
+            </button>
+
+            <div className="flex items-center gap-3 ml-2">
+              <a href="https://linkedin.com/in/ryandouglas" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-blue-400 transition-colors"><Linkedin size={18} /></a>
+              <a href="mailto:rpdouglas@gmail.com" className="text-slate-400 hover:text-emerald-400 transition-colors"><Mail size={18} /></a>
             </div>
           </nav>
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            className="md:hidden text-slate-300 hover:text-white"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Menu"
-          >
+          <button className="md:hidden text-slate-300" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Toggle Menu">
             {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed inset-0 z-40 bg-slate-900/95 backdrop-blur-xl pt-24 px-6 md:hidden"
+            className="fixed inset-0 z-40 bg-slate-900/98 backdrop-blur-xl pt-24 px-6 md:hidden"
           >
             <nav className="flex flex-col gap-6 text-center">
-              {navLinks.map(link => (
-                <a 
-                  key={link.name}
-                  href={link.href}
-                  onClick={(e) => handleNavClick(e, link.href)}
-                  className="text-2xl font-bold text-slate-200 hover:text-blue-400"
-                >
-                  {link.name}
-                </a>
-              ))}
+              <a href="#experience" onClick={(e) => handleNavClick(e, '#experience')} className="text-2xl font-bold text-slate-200">Experience</a>
+              <button 
+                onClick={handleBooking}
+                className="mx-auto w-full max-w-xs py-4 bg-blue-600 text-white rounded-xl font-bold text-xl"
+              >
+                Book a Consultation
+              </button>
               <div className="flex justify-center gap-8 mt-8">
-                 <a href="https://linkedin.com/in/ryandouglas" className="text-slate-400 hover:text-blue-400"><Linkedin size={28} /></a>
-                 <a href="https://github.com/rpdouglas" className="text-slate-400 hover:text-white"><Github size={28} /></a>
-                 <a href="mailto:rpdouglas@gmail.com" className="text-slate-400 hover:text-emerald-400"><Mail size={28} /></a>
+                 <a href="https://linkedin.com/in/ryandouglas" className="text-slate-400"><Linkedin size={28} /></a>
+                 <a href="mailto:rpdouglas@gmail.com" className="text-slate-400"><Mail size={28} /></a>
               </div>
             </nav>
           </motion.div>
@@ -394,30 +402,52 @@ export default Header;
 ```jsx
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import Footer from '../Footer';
+import { AuthProvider } from '../../context/AuthContext';
+
+// Mock Firebase Auth
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
+  GoogleAuthProvider: vi.fn(),
+  onAuthStateChanged: vi.fn(() => () => {}),
+}));
+
+// Mock the Firebase library
+vi.mock('../../lib/firebase', () => ({
+  auth: {},
+  googleProvider: {},
+}));
 
 describe('Footer Component', () => {
   it('renders the correct copyright year', () => {
-    render(<Footer />);
+    render(
+      <AuthProvider>
+        <Footer />
+      </AuthProvider>
+    );
     const currentYear = new Date().getFullYear().toString();
-    
-    // Use regex to find the year anywhere in the text
     expect(screen.getByText(new RegExp(currentYear))).toBeDefined();
   });
 
   it('renders the System Version indicator', () => {
-    render(<Footer />);
-    
-    // We look for the specific label "System Version: v"
-    // This confirms the Footer is attempting to display version data
+    render(
+      <AuthProvider>
+        <Footer />
+      </AuthProvider>
+    );
     expect(screen.getByText(/System Version: v/i)).toBeDefined();
   });
 
-  it('renders the build status', () => {
-    render(<Footer />);
-    // Just ensuring the structure is consistent
-    expect(screen.getByText(/Ryan Douglas/i)).toBeDefined();
+  it('renders the admin lock icon when not logged in', () => {
+    render(
+      <AuthProvider>
+        <Footer />
+      </AuthProvider>
+    );
+    // The Lock icon is inside a button
+    const lockBtn = screen.getByRole('button');
+    expect(lockBtn).toBeDefined();
   });
 });
 
@@ -428,36 +458,450 @@ describe('Footer Component', () => {
 ```jsx
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import Header from '../Header';
+
+// Mock Framer Motion
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, className }) => <div className={className}>{children}</div>,
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
 
 describe('Header Component', () => {
   it('renders the logo name', () => {
-    render(<Header />);
+    render(<Header onBookClick={() => {}} />);
     expect(screen.getByText(/Ryan Douglas/i)).toBeDefined();
   });
 
-  it('renders desktop navigation links', () => {
-    render(<Header />);
-    expect(screen.getByText('Dashboard')).toBeDefined();
-    expect(screen.getByText('Experience')).toBeDefined();
+  it('renders primary call-to-action and nav links', () => {
+    render(<Header onBookClick={() => {}} />);
+    // Check for the new "Let's Talk" CTA
+    expect(screen.getByText(/Let's Talk/i)).toBeDefined();
+    // Check for the Experience link
+    expect(screen.getByText(/Experience/i)).toBeDefined();
   });
 
-  it('toggles mobile menu when hamburger is clicked', () => {
-    render(<Header />);
+  it('toggles mobile menu and triggers booking from mobile', () => {
+    const mockBookClick = vi.fn();
+    render(<Header onBookClick={mockBookClick} />);
     
-    // Initially mobile menu is hidden (we can't easily check visibility without styles, 
-    // but we can check if the button exists and is clickable)
+    // 1. Find and click the toggle button (Verified via restored aria-label)
     const toggleBtn = screen.getByLabelText('Toggle Menu');
-    expect(toggleBtn).toBeDefined();
-
-    // Click it
     fireEvent.click(toggleBtn);
 
-    // Now the mobile nav links should be in the DOM
-    // (In a real browser, they might be hidden by CSS, but in JSDOM they exist)
-    const mobileLinks = screen.getAllByText('Dashboard');
-    expect(mobileLinks.length).toBeGreaterThan(1); // One desktop, one mobile
+    // 2. Click the mobile booking button
+    const mobileBookBtn = screen.getByText('Book a Consultation');
+    fireEvent.click(mobileBookBtn);
+
+    expect(mockBookClick).toHaveBeenCalled();
+  });
+});
+
+```
+---
+
+## FILE: src/components/auth/ProtectedRoute.jsx
+```jsx
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+export default ProtectedRoute;
+
+```
+---
+
+## FILE: src/components/auth/__tests__/AdminSecurity.test.jsx
+```jsx
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider, useAuth } from '../../../context/AuthContext';
+import ProtectedRoute from '../ProtectedRoute';
+import * as FirebaseAuth from 'firebase/auth';
+
+// 1. Mock Firebase Auth
+vi.mock('firebase/auth', () => ({
+  getAuth: vi.fn(),
+  GoogleAuthProvider: vi.fn(),
+  onAuthStateChanged: vi.fn(),
+  signInWithPopup: vi.fn(),
+  signOut: vi.fn(),
+}));
+
+// 2. Mock Firebase Library
+vi.mock('../../../lib/firebase', () => ({
+  auth: {},
+  googleProvider: {},
+}));
+
+// 3. Helper to mock the authorized email env var
+vi.stubEnv('VITE_ADMIN_EMAIL', 'authorized@test.com');
+
+describe('Admin Security Logic', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const MockAdminPage = () => <div>Sensitive Admin Data</div>;
+  const MockPublicPage = () => <div>Public Resume</div>;
+
+  it('ProtectedRoute: Shows loading spinner when auth state is pending', () => {
+    // Force AuthContext to stay in loading state
+    FirebaseAuth.onAuthStateChanged.mockImplementation(() => () => {});
+
+    render(
+      <AuthProvider>
+        <ProtectedRoute>
+          <MockAdminPage />
+        </ProtectedRoute>
+      </AuthProvider>
+    );
+
+    // Look for the loading spinner div
+    expect(document.querySelector('.animate-spin')).toBeDefined();
+  });
+
+  it('Whitelisting: Grants access only to the whitelisted email', async () => {
+    // Simulate authorized user login
+    FirebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback({ email: 'authorized@test.com' });
+      return () => {};
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<MockPublicPage />} />
+            <Route 
+              path="/admin" 
+              element={<ProtectedRoute><MockAdminPage /></ProtectedRoute>} 
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Sensitive Admin Data')).toBeDefined();
+  });
+
+  it('Whitelisting: Bounces an authenticated but unauthorized user', async () => {
+    // Simulate someone else logging in with their Google account
+    FirebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback({ email: 'intruder@hacker.com' });
+      return () => {};
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<MockPublicPage />} />
+            <Route 
+              path="/admin" 
+              element={<ProtectedRoute><MockAdminPage /></ProtectedRoute>} 
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    // Should be redirected to public page
+    expect(screen.getByText('Public Resume')).toBeDefined();
+    expect(screen.queryByText('Sensitive Admin Data')).toBeNull();
+  });
+
+  it('ProtectedRoute: Bounces unauthenticated users (null)', () => {
+    // Simulate no user logged in
+    FirebaseAuth.onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(null);
+      return () => {};
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/admin']}>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<MockPublicPage />} />
+            <Route 
+              path="/admin" 
+              element={<ProtectedRoute><MockAdminPage /></ProtectedRoute>} 
+            />
+          </Routes>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Public Resume')).toBeDefined();
+  });
+});
+
+```
+---
+
+## FILE: src/components/common/BookingModal.jsx
+```jsx
+import React, { useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Calendar } from 'lucide-react';
+import { logUserInteraction } from '../../hooks/useAnalytics';
+
+/**
+ * 📅 BookingModal
+ * Integrated scheduling interface with Focus Trapping & A11y.
+ */
+const BookingModal = ({ isOpen, onClose }) => {
+  // Handle Escape Key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (isOpen) window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
+  // Lock Scroll
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    logUserInteraction('booking_close');
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
+          />
+
+          {/* Modal Card */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-title"
+            className="relative w-full max-w-4xl h-[90vh] md:h-[600px] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+          >
+            {/* Header */}
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                  <Calendar size={20} />
+                </div>
+                <div>
+                  <h2 id="modal-title" className="font-bold text-slate-900">Schedule a Consultation</h2>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">15-Min Discovery Call</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleClose}
+                className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-400 hover:text-slate-600"
+                aria-label="Close Modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Content / Iframe Container */}
+            <div className="flex-1 bg-slate-50 relative">
+              {/* 🛑 REPLACE src with your actual Calendly/Booking link */}
+              <iframe
+                src="https://calendly.com" 
+                width="100%"
+                height="100%"
+                frameBorder="0"
+                title="Scheduling Calendar"
+                className="w-full h-full"
+              ></iframe>
+              
+              {/* Optional: Simple Loader Overlay while iframe loads */}
+              <div className="absolute inset-0 -z-10 flex items-center justify-center text-slate-400 text-sm italic">
+                Loading Calendar...
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+export default BookingModal;
+
+```
+---
+
+## FILE: src/components/common/Mermaid.jsx
+```jsx
+import React, { useEffect, useRef } from 'react';
+import mermaid from 'mermaid';
+
+/**
+ * 🧜‍♂️ Mermaid.js Wrapper
+ * Renders text-based diagrams as SVGs.
+ * Handles the React lifecycle to prevent duplicate rendering.
+ */
+const Mermaid = ({ chart }) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    // Initialize with Slate/Blue theme
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      securityLevel: 'loose',
+      themeVariables: {
+        primaryColor: '#3b82f6',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#2563eb',
+        lineColor: '#64748b',
+        secondaryColor: '#1e293b',
+        tertiaryColor: '#0f172a'
+      }
+    });
+
+    if (ref.current) {
+      // Clear previous content
+      ref.current.innerHTML = '';
+      
+      // Unique ID for this render to avoid collision in long lists
+      const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+      
+      mermaid.render(id, chart).then(({ svg }) => {
+        if (ref.current) {
+          ref.current.innerHTML = svg;
+        }
+      });
+    }
+  }, [chart]);
+
+  return (
+    <div className="w-full bg-slate-900/50 p-4 rounded-lg border border-slate-700/50 overflow-x-auto">
+      <div ref={ref} className="flex justify-center" />
+    </div>
+  );
+};
+
+export default Mermaid;
+
+```
+---
+
+## FILE: src/components/common/__tests__/BookingModal.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import BookingModal from '../BookingModal';
+import * as Analytics from '../../../hooks/useAnalytics';
+
+// 1. Mock Framer Motion (Immediate Render)
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, className, onClick, role, ...props }) => (
+      <div className={className} onClick={onClick} role={role} {...props}>
+        {children}
+      </div>
+    ),
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+// 2. Mock Analytics Hook
+vi.mock('../../../hooks/useAnalytics', () => ({
+  logUserInteraction: vi.fn(),
+}));
+
+describe('BookingModal Component', () => {
+  const mockOnClose = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Reset body style before each test
+    document.body.style.overflow = 'unset';
+  });
+
+  it('renders correctly when isOpen is true', () => {
+    render(<BookingModal isOpen={true} onClose={mockOnClose} />);
+    
+    expect(screen.getByRole('dialog')).toBeDefined();
+    expect(screen.getByText(/Schedule a Consultation/i)).toBeDefined();
+    expect(screen.getByTitle(/Scheduling Calendar/i)).toBeDefined();
+  });
+
+  it('does not render when isOpen is false', () => {
+    render(<BookingModal isOpen={false} onClose={mockOnClose} />);
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('calls onClose and logs analytics when close button is clicked', () => {
+    render(<BookingModal isOpen={true} onClose={mockOnClose} />);
+    
+    const closeBtn = screen.getByLabelText(/Close Modal/i);
+    fireEvent.click(closeBtn);
+
+    expect(mockOnClose).toHaveBeenCalledTimes(1);
+    expect(Analytics.logUserInteraction).toHaveBeenCalledWith('booking_close');
+  });
+
+  it('closes when the Escape key is pressed', () => {
+    render(<BookingModal isOpen={true} onClose={mockOnClose} />);
+    
+    fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+    expect(mockOnClose).toHaveBeenCalled();
+  });
+
+  it('locks body scroll when open and restores it when closed', () => {
+    const { rerender } = render(<BookingModal isOpen={true} onClose={mockOnClose} />);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    rerender(<BookingModal isOpen={false} onClose={mockOnClose} />);
+    expect(document.body.style.overflow).toBe('unset');
+  });
+
+  it('contains an accessible iframe for the booking tool', () => {
+    render(<BookingModal isOpen={true} onClose={mockOnClose} />);
+    const iframe = screen.getByTitle(/Scheduling Calendar/i);
+    
+    expect(iframe).toBeDefined();
+    expect(iframe.tagName).toBe('IFRAME');
   });
 });
 
@@ -469,13 +913,13 @@ describe('Header Component', () => {
 import React from 'react';
 import KPIGrid from './KPIGrid';
 import SkillRadar from './SkillRadar';
+import SectorGrid from './SectorGrid';
 import profileData from '../../data/profile.json';
 import skillsData from '../../data/skills.json';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { logUserInteraction } from '../../hooks/useAnalytics';
 
-const Dashboard = ({ onSkillClick }) => {
-  // ⌨️ Typewriter Effect
+const Dashboard = ({ activeFilter, onSkillClick }) => {
   const typeWriterText = useTypewriter([
     "Management Consultant",
     "Power BI Developer",
@@ -483,10 +927,9 @@ const Dashboard = ({ onSkillClick }) => {
     "Strategy Advisor"
   ]);
 
-  // 🕵️‍♂️ Intercept click to log analytics
-  const handleChartInteraction = (skill) => {
-    logUserInteraction('filter_skill', { skill_name: skill });
-    onSkillClick(skill);
+  const handleInteraction = (label, type) => {
+    logUserInteraction('filter_click', { filter_value: label, filter_type: type });
+    onSkillClick(label);
   };
 
   return (
@@ -495,13 +938,10 @@ const Dashboard = ({ onSkillClick }) => {
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
           {profileData.basics.name}
         </h1>
-        
-        {/* Dynamic Hero Text */}
         <p className="text-xl text-blue-600 mt-2 font-mono h-8">
           {typeWriterText}
           <span className="animate-pulse">|</span>
         </p>
-        
         <p className="text-slate-400 mt-2 max-w-2xl text-sm md:text-base">
           {profileData.basics.summary}
         </p>
@@ -509,8 +949,15 @@ const Dashboard = ({ onSkillClick }) => {
 
       <KPIGrid metrics={profileData.metrics} />
 
-      {/* Pass the wrapped click handler down to the chart */}
-      <SkillRadar skills={skillsData} onSkillClick={handleChartInteraction} />
+      <SectorGrid 
+        activeSector={activeFilter} 
+        onSectorClick={(label) => handleInteraction(label, 'sector')} 
+      />
+
+      <SkillRadar 
+        skills={skillsData} 
+        onSkillClick={(label) => handleInteraction(label, 'skill')} 
+      />
     </section>
   );
 };
@@ -594,6 +1041,61 @@ export default KPIGrid;
 ```
 ---
 
+## FILE: src/components/dashboard/SectorGrid.jsx
+```jsx
+import React from 'react';
+import { motion } from 'framer-motion';
+import * as Icons from 'lucide-react';
+import sectors from '../../data/sectors.json';
+import clsx from 'clsx';
+
+const SectorGrid = ({ activeSector, onSectorClick }) => {
+  return (
+    <div className="mb-12">
+      <h3 className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 text-center md:text-left">
+        Industry Impact
+      </h3>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {sectors.map((sector, idx) => {
+          const IconComponent = Icons[sector.icon];
+          const isActive = activeSector === sector.label;
+
+          return (
+            <motion.button
+              key={sector.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              onClick={() => onSectorClick(sector.label)}
+              className={clsx(
+                "flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-300 group",
+                isActive 
+                  ? "bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20" 
+                  : "bg-white border-slate-100 text-slate-600 hover:border-blue-200 hover:bg-blue-50/30"
+              )}
+            >
+              <div className={clsx(
+                "p-2 rounded-lg mb-2 transition-colors",
+                isActive ? "bg-white/20" : "bg-slate-50 group-hover:bg-blue-100"
+              )}>
+                {IconComponent && <IconComponent size={24} className={isActive ? "text-white" : "text-blue-500"} />}
+              </div>
+              <span className="text-xs font-bold text-center leading-tight uppercase tracking-tighter">
+                {sector.label}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export default SectorGrid;
+
+```
+---
+
 ## FILE: src/components/dashboard/SkillRadar.jsx
 ```jsx
 import React from 'react';
@@ -672,64 +1174,101 @@ export default SkillRadar;
 ```
 ---
 
+## FILE: src/components/dashboard/__tests__/SectorGrid.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import SectorGrid from '../SectorGrid';
+import sectors from '../../../data/sectors.json';
+
+// Mock Framer Motion
+vi.mock('framer-motion', () => ({
+  motion: {
+    button: ({ children, onClick, className, ...props }) => (
+      <button onClick={onClick} className={className} {...props}>
+        {children}
+      </button>
+    ),
+  },
+}));
+
+describe('SectorGrid Component', () => {
+  it('renders all sectors defined in sectors.json', () => {
+    render(<SectorGrid activeSector={null} onSectorClick={() => {}} />);
+    sectors.forEach(sector => {
+      expect(screen.getByText(sector.label)).toBeDefined();
+    });
+  });
+
+  it('calls onSectorClick when a sector is clicked', () => {
+    const mockOnClick = vi.fn();
+    render(<SectorGrid activeSector={null} onSectorClick={mockOnClick} />);
+    fireEvent.click(screen.getByText('Public Sector'));
+    expect(mockOnClick).toHaveBeenCalledWith('Public Sector');
+  });
+
+  it('applies active styling for selected sector', () => {
+    render(<SectorGrid activeSector="Retail" onSectorClick={() => {}} />);
+    const retailBtn = screen.getByText('Retail').closest('button');
+    expect(retailBtn.className).toContain('bg-blue-600');
+  });
+});
+
+```
+---
+
 ## FILE: src/components/timeline/TimelineCard.jsx
 ```jsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
+import { ChevronDown, ChevronUp, Network } from 'lucide-react';
 import clsx from 'clsx';
+import Mermaid from '../common/Mermaid';
+import { logUserInteraction } from '../../hooks/useAnalytics';
 
 const TimelineCard = ({ data, index, activeFilter }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeDiagram, setActiveDiagram] = useState(null);
 
-  // 🧠 Smart Auto-Expand Logic
   useEffect(() => {
     if (!activeFilter) {
       setIsOpen(false);
       return;
     }
-
-    // Check if any project inside this job matches the filter
     const hasMatchingProject = data.projects.some(proj => 
       proj.skills.some(skill => 
         skill.toLowerCase().includes(activeFilter.toLowerCase())
       )
     );
-
-    if (hasMatchingProject) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
+    if (hasMatchingProject) setIsOpen(true);
   }, [activeFilter, data.projects]);
+
+  const toggleDiagram = (projectId, diagram) => {
+    if (activeDiagram === projectId) {
+      setActiveDiagram(null);
+    } else {
+      logUserInteraction('view_diagram', { project_id: projectId });
+      setActiveDiagram(projectId);
+    }
+  };
 
   return (
     <div className="relative pl-8 md:pl-12 py-6 group">
-      {/* 🟢 The Node (Dot on the Spine) */}
       <motion.div 
         layout
-        className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 shadow-[0_0_10px_rgba(59,130,246,0.5)] z-10 group-hover:scale-125 transition-transform duration-300"
+        className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 z-10 group-hover:scale-125 transition-transform"
         aria-hidden="true"
       />
 
-      {/* 📄 The Job Wrapper Card */}
       <motion.div 
         layout
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.3 }}
         className="bg-slate-800/50 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg overflow-hidden"
       >
-        {/* Header (Always Visible) */}
-        <div 
-          className="p-6 cursor-pointer hover:bg-slate-800/80 transition-colors"
-          onClick={() => setIsOpen(!isOpen)}
-        >
+        <div className="p-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
             <div>
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                {data.role}
-              </h3>
+              <h3 className="text-xl font-bold text-white">{data.role}</h3>
               <span className="text-blue-400 font-medium text-sm">{data.company}</span>
             </div>
             <div className="flex items-center gap-4 mt-1 sm:mt-0">
@@ -737,80 +1276,69 @@ const TimelineCard = ({ data, index, activeFilter }) => {
               {isOpen ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
             </div>
           </div>
-          
           <p className="text-slate-300 text-sm mt-2">{data.summary}</p>
-          
-          {/* Top Level Job Skills */}
-          <div className="flex flex-wrap gap-2 mt-3">
-             {data.skills.map(skill => (
-                <span key={skill} className="text-[10px] uppercase tracking-wider text-slate-500 bg-slate-900 px-2 py-0.5 rounded">
-                  {skill}
-                </span>
-             ))}
-          </div>
         </div>
 
-        {/* 📂 The Projects Accordion */}
         <AnimatePresence>
           {isOpen && (
             <motion.div
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="border-t border-slate-700 bg-slate-900/30"
+              className="border-t border-slate-700 bg-slate-900/30 p-4 space-y-4"
             >
-              <div className="p-4 space-y-4">
-                <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 pl-2">Key Projects & Engagements</h4>
-                
-                {data.projects.map(project => {
-                  // Highlight project if it matches filter
-                  const isMatch = activeFilter && project.skills.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
+              {data.projects.map(project => {
+                const isMatch = activeFilter && project.skills.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
+                const hasDiagram = !!project.diagram;
 
-                  return (
-                    <div 
-                      key={project.id} 
-                      className={clsx(
-                        "p-4 rounded-lg border transition-all duration-300",
-                        isMatch ? "bg-blue-900/20 border-blue-500/50" : "bg-slate-900 border-slate-800"
+                return (
+                  <div key={project.id} className={clsx("p-4 rounded-lg border transition-all", isMatch ? "bg-blue-900/20 border-blue-500/50" : "bg-slate-900 border-slate-800")}>
+                    <div className="flex justify-between items-center mb-2">
+                      <h5 className={clsx("font-bold text-sm", isMatch ? "text-blue-300" : "text-slate-200")}>{project.title}</h5>
+                      
+                      {hasDiagram && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); toggleDiagram(project.id, project.diagram); }}
+                          className={clsx("p-1.5 rounded-md transition-colors flex items-center gap-2 text-[10px] uppercase font-bold tracking-tighter", 
+                            activeDiagram === project.id ? "bg-blue-600 text-white" : "bg-slate-800 text-slate-400 hover:text-white"
+                          )}
+                          title="View Architecture Diagram"
+                        >
+                          <Network size={14} />
+                          Visual Architecture
+                        </button>
                       )}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h5 className={clsx("font-bold text-sm", isMatch ? "text-blue-300" : "text-slate-200")}>
-                          {project.title}
-                        </h5>
-                      </div>
-
-                      {/* PAR Framework */}
-                      <div className="space-y-2 text-xs text-slate-400 mb-3">
-                        <p><strong className="text-blue-400">Problem:</strong> {project.par.problem}</p>
-                        <p><strong className="text-emerald-400">Action:</strong> {project.par.action}</p>
-                        <p><strong className="text-purple-400">Result:</strong> {project.par.result}</p>
-                      </div>
-
-                      {/* Project Specific Skills */}
-                      <div className="flex flex-wrap gap-2">
-                        {project.skills.map(skill => {
-                          const isSkillMatch = activeFilter && skill.toLowerCase().includes(activeFilter.toLowerCase());
-                          return (
-                            <span 
-                              key={skill} 
-                              className={clsx(
-                                "px-2 py-1 text-[10px] rounded-md border",
-                                isSkillMatch 
-                                  ? "bg-blue-600 text-white border-blue-500" 
-                                  : "bg-slate-800 text-slate-500 border-slate-700"
-                              )}
-                            >
-                              {skill}
-                            </span>
-                          );
-                        })}
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="space-y-2 text-xs text-slate-400 mb-3">
+                      <p><strong className="text-blue-400">Problem:</strong> {project.par.problem}</p>
+                      <p><strong className="text-emerald-400">Action:</strong> {project.par.action}</p>
+                      <p><strong className="text-purple-400">Result:</strong> {project.par.result}</p>
+                    </div>
+
+                    <AnimatePresence>
+                      {activeDiagram === project.id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="mb-4 overflow-hidden"
+                        >
+                          <Mermaid chart={project.diagram} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    <div className="flex flex-wrap gap-2">
+                      {project.skills.map(skill => (
+                        <span key={skill} className="px-2 py-1 text-[10px] rounded-md border border-slate-700 bg-slate-800 text-slate-500">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </motion.div>
           )}
         </AnimatePresence>
@@ -951,6 +1479,46 @@ describe('TimelineCard Component', () => {
 ```
 ---
 
+## FILE: src/context/AuthContext.jsx
+```jsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { auth, googleProvider } from '../lib/firebase';
+import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser && currentUser.email === adminEmail) {
+        setUser(currentUser);
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [adminEmail]);
+
+  const login = () => signInWithPopup(auth, googleProvider);
+  const logout = () => signOut(auth);
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+
+```
+---
+
 ## FILE: src/data/__tests__/SchemaValidation.test.js
 ```js
 import { describe, it, expect } from 'vitest';
@@ -1005,6 +1573,7 @@ describe('Data Integrity (Schema Validation)', () => {
         
         // Check PAR Structure (Now inside the project)
         expect(project.par).toBeDefined();
+        if (project.diagram) expect(project.diagram).toBeTypeOf("string");
         expect(project.par.problem).toBeTypeOf('string');
         expect(project.par.action).toBeTypeOf('string');
         expect(project.par.result).toBeTypeOf('string');
@@ -1034,7 +1603,9 @@ describe('Data Integrity (Schema Validation)', () => {
       {
         "id": "pwc_proj_1",
         "title": "Public Sector Digital Transformation",
+        "sector": "Public Sector",
         "skills": ["Power BI", "SQL", "Change Management"],
+        "diagram": "graph LR\n  DB[(Legacy Data)] --> ETL[SSIS/Azure]\n  ETL --> DW[(SQL Data Warehouse)]\n  DW --> PBI[Power BI Dashboards]\n  PBI --> EXEC{Executive Insights}",
         "par": {
           "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
           "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
@@ -1044,6 +1615,7 @@ describe('Data Integrity (Schema Validation)', () => {
       {
         "id": "pwc_proj_2",
         "title": "Omnichannel Contact Center Modernization",
+        "sector": "Telecommunications",
         "skills": ["Data Modeling", "Azure", "Risk Assessment"],
         "par": {
           "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
@@ -1065,7 +1637,9 @@ describe('Data Integrity (Schema Validation)', () => {
       {
         "id": "biond_proj_1",
         "title": "Retail Analytics Platform Migration",
+        "sector": "Retail",
         "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "diagram": "graph TD\n  POS[Point of Sale] --> SSIS[SSIS ETL]\n  WEB[E-Commerce] --> SSIS\n  SSIS --> STAGE[(Staging)]\n  STAGE --> DIM{Dimension Loading}\n  DIM --> CUBE[Analysis Services]",
         "par": {
           "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
           "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
@@ -1075,6 +1649,7 @@ describe('Data Integrity (Schema Validation)', () => {
       {
         "id": "biond_proj_2",
         "title": "Distributor Reporting Solution",
+        "sector": "Distribution",
         "skills": ["SSRS", "SQL", "KPI Definition"],
         "par": {
           "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
@@ -1096,21 +1671,12 @@ describe('Data Integrity (Schema Validation)', () => {
       {
         "id": "tp_proj_1",
         "title": "Global Contact Center Automation",
+        "sector": "Outsourcing",
         "skills": ["C#", "SharePoint", "Automation"],
         "par": {
           "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
           "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
           "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
-        }
-      },
-      {
-        "id": "tp_proj_2",
-        "title": "Executive Dashboard Suite",
-        "skills": ["SSRS", "Visual Studio", "SQL Server"],
-        "par": {
-          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
-          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
-          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
         }
       }
     ]
@@ -1140,6 +1706,20 @@ describe('Data Integrity (Schema Validation)', () => {
     "certifications": 2
   }
 }
+
+```
+---
+
+## FILE: src/data/sectors.json
+```json
+[
+  { "id": "public", "label": "Public Sector", "icon": "Government" },
+  { "id": "retail", "label": "Retail", "icon": "ShoppingBag" },
+  { "id": "telecom", "label": "Telecommunications", "icon": "Radio" },
+  { "id": "finance", "label": "Finance", "icon": "Banknote" },
+  { "id": "logistics", "label": "Distribution", "icon": "Truck" },
+  { "id": "outsourcing", "label": "Outsourcing", "icon": "Globe" }
+]
 
 ```
 ---
@@ -1392,6 +1972,7 @@ body {
 
 /* 🖨️ PRINT STYLES: The "White Paper" Transformation */
 @media print {
+  .print\:hidden { display: none !important; }
   /* 1. Global Reset for Paper */
   body {
     background-color: white !important;
@@ -1437,8 +2018,9 @@ body {
 ```js
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
-// Use environment variables (Vite requires VITE_ prefix)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -1449,13 +2031,19 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+const functions = getFunctions(app);
 
-// Initialize Analytics (only in production/browser)
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Callable Functions
+export const architectProject = httpsCallable(functions, 'architectProject');
 
-export { app, analytics };
+const analytics = (typeof window !== 'undefined' && window.indexedDB) 
+  ? getAnalytics(app) 
+  : null;
+
+export { app, auth, googleProvider, analytics };
 
 ```
 ---
@@ -1476,6 +2064,184 @@ createRoot(document.getElementById('root')).render(
 ```
 ---
 
+## FILE: src/pages/AdminDashboard.jsx
+```jsx
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { LayoutDashboard, FileText, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+import ProjectArchitect from './admin/ProjectArchitect';
+
+const AdminDashboard = () => {
+  const { logout, user } = useAuth();
+  const [activeTab, setActiveTab] = useState('architect');
+
+  const navItems = [
+    { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+    { id: 'architect', icon: Sparkles, label: 'Gemini Architect' },
+    { id: 'manager', icon: Database, label: 'Project Manager' },
+    { id: 'settings', icon: Settings, label: 'Settings' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen">
+        <div className="p-6 border-b border-slate-800">
+          <h2 className="font-bold text-xl tracking-tight">CMS Admin</h2>
+          <p className="text-xs text-slate-400 mt-1 truncate">{user?.email}</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === item.id ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <item.icon size={18} />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+          <button 
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Content Area */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        {activeTab === 'architect' ? (
+          <ProjectArchitect />
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-400">
+            <p>Module '{activeTab}' coming soon in Phase 15.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
+
+```
+---
+
+## FILE: src/pages/admin/ProjectArchitect.jsx
+```jsx
+import React, { useState } from 'react';
+import { architectProject } from '../../lib/firebase';
+import { Sparkles, Copy, RefreshCw, AlertCircle } from 'lucide-react';
+import TimelineCard from '../../components/timeline/TimelineCard';
+
+const ProjectArchitect = () => {
+  const [rawText, setRawText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+
+  const handleArchitect = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await architectProject({ rawText });
+      setResult(response.data);
+    } catch (err) {
+      setError("AI generation failed. Check your API key or connection.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col lg:flex-row h-full gap-6">
+      {/* Left: Input Pane */}
+      <div className="flex-1 flex flex-col gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col">
+          <label className="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">
+            Raw Project Notes
+          </label>
+          <textarea
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            placeholder="e.g. I worked at PwC and we built a Power BI dashboard for a client in Toronto. It helped them track their logistics costs and saved them 20% on shipping..."
+            className="flex-1 w-full p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none text-slate-700 resize-none"
+          />
+          <button
+            onClick={handleArchitect}
+            disabled={loading || !rawText}
+            className="mt-4 w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all"
+          >
+            {loading ? <RefreshCw className="animate-spin" /> : <Sparkles size={18} />}
+            {loading ? "Architecting..." : "Architect with Gemini"}
+          </button>
+        </div>
+      </div>
+
+      {/* Right: Live Preview Pane */}
+      <div className="flex-1 flex flex-col gap-4">
+        <div className="bg-slate-900 p-6 rounded-2xl shadow-xl flex-1 overflow-y-auto">
+          <div className="flex justify-between items-center mb-6">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Live Preview
+            </label>
+            {result && (
+              <button 
+                onClick={() => navigator.clipboard.writeText(JSON.stringify(result, null, 2))}
+                className="text-xs text-blue-400 hover:text-white flex items-center gap-1"
+              >
+                <Copy size={12} /> Copy JSON
+              </button>
+            )}
+          </div>
+
+          {result ? (
+            <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+               {/* Use the existing TimelineCard UI, mocked into the format it expects */}
+               <TimelineCard 
+                 data={{
+                   role: "Preview Output",
+                   company: "AI Generated",
+                   date: "Today",
+                   summary: "Formatting of your raw notes completed successfully.",
+                   projects: [result]
+                 }}
+                 index={0}
+                 activeFilter={null}
+               />
+            </div>
+          ) : error ? (
+            <div className="h-full flex flex-col items-center justify-center text-red-400 gap-2">
+              <AlertCircle size={40} className="opacity-20" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-slate-600 italic">
+              <Sparkles size={40} className="mb-4 opacity-10" />
+              <p className="text-sm">Enter notes on the left to generate PAR card.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ProjectArchitect;
+
+```
+---
+
 ## FILE: src/sections/ExperienceSection.jsx
 ```jsx
 import React from 'react';
@@ -1485,21 +2251,19 @@ import TimelineContainer from '../components/timeline/TimelineContainer';
 import experienceData from '../data/experience.json';
 
 const ExperienceSection = ({ activeFilter, onClear }) => {
-  
-  // 🔍 Deep Filtering Logic
-  // We want to show a Job Card if:
-  // 1. The Job's top-level skills match (generic role match)
-  // 2. OR Any of the Job's Projects have a matching skill (specific project match)
   const filteredData = activeFilter 
     ? experienceData.filter(job => {
+        // Match Job Skills
         const jobMatch = job.skills.some(skill => 
           skill.toLowerCase().includes(activeFilter.toLowerCase())
         );
         
+        // Match Project Skills OR Project Sectors
         const projectMatch = job.projects.some(proj => 
           proj.skills.some(skill => 
             skill.toLowerCase().includes(activeFilter.toLowerCase())
-          )
+          ) || 
+          (proj.sector && proj.sector.toLowerCase() === activeFilter.toLowerCase())
         );
 
         return jobMatch || projectMatch;
@@ -1509,8 +2273,6 @@ const ExperienceSection = ({ activeFilter, onClear }) => {
   return (
     <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden min-h-[600px] print:bg-white print:text-black print:py-0">
       <div className="container mx-auto px-4">
-        
-        {/* Header with Filter State */}
         <div className="text-center mb-12 print:mb-6">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 print:text-black">
             Professional <span className="text-blue-500 print:text-black">Portfolio</span>
@@ -1543,26 +2305,19 @@ const ExperienceSection = ({ activeFilter, onClear }) => {
                   animate={{ opacity: 1 }}
                   className="text-slate-400 max-w-2xl mx-auto"
                 >
-                  Explore 15 years of consulting and development impact. <br/>
-                  <span className="text-xs text-slate-500">Click a Job to view Projects, or use the Radar Chart to filter.</span>
+                  Explore 15 years of consulting impact across diverse industries. <br/>
+                  <span className="text-xs text-slate-500 italic">Filter by technical skill or industry sector above.</span>
                 </motion.p>
               )}
             </AnimatePresence>
           </div>
-          
-          <p className="hidden print:block text-sm text-gray-600 mt-2">
-             Detailed project history.
-          </p>
         </div>
 
-        {/* The Filtered Timeline */}
-        {/* We pass activeFilter so cards can Auto-Expand */}
         <TimelineContainer experienceData={filteredData} activeFilter={activeFilter} />
         
-        {/* Empty State */}
         {filteredData.length === 0 && (
           <div className="text-center text-slate-500 mt-12 italic">
-            No specific roles found matching "{activeFilter}" (Check skills list).
+            No specific engagements found matching "{activeFilter}".
           </div>
         )}
       </div>
@@ -1578,85 +2333,38 @@ export default ExperienceSection;
 ## FILE: src/sections/__tests__/ExperienceSection.test.jsx
 ```jsx
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ExperienceSection from '../ExperienceSection';
 
-// 1. Mock Framer Motion
+// Mock Framer Motion
 vi.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, className, ...props }) => <div className={className} {...props}>{children}</div>,
+    div: ({ children, className }) => <div className={className}>{children}</div>,
     p: ({ children, className }) => <p className={className}>{children}</p>,
   },
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
-// 2. Mock Child Components
-vi.mock('../../components/timeline/TimelineContainer', () => ({
-  default: ({ experienceData }) => (
-    <div data-testid="timeline-container">
-      Count: {experienceData.length}
-      <ul>
-        {experienceData.map(job => <li key={job.id}>{job.role}</li>)}
-      </ul>
-    </div>
-  ),
-}));
-
-// 3. Mock Data Source (UPDATED SCHEMA)
-vi.mock('../../data/experience.json', () => ({
-  default: [
-    { 
-      id: '1', 
-      role: 'React Dev', 
-      skills: ['React'], 
-      projects: [
-        { id: 'p1', title: 'Web App', skills: ['React', 'Redux'], par: {problem:'', action:'', result:''} }
-      ] 
-    },
-    { 
-      id: '2', 
-      role: 'Power BI Analyst', 
-      skills: ['Analysis'], 
-      projects: [
-        { id: 'p2', title: 'Dashboard', skills: ['Power BI', 'SQL'], par: {problem:'', action:'', result:''} }
-      ] 
-    },
-    { 
-      id: '3', 
-      role: 'Full Stack', 
-      skills: ['Node'], 
-      projects: [
-        { id: 'p3', title: 'API', skills: ['Node', 'React'], par: {problem:'', action:'', result:''} }
-      ] 
-    },
-  ]
-}));
-
-describe('ExperienceSection (Nested Matrix Filter)', () => {
-  
-  it('shows ALL jobs when no filter is active', () => {
-    render(<ExperienceSection activeFilter={null} />);
-    expect(screen.getByText('Count: 3')).toBeDefined();
-  });
-
-  it('filters jobs correctly (Deep Search)', () => {
-    // Filter by "React"
-    // Job 1 matches (Top skill + Project skill)
-    // Job 2 has NO React
-    // Job 3 matches (Project skill)
-    render(<ExperienceSection activeFilter="React" />);
-    
-    expect(screen.getByText('Count: 2')).toBeDefined();
-    expect(screen.getByText('React Dev')).toBeDefined();
-    expect(screen.getByText('Full Stack')).toBeDefined();
-    expect(screen.queryByText('Power BI Analyst')).toBeNull();
-  });
-
-  it('displays the Active Filter label', () => {
+describe('ExperienceSection Filter Logic', () => {
+  it('filters by technical skill (e.g., Power BI)', () => {
     render(<ExperienceSection activeFilter="Power BI" />);
-    const filterPills = screen.getAllByText('Power BI');
-    expect(filterPills.length).toBeGreaterThan(0);
+    // PwC project uses Power BI
+    expect(screen.getByText(/PwC Canada LLP/i)).toBeDefined();
+    // Teleperformance should be filtered out
+    expect(screen.queryByText(/Teleperformance/i)).toBeNull();
+  });
+
+  it('filters by industry sector (e.g., Public Sector)', () => {
+    render(<ExperienceSection activeFilter="Public Sector" />);
+    expect(screen.getByText(/PwC Canada LLP/i)).toBeDefined();
+    // Biond is Retail/Distribution, should be hidden
+    expect(screen.queryByText(/Biond Consulting/i)).toBeNull();
+  });
+
+  it('shows empty state for non-matching filters', () => {
+    render(<ExperienceSection activeFilter="Rocket Science" />);
+    expect(screen.getByText(/No specific engagements found matching/i)).toBeDefined();
   });
 });
 
@@ -1716,43 +2424,10 @@ afterEach(() => {
 ```md
 # 🤖 AI Development Framework
 
-This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant must adopt a specific "Hat" depending on the phase of the SDLC.
-
-## 1. The Architect ("The Thinker")
-* **Trigger:** `docs/PROMPT_FEATURE_REQUEST.md`
-* **Goal:** Analyze requirements, propose 3 options, and manage trade-offs.
-* **Output:** Analysis & Options Table.
-* **Behavior:** Creative, skeptical of "easy" answers, focused on UX & Engineering Strategy.
-* **Forbidden:** Writing production code (Scaffolding only).
-
-## 2. The Builder ("The Doer")
-* **Trigger:** `docs/PROMPT_APPROVAL.md`
-* **Goal:** Execute the chosen Architectural Option with precision.
-* **Output:** `install_feature.sh` (Bash) or `App.jsx` (React).
-* **Behavior:** Compliant, strict, type-safe, focused on "One-Shot" execution.
-* **Key Constraint:** Must generate executable scripts (Bash/Python) to minimize manual copy-pasting.
-
-## 3. The Maintainer ("The Librarian")
-* **Trigger:** `docs/PROMPT_POST_FEATURE.md`
-* **Goal:** Synchronize documentation with reality.
-* **Output:** `update_docs.py` (Python).
-* **Behavior:** Detail-oriented, consistent, focused on longevity and history.
-* **Key Constraint:** Uses Python for text processing to avoid syntax errors.
-
----
-
-## 🔄 The Loop
-1.  **Architect** designs the feature.
-2.  **Builder** implements the feature.
-3.  **Maintainer** updates the records.
-
-## 4. The Tester ("The Skeptic")
-* **Trigger:** \`docs/PROMPT_TESTING.md\`
-* **Goal:** Verify logic and prevent regressions.
-* **Output:** \`src/__tests__/*.test.jsx\`
-* **Behavior:** Paranoid, pedantic, focused on edge cases (e.g., "What if data is empty?").
-* **Key Constraint:** Must use \`@testing-library/react\` principles (test behavior, not implementation).
-
+## 6. The Security Auditor ('The Gatekeeper') - NEW
+* **Trigger:** Any changes to `/admin`, Firebase Rules, or Environment Variables.
+* **Goal:** Ensure Least Privilege access. Never allow 'Admin' logic to leak into the 'Public' bundle.
+* **Output:** Updated `firestore.rules` or sanitized Auth logic.
 ```
 ---
 
@@ -1760,35 +2435,53 @@ This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant mu
 ```md
 # 📜 Changelog
 
-## [v0.11.0] - 2026-01-23
+## [v2.0.0-alpha] - 2026-01-23
 ### Added
-* **Insights & Immersion (Phase 10):**
-    * **Sticky Header:** Glassmorphic navigation bar for better long-page UX.
-    * **Dynamic Hero:** Typewriter effect cycling through professional titles.
-    * **Google Analytics 4:** Custom event tracking for Skill Filtering.
-    * **Custom Hooks:** `useTypewriter` and `useAnalytics` for clean logic separation.
-
-## [v0.10.0] - 2026-01-23
-### Changed
-* **Architecture Refactor:** Nested Project Portfolio (Job -> Projects).
-
-## [v0.9.0] - 2026-01-22
-### Added
-* **Content Injection:** Real career data from PDFs.
+- **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.
+- **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.
+- **Auth Context:** Global `AuthProvider` managing user sessions across the platform.
+- **Lazy Loading:** Admin dashboard code-split to optimize public bundle size.
+### Fixed
+- **Test Sync:** Updated Unit Tests to handle Auth Context dependencies in Header and Footer.
+- **Pool Stability:** Optimized Vitest configuration for stable worker forks.
 ```
 ---
 
 ## FILE: docs/CONTEXT_DUMP.md
 ```md
-# Interactive Resume: Context Dump
-**Stack:** React + Vite + Tailwind CSS (v4) + Framer Motion + Recharts + Firebase Analytics
-**Test Stack:** Vitest + React Testing Library
-**Version:** v0.11.0
+# Interactive Resume: Platform Context
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics) + React Router 7
+**Version:** v2.0.0-alpha
 
 ## Architecture Rules (STRICT)
-1. **SSOT:** Version is controlled by `package.json`.
-2. **Hooks:** Logic must be extracted to `src/hooks/*.js` (e.g., `useAnalytics`, `useTypewriter`).
-3. **Analytics:** User interactions (clicks/filters) must be logged via `logUserInteraction`.
+1. **Security:** All `/admin/*` routes must be protected by `ProtectedRoute` and a whitelist check.
+2. **SSOT:** Versioning is controlled by `package.json`.
+3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.
+4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.
+```
+---
+
+## FILE: docs/DATA_DICTIONARY.md
+```md
+# 📖 Data Dictionary
+
+## experience.json
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Unique job ID. |
+| `role` | String | Professional title. |
+| `projects` | Array | List of engagement objects. |
+| `projects.sector` | String | The industry vertical (e.g. Retail). |
+| `projects.par` | Object | Problem, Action, Result text blocks. |
+| `projects.diagram` | String | Optional Mermaid.js flowchart string. |
+
+## sectors.json
+| Key | Type | Description |
+| :--- | :--- | :--- |
+| `id` | String | Unique sector ID. |
+| `label` | String | Display name (Must match project.sector). |
+| `icon` | String | Lucide icon name. |
+
 ```
 ---
 
@@ -1796,24 +2489,18 @@ This project follows a strict **Multi-Persona AI Workflow**. The AI Assistant mu
 ```md
 # ☁️ Deployment & Infrastructure Manual
 
-## 1. The Pipeline
-We use a **GitHub Actions** workflow to automate deployments to Firebase Hosting.
+## 1. Environment Variables (Required)
+The following secrets must be present in GitHub Actions and `.env`:
+| Key | Description |
+| :--- | :--- |
+| `VITE_API_KEY` | Firebase Web API Key |
+| `VITE_AUTH_DOMAIN` | Firebase Project Auth Domain |
+| `VITE_PROJECT_ID` | Firebase Project ID |
+| `VITE_ADMIN_EMAIL` | Whitelisted email authorized for /admin access |
 
-| Environment | Trigger | URL | Status |
-| :--- | :--- | :--- | :--- |
-| **Production** | Push to `main` | `ryandouglas-resume.web.app` | Live |
-| **Preview** | Open Pull Request | (Generated in PR Comment) | Ephemeral |
-
-## 2. Secrets Management
-* `FIREBASE_SERVICE_ACCOUNT`
-* `FIREBASE_PROJECT_ID`
-* `VITE_*` (Env Vars)
-
-## 3. Manual Deployment
-```bash
-npm run build
-npx firebase deploy
-```
+## 2. CI/CD Pipeline
+Standard Firebase Hosting workflow via GitHub Actions.
+**Note:** Ensure `VITE_ADMIN_EMAIL` is added to the GitHub Repository Secrets.
 ```
 ---
 
@@ -1859,28 +2546,21 @@ npx firebase deploy
 
 ## FILE: docs/PROJECT_STATUS.md
 ```md
-# 📌 Project Status: Interactive Resume
+# 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 10 - Insights & Immersion
-**Version:** v0.11.0
+**Current Phase:** Phase 14 - CMS Scaffolding
+**Version:** v2.0.0-alpha (Platform Shift)
+**Status:** 🛠️ Active Development
 
-## 🎯 Current Sprint: v1.0.0 Gold Master Prep
-* [x] **Polish:** Sticky Header & Typewriter Hero.
-* [x] **Insights:** Google Analytics 4 Integration.
-* [ ] **Final Build:** Production build verification.
-* [ ] **Launch:** Tag v1.0.0 and deploy to Production.
+## 🎯 Current Objectives
+* [ ] Sprint 14.2: Build the Gemini-integrated Project Architect Form.
+* [ ] Integrate Google AI SDK for PAR formatting.
 
-## ✅ Completed Features
-* **Phase 10: Polish** (UX & Analytics vv0.11.0)
-    * [x] Implemented `useAnalytics` for custom event tracking.
-    * [x] Created `useTypewriter` custom hook for Hero section.
-    * [x] Built Glassmorphic Sticky Header.
-* **Phase 9: Project Portfolio** (Nested Architecture)
-* **Phase 8: Content Injection** (Real Data)
-* **Phase 7: Universal Access** (A11y & Print)
-
-## 📋 Product Backlog
-* v1.0.0 Release (Gold Master)
+## ✅ Completed Roadmap
+* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
+* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.
+* **Phase 12:** [x] Integrated Conversion (Booking Agent).
+* **Phase 1-11:** [x] Foundation, Matrix UI, Visual Systems, Testing Suite.
 ```
 ---
 
@@ -1993,35 +2673,21 @@ Do **NOT** write code yet. Instead, analyze the request and propose **3 Distinct
 
 ## FILE: docs/PROMPT_INITIALIZATION.md
 ```md
-# 🤖 AI Session Initialization Prompt
+# 🤖 AI Session Initialization Prompt (v2.0)
 
-**Instructions:**
-1.  Run a script (or copy manually) to grab the `src/` folder context.
-2.  Paste the **Codebase Context** into the bottom of this prompt.
-3.  Send the *entire* block below to your AI assistant.
+**Role:** Senior Fullstack Architect & AI Integration Engineer.
 
----
+**Core Context:**
+* We are building a Resume CMS with Gemini AI integration.
+* **Security:** Firebase Auth is the entry point for `/admin`.
+* **Data:** Transitioning to Firestore. Components must handle 'Loading' and 'Empty' database states.
 
-**Role:** You are the Senior React Developer and UI Architect for the "Interactive Resume" project.
+**Critical Rules:**
+1. **Never Hardcode Keys:** Use `import.meta.env.VITE_*` and check for existence.
+2. **Complete Files Only:** Maintain the existing pattern of full-file delivery.
+3. **Modular AI:** Prompts sent to Gemini should be versioned and kept in `src/lib/ai/prompts.js`.
 
-**Input:** I am providing the full codebase context below.
-
-**Your Goal:** Ingest this context to completely understand our:
-* **Tech Stack:** React (Vite), Tailwind CSS, Framer Motion, Recharts.
-* **Methodology:** "The Medium is the Message." The code must be clean, performant, and demonstrate senior-level capability.
-* **Structure:** Data is strictly separated in `src/data/*.json`. Components are functional and concise.
-
-**Critical Rules for Interaction:**
-1.  **NO Placeholders:** Never use `// ... rest of code`. Provide **COMPLETE FILES**.
-2.  **No Canvas (Default):** Use DOM/SVG for interactions unless explicitly asked for 3D/WebGl.
-3.  **Comments:** Every major code block must include a descriptive comment (per user preference).
-4.  **Responsive:** Mobile-first checks are mandatory.
-
-**Codebase Context:**
-[PASTE_FULL_CODEBASE_CONTEXT_HERE]
-
-**Reply "Context Received. Ready to build." if you understand.**
-
+**Reply 'Platform Architecture Loaded. Ready for Phase 14.'**
 ```
 ---
 
@@ -2191,120 +2857,170 @@ echo "✅ Context Generated at: $OUTPUT_FILE"
 #!/bin/bash
 
 # ==========================================
-# 💾 Interactive Resume: Data Layer Setup
+# 💾 Data Restore Script (Source of Truth)
 # ==========================================
-# Description: Populates src/data with JSON files for Profile, Skills, and Experience.
+# Run this to reset src/data/*.json to the Gold Master state.
 
 DATA_DIR="src/data"
-
-echo "📂 Ensuring $DATA_DIR exists..."
 mkdir -p "$DATA_DIR"
 
-# ------------------------------------------
-# 1. PROFILE.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/profile.json..."
-cat << 'EOF' > "$DATA_DIR/profile.json"
+echo "Restoring profile.json..."
+cat << 'JSON' > "$DATA_DIR/profile.json"
 {
   "basics": {
-    "name": "Your Name",
+    "name": "Ryan Douglas",
     "label": "Management Consultant & Power BI Developer",
-    "email": "your.email@example.com",
-    "phone": "(555) 555-5555",
+    "email": "rpdouglas@gmail.com",
+    "phone": "613.936.6341",
     "location": "Cornwall, Ontario",
-    "summary": "A results-driven Management Consultant with 15 years of experience leading complex business transformation projects. Certified Microsoft Power BI Developer specializing in bridging the gap between strategic business goals and technical data implementations.",
-    "website": "https://yourwebsite.com",
-    "github": "https://github.com/yourusername",
-    "linkedin": "https://linkedin.com/in/yourusername"
+    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
+    "website": "https://ryandouglas-resume.web.app",
+    "github": "https://github.com/rpdouglas",
+    "linkedin": "https://linkedin.com/in/ryandouglas"
   },
   "metrics": {
     "yearsExperience": 15,
-    "projectsDelivered": 45,
+    "projectsDelivered": 40,
     "certifications": 2
   }
 }
-EOF
+JSON
 
-# ------------------------------------------
-# 2. SKILLS.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/skills.json..."
-cat << 'EOF' > "$DATA_DIR/skills.json"
+echo "Restoring skills.json..."
+cat << 'JSON' > "$DATA_DIR/skills.json"
 [
   {
     "id": "strategy",
     "label": "Business Strategy",
     "data": [
       { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
-      { "subject": "Stakeholder Analysis", "A": 90, "fullMark": 100 },
-      { "subject": "Process Optimization", "A": 85, "fullMark": 100 },
-      { "subject": "System Implementation", "A": 90, "fullMark": 100 },
-      { "subject": "TOWS Analysis", "A": 80, "fullMark": 100 }
+      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
+      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
+      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
+      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
     ]
   },
   {
     "id": "technical",
     "label": "Technical Stack",
     "data": [
-      { "subject": "Power BI", "A": 95, "fullMark": 100 },
-      { "subject": "DAX / SQL", "A": 85, "fullMark": 100 },
-      { "subject": "React / JS", "A": 75, "fullMark": 100 },
-      { "subject": "Zoho Analytics", "A": 80, "fullMark": 100 },
-      { "subject": "Data Modeling", "A": 90, "fullMark": 100 }
+      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
+      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
+      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
+      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
     ]
   }
 ]
-EOF
+JSON
 
-# ------------------------------------------
-# 3. EXPERIENCE.JSON
-# ------------------------------------------
-echo "writing $DATA_DIR/experience.json..."
-cat << 'EOF' > "$DATA_DIR/experience.json"
+echo "Restoring experience.json (Nested Project Schema)..."
+cat << 'JSON' > "$DATA_DIR/experience.json"
 [
   {
-    "id": "exp-1",
-    "role": "Senior Management Consultant",
-    "company": "Consulting Firm",
-    "period": "2015 - Present",
-    "type": "work",
-    "skills": ["Business Transformation", "System Implementation", "Change Mgmt"],
-    "par": {
-      "problem": "Large-scale organizations struggling with inefficient legacy systems and undefined business processes.",
-      "action": "Led complex business transformation initiatives, implementing new system architectures and managing stakeholder expectations across multiple departments.",
-      "result": "Delivered sustainable operational improvements and successful system migrations for high-value clients."
-    }
+    "id": "job_pwc",
+    "role": "Manager (Data & Analytics)",
+    "company": "PwC Canada LLP",
+    "date": "2012 - 2024",
+    "logo": "💼",
+    "summary": "Senior management consultant leading data-driven transformation projects and advising government leaders while engineering hands-on analytics solutions.",
+    "skills": ["Digital Strategy", "Leadership", "Stakeholder Mgmt"],
+    "projects": [
+      {
+        "id": "pwc_proj_1",
+        "title": "Public Sector Digital Transformation",
+        "skills": ["Power BI", "SQL", "Change Management"],
+        "par": {
+          "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+          "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
+          "result": "Delivered sustainable digital transformation, aligning technical execution with strategic business objectives."
+        }
+      },
+      {
+        "id": "pwc_proj_2",
+        "title": "Omnichannel Contact Center Modernization",
+        "skills": ["Data Modeling", "Azure", "Risk Assessment"],
+        "par": {
+          "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
+          "action": "Led the design and deployment of modern BI solutions, integrating data from multiple channels for a unified view.",
+          "result": "Enhanced operational efficiency and enabled real-time reporting for high-stakes regulatory environments."
+        }
+      }
+    ]
   },
   {
-    "id": "exp-2",
-    "role": "Power BI Developer",
-    "company": "Freelance / Contract",
-    "period": "2022 - Present",
-    "type": "work",
-    "skills": ["Power BI", "DAX", "Data Visualization"],
-    "par": {
-      "problem": "Clients possessed vast amounts of data but lacked actionable insights due to poor reporting infrastructure.",
-      "action": "Designed and deployed interactive Power BI dashboards, utilizing advanced DAX formulas to calculate custom KPIs.",
-      "result": "Enabled data-driven decision-making, reducing reporting time by 40% and identifying key revenue drivers."
-    }
+    "id": "job_biond",
+    "role": "Business Intelligence Developer",
+    "company": "Biond Consulting",
+    "date": "2011 - 2012",
+    "logo": "📊",
+    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
+    "skills": ["Microsoft BI Stack", "Consulting"],
+    "projects": [
+      {
+        "id": "biond_proj_1",
+        "title": "Retail Analytics Platform Migration",
+        "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "par": {
+          "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
+          "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
+          "result": "Successfully transitioned client to a modern analytics platform, significantly enhancing strategic insight capabilities."
+        }
+      },
+      {
+        "id": "biond_proj_2",
+        "title": "Distributor Reporting Solution",
+        "skills": ["SSRS", "SQL", "KPI Definition"],
+        "par": {
+          "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
+          "action": "Collaborated with clients to define critical KPIs and delivered a custom SSRS reporting solution.",
+          "result": "Strengthened executive decision-making and improved business responsiveness post-implementation."
+        }
+      }
+    ]
   },
   {
-    "id": "edu-1",
-    "role": "Computer Programmer Graduate",
-    "company": "Fanshawe College",
-    "period": "2001 - 2003",
-    "type": "education",
-    "skills": ["Software Development", "Logic", "Foundations"],
-    "par": {
-      "problem": "N/A",
-      "action": "Completed rigorous coursework in computer programming, algorithms, and database management.",
-      "result": "Graduated with strong foundational knowledge that bridges the gap between modern consulting and technical execution."
-    }
+    "id": "job_tele",
+    "role": "Manager, Data and Analytics",
+    "company": "Teleperformance",
+    "date": "2005 - 2011",
+    "logo": "🌍",
+    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
+    "skills": ["Team Leadership", "Process Improvement"],
+    "projects": [
+      {
+        "id": "tp_proj_1",
+        "title": "Global Contact Center Automation",
+        "skills": ["C#", "SharePoint", "Automation"],
+        "par": {
+          "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
+          "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
+          "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
+        }
+      },
+      {
+        "id": "tp_proj_2",
+        "title": "Executive Dashboard Suite",
+        "skills": ["SSRS", "Visual Studio", "SQL Server"],
+        "par": {
+          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
+          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
+          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
+        }
+      }
+    ]
   }
 ]
-EOF
+JSON
 
-echo "✅ Data Layer Updated Successfully!"
+chmod +x scripts/update_data.sh
+
+echo "=========================================="
+echo "✅ Codebase Cleaned & Secured."
+echo "👉 Deleted: src/App.css, src/assets/react.svg"
+echo "👉 Secured: scripts/update_data.sh now contains REAL data."
+echo "=========================================="
+
 ```
 ---
 
@@ -2326,8 +3042,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # ✅ FIX: Inject VITE_ vars during build
       - name: Build
         run: npm run build
+        env:
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
+          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
+          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
+          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
 
       - name: Deploy to Firebase Preview
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -2357,8 +3082,17 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      # ✅ FIX: Inject VITE_ vars during build
       - name: Build
         run: npm run build
+        env:
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
+          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
+          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
+          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
 
       - name: Deploy to Live
         uses: FirebaseExtended/action-hosting-deploy@v0

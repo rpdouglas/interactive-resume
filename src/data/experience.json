@@ -11,7 +11,9 @@
       {
         "id": "pwc_proj_1",
         "title": "Public Sector Digital Transformation",
+        "sector": "Public Sector",
         "skills": ["Power BI", "SQL", "Change Management"],
+        "diagram": "graph LR\n  DB[(Legacy Data)] --> ETL[SSIS/Azure]\n  ETL --> DW[(SQL Data Warehouse)]\n  DW --> PBI[Power BI Dashboards]\n  PBI --> EXEC{Executive Insights}",
         "par": {
           "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
           "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
@@ -21,6 +23,7 @@
       {
         "id": "pwc_proj_2",
         "title": "Omnichannel Contact Center Modernization",
+        "sector": "Telecommunications",
         "skills": ["Data Modeling", "Azure", "Risk Assessment"],
         "par": {
           "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
@@ -42,7 +45,9 @@
       {
         "id": "biond_proj_1",
         "title": "Retail Analytics Platform Migration",
+        "sector": "Retail",
         "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "diagram": "graph TD\n  POS[Point of Sale] --> SSIS[SSIS ETL]\n  WEB[E-Commerce] --> SSIS\n  SSIS --> STAGE[(Staging)]\n  STAGE --> DIM{Dimension Loading}\n  DIM --> CUBE[Analysis Services]",
         "par": {
           "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
           "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
@@ -52,6 +57,7 @@
       {
         "id": "biond_proj_2",
         "title": "Distributor Reporting Solution",
+        "sector": "Distribution",
         "skills": ["SSRS", "SQL", "KPI Definition"],
         "par": {
           "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
@@ -73,21 +79,12 @@
       {
         "id": "tp_proj_1",
         "title": "Global Contact Center Automation",
+        "sector": "Outsourcing",
         "skills": ["C#", "SharePoint", "Automation"],
         "par": {
           "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
           "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
           "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
-        }
-      },
-      {
-        "id": "tp_proj_2",
-        "title": "Executive Dashboard Suite",
-        "skills": ["SSRS", "Visual Studio", "SQL Server"],
-        "par": {
-          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
-          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
-          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
         }
       }
     ]

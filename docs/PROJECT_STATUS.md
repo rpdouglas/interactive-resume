@@ -1,16 +1,15 @@
-# 🟢 Project Status: Live Operations
+# 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Maintenance & Monitoring
-**Version:** v1.0.0 (Gold Master)
-**Status:** ✅ Production Live
+**Current Phase:** Phase 14 - CMS Scaffolding
+**Version:** v2.0.0-alpha (Platform Shift)
+**Status:** 🛠️ Active Development
 
 ## 🎯 Current Objectives
-* Monitor Google Analytics for engagement.
-* Maintain career data.
-* Gather feedback for Phase 11 ('The Whiteboard').
+* [x] Sprint 14.2: Build the Gemini-integrated Project Architect Form.
+* [x] Integrate Google AI SDK for PAR formatting.
 
 ## ✅ Completed Roadmap
-* **v1.0.0:** Gold Master Release.
-* **Phase 10:** Polish & Analytics (Sticky Nav, Hooks).
-* **Phase 9:** Nested Project Architecture.
-* **Phase 1-8:** Foundation, Data, Matrix UI, SEO.
+* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
+* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.
+* **Phase 12:** [x] Integrated Conversion (Booking Agent).
+* **Phase 1-11:** [x] Foundation, Matrix UI, Visual Systems, Testing Suite.

@@ -1,24 +1,14 @@
-# Ryan Douglas: Interactive Resume
+# Ryan Douglas: Interactive Resume Platform
 
-![Build Status](https://github.com/rpdouglas/interactive-resume/actions/workflows/deploy-prod.yml/badge.svg)
-![Version](https://img.shields.io/badge/Version-1.0.0-success)
+A high-performance management consultant portfolio transformed into a self-curating platform.
 
-> **🚀 Live Application:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)
+## 🛡️ Platform Security
+This application implements a **Hard Perimeter** for its CMS features.
+- **Public View:** Optimized for speed and keyword matching for recruiters.
+- **Admin Portal (`/admin`):** Protected via Firebase Google Identity. Access is strictly limited to the whitelisted administrator email.
 
-An interactive, data-driven visualization of my 15-year career in **Management Consulting** and **Data Analytics**.
-
-## 🎯 Core Features
-* **'The Matrix' Filtering:** Click any skill in the Radar Chart to instantly filter and auto-expand relevant career projects.
-* **Project Deep Dives:** Detailed 'Problem, Action, Result' (PAR) case studies nested within job roles.
-* **Universal Access:** Fully responsive, accessible, and print-optimized.
-
-## 🏗️ Architecture
-* **Stack:** React + Vite + Tailwind CSS (v4)
-* **Data:** JSON-driven architecture (`src/data/`).
-* **Analytics:** Google Analytics 4.
-
-## 🚀 Quick Start
-```bash
-npm install
-npm run dev
-```
+## 🚀 Tech Stack
+- **Frontend:** React 19, Tailwind CSS v4, Framer Motion
+- **Routing:** React Router v7
+- **Backend:** Firebase Auth, Hosting, and Google Analytics
+- **Intelligence:** (Upcoming) Gemini 1.5 Pro integration for content architecture

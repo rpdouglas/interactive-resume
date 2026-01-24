@@ -1,111 +1,131 @@
-import json
 import os
+import re
 from datetime import date
 
 # ==========================================
-# 📘 v1.0.0 Documentation Update (Safe Mode)
+# 📝 Configuration
 # ==========================================
+NEW_VERSION = "v2.1.0-beta"
+CURRENT_DATE = date.today().strftime("%Y-%m-%d")
+DOCS_DIR = "docs"
 
-def write_file(filepath, lines):
-    """Writes a list of lines to a file."""
-    os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
-    content = "\n".join(lines)
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print(f"✅ Updated: {filepath}")
-
-def update_package_json():
-    """Bumps version to 1.0.0"""
+def update_project_status():
+    """Updates status, version, and checks off completed items."""
+    path = os.path.join(DOCS_DIR, "PROJECT_STATUS.md")
+    
     try:
-        with open('package.json', 'r') as f:
-            data = json.load(f)
-        
-        data['version'] = '1.0.0'
-        
-        with open('package.json', 'w') as f:
-            json.dump(data, f, indent=2)
-        print("✅ Bumped package.json to v1.0.0")
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # 1. Update Header Info
+        content = re.sub(
+            r"Current Phase: .*", 
+            "Current Phase: Phase 15: AI Cover Letter Generator", 
+            content
+        )
+        content = re.sub(
+            r"Version: .*", 
+            f"Version: {NEW_VERSION}", 
+            content
+        )
+
+        # 2. Mark Objectives as Complete
+        content = content.replace(
+            "[ ] Sprint 14.2: Build the Gemini-integrated Project Architect Form.",
+            "[x] Sprint 14.2: Build the Gemini-integrated Project Architect Form."
+        )
+        content = content.replace(
+            "[ ] Integrate Google AI SDK for PAR formatting.",
+            "[x] Integrate Google AI SDK for PAR formatting."
+        )
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"✅ Updated {path}")
+
     except FileNotFoundError:
-        print("❌ Error: package.json not found.")
+        print(f"❌ Error: Could not find {path}")
 
-# ---------------------------------------------------------
-# 1. PROJECT STATUS
-# ---------------------------------------------------------
-status_lines = [
-    "# 🟢 Project Status: Live Operations",
-    "",
-    "**Current Phase:** Maintenance & Monitoring",
-    "**Version:** v1.0.0 (Gold Master)",
-    "**Status:** ✅ Production Live",
-    "",
-    "## 🎯 Current Objectives",
-    "* Monitor Google Analytics for engagement.",
-    "* Maintain career data.",
-    "* Gather feedback for Phase 11 ('The Whiteboard').",
-    "",
-    "## ✅ Completed Roadmap",
-    "* **v1.0.0:** Gold Master Release.",
-    "* **Phase 10:** Polish & Analytics (Sticky Nav, Hooks).",
-    "* **Phase 9:** Nested Project Architecture.",
-    "* **Phase 1-8:** Foundation, Data, Matrix UI, SEO."
-]
+def update_changelog():
+    """Prepends the new version entry to the Changelog."""
+    path = os.path.join(DOCS_DIR, "CHANGELOG.md")
+    
+    new_entry = f"""
+## [{NEW_VERSION}] - {CURRENT_DATE}
+### Added
+- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
+- **AI:** Integrated `gemini-3-flash-preview` for Resume Architecture.
+- **Security:** Implemented Google Secret Manager for API Keys.
+- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
+"""
 
-# ---------------------------------------------------------
-# 2. CHANGELOG
-# ---------------------------------------------------------
-changelog_lines = [
-    "# 📜 Changelog",
-    "",
-    f"## [v1.0.0] - {date.today()} - Gold Master",
-    "**Official Production Release.**",
-    "* **Features:** Nested Project Portfolios, 'The Matrix' Filtering, Sticky Nav, Dynamic Hero.",
-    "* **Tech:** React 19, Vite, Tailwind v4, Firebase Analytics.",
-    "* **Content:** Complete 15-year career history.",
-    "",
-    "## [v0.11.0] - Polish Sprint",
-    "* Added Sticky Header, Custom Hooks (`useTypewriter`, `useAnalytics`), and Glassmorphism UI.",
-    "",
-    "## [v0.10.0] - Architecture Refactor",
-    "* Moved from Flat Job list to Nested Project Schema."
-]
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
 
-# ---------------------------------------------------------
-# 3. README
-# ---------------------------------------------------------
-readme_lines = [
-    "# Ryan Douglas: Interactive Resume",
-    "",
-    "![Build Status](https://github.com/rpdouglas/interactive-resume/actions/workflows/deploy-prod.yml/badge.svg)",
-    "![Version](https://img.shields.io/badge/Version-1.0.0-success)",
-    "",
-    "> **🚀 Live Application:** [ryandouglas-resume.web.app](https://ryandouglas-resume.web.app)",
-    "",
-    "An interactive, data-driven visualization of my 15-year career in **Management Consulting** and **Data Analytics**.",
-    "",
-    "## 🎯 Core Features",
-    "* **'The Matrix' Filtering:** Click any skill in the Radar Chart to instantly filter and auto-expand relevant career projects.",
-    "* **Project Deep Dives:** Detailed 'Problem, Action, Result' (PAR) case studies nested within job roles.",
-    "* **Universal Access:** Fully responsive, accessible, and print-optimized.",
-    "",
-    "## 🏗️ Architecture",
-    "* **Stack:** React + Vite + Tailwind CSS (v4)",
-    "* **Data:** JSON-driven architecture (`src/data/`).",
-    "* **Analytics:** Google Analytics 4.",
-    "",
-    "## 🚀 Quick Start",
-    "```bash",
-    "npm install",
-    "npm run dev",
-    "```"
-]
+        # Insert after the main title but before the first existing version header
+        # We look for the first occurrence of "## [" to split the file
+        if "## [" in content:
+            parts = content.split("## [", 1)
+            # Reconstruct: Header + New Entry + Rest of file
+            new_content = parts[0] + new_entry.strip() + "\n\n" + "## [" + parts[1]
+        else:
+            # Fallback for empty changelogs
+            new_content = content + "\n" + new_entry
 
-# ==========================================
-# EXECUTION
-# ==========================================
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"✅ Updated {path}")
+
+    except FileNotFoundError:
+        print(f"❌ Error: Could not find {path}")
+
+def update_context_dump():
+    """Updates the architectural definition of the platform."""
+    path = os.path.join(DOCS_DIR, "CONTEXT_DUMP.md")
+    
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # 1. Update Version
+        content = re.sub(
+            r"Version: .*", 
+            f"Version: {NEW_VERSION} (Full-Stack AI)", 
+            content
+        )
+
+        # 2. Update Stack Definition
+        # We replace the specific Stack line
+        new_stack_line = "**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0"
+        content = re.sub(r"\*\*Stack:\*\*.*", new_stack_line, content)
+
+        # 3. Add Architecture Rule
+        # We append the new rule if it doesn't exist
+        new_rule = "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys."
+        
+        if "AI Logic must reside" not in content:
+            # Look for the last known rule (Rule 4) and append after it
+            if "4. **A11y:**" in content:
+                content = re.sub(
+                    r"(4\. \*\*A11y:\*\*.*)", 
+                    r"\1\n" + new_rule, 
+                    content
+                )
+            else:
+                # Fallback: Just append to the section
+                content = content.replace("## Architecture Rules (STRICT)", "## Architecture Rules (STRICT)\n" + new_rule)
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"✅ Updated {path}")
+
+    except FileNotFoundError:
+        print(f"❌ Error: Could not find {path}")
+
 if __name__ == "__main__":
-    print("🚀 Updating Documentation for v1.0.0...")
-    update_package_json()
-    write_file("docs/PROJECT_STATUS.md", status_lines)
-    write_file("docs/CHANGELOG.md", changelog_lines)
-    write_file("README.md", readme_lines)
-    print("✨ Documentation Complete.")
+    print("🚀 Starting Documentation Audit for Phase 14...")
+    update_project_status()
+    update_changelog()
+    update_context_dump()
+    print(f"\n✨ Phase 14 Closed. Repository upgraded to {NEW_VERSION}.")
