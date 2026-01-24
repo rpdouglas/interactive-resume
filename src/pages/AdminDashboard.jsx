@@ -1,0 +1,66 @@
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { LayoutDashboard, FileText, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+import ProjectArchitect from './admin/ProjectArchitect';
+
+const AdminDashboard = () => {
+  const { logout, user } = useAuth();
+  const [activeTab, setActiveTab] = useState('architect');
+
+  const navItems = [
+    { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+    { id: 'architect', icon: Sparkles, label: 'Gemini Architect' },
+    { id: 'manager', icon: Database, label: 'Project Manager' },
+    { id: 'settings', icon: Settings, label: 'Settings' },
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col sticky top-0 h-screen">
+        <div className="p-6 border-b border-slate-800">
+          <h2 className="font-bold text-xl tracking-tight">CMS Admin</h2>
+          <p className="text-xs text-slate-400 mt-1 truncate">{user?.email}</p>
+        </div>
+        
+        <nav className="flex-1 p-4 space-y-2">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                activeTab === item.id ? 'bg-blue-600 text-white' : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <item.icon size={18} />
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-800">
+          <button 
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+          >
+            <LogOut size={18} />
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Content Area */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        {activeTab === 'architect' ? (
+          <ProjectArchitect />
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-400">
+            <p>Module '{activeTab}' coming soon in Phase 15.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;

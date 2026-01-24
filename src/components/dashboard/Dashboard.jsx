@@ -1,13 +1,13 @@
 import React from 'react';
 import KPIGrid from './KPIGrid';
 import SkillRadar from './SkillRadar';
+import SectorGrid from './SectorGrid';
 import profileData from '../../data/profile.json';
 import skillsData from '../../data/skills.json';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { logUserInteraction } from '../../hooks/useAnalytics';
 
-const Dashboard = ({ onSkillClick }) => {
-  // ⌨️ Typewriter Effect
+const Dashboard = ({ activeFilter, onSkillClick }) => {
   const typeWriterText = useTypewriter([
     "Management Consultant",
     "Power BI Developer",
@@ -15,10 +15,9 @@ const Dashboard = ({ onSkillClick }) => {
     "Strategy Advisor"
   ]);
 
-  // 🕵️‍♂️ Intercept click to log analytics
-  const handleChartInteraction = (skill) => {
-    logUserInteraction('filter_skill', { skill_name: skill });
-    onSkillClick(skill);
+  const handleInteraction = (label, type) => {
+    logUserInteraction('filter_click', { filter_value: label, filter_type: type });
+    onSkillClick(label);
   };
 
   return (
@@ -27,13 +26,10 @@ const Dashboard = ({ onSkillClick }) => {
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
           {profileData.basics.name}
         </h1>
-        
-        {/* Dynamic Hero Text */}
         <p className="text-xl text-blue-600 mt-2 font-mono h-8">
           {typeWriterText}
           <span className="animate-pulse">|</span>
         </p>
-        
         <p className="text-slate-400 mt-2 max-w-2xl text-sm md:text-base">
           {profileData.basics.summary}
         </p>
@@ -41,8 +37,15 @@ const Dashboard = ({ onSkillClick }) => {
 
       <KPIGrid metrics={profileData.metrics} />
 
-      {/* Pass the wrapped click handler down to the chart */}
-      <SkillRadar skills={skillsData} onSkillClick={handleChartInteraction} />
+      <SectorGrid 
+        activeSector={activeFilter} 
+        onSectorClick={(label) => handleInteraction(label, 'sector')} 
+      />
+
+      <SkillRadar 
+        skills={skillsData} 
+        onSkillClick={(label) => handleInteraction(label, 'skill')} 
+      />
     </section>
   );
 };

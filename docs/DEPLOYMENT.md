@@ -1,20 +1,14 @@
 # ☁️ Deployment & Infrastructure Manual
 
-## 1. The Pipeline
-We use a **GitHub Actions** workflow to automate deployments to Firebase Hosting.
+## 1. Environment Variables (Required)
+The following secrets must be present in GitHub Actions and `.env`:
+| Key | Description |
+| :--- | :--- |
+| `VITE_API_KEY` | Firebase Web API Key |
+| `VITE_AUTH_DOMAIN` | Firebase Project Auth Domain |
+| `VITE_PROJECT_ID` | Firebase Project ID |
+| `VITE_ADMIN_EMAIL` | Whitelisted email authorized for /admin access |
 
-| Environment | Trigger | URL | Status |
-| :--- | :--- | :--- | :--- |
-| **Production** | Push to `main` | `ryandouglas-resume.web.app` | Live |
-| **Preview** | Open Pull Request | (Generated in PR Comment) | Ephemeral |
-
-## 2. Secrets Management
-* `FIREBASE_SERVICE_ACCOUNT`
-* `FIREBASE_PROJECT_ID`
-* `VITE_*` (Env Vars)
-
-## 3. Manual Deployment
-```bash
-npm run build
-npx firebase deploy
-```
+## 2. CI/CD Pipeline
+Standard Firebase Hosting workflow via GitHub Actions.
+**Note:** Ensure `VITE_ADMIN_EMAIL` is added to the GitHub Repository Secrets.

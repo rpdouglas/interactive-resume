@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+# ✅ FIX: Grant permissions to write checks and PR comments
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
 jobs:
   build_and_preview:
     if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
@@ -25,6 +31,8 @@ jobs:
           VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
           VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
           VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
+          # We don't need the Admin Email for public preview builds usually, 
+          # but if you have logic relying on it, you can add it here.
 
       - name: Deploy to Firebase Preview
         uses: FirebaseExtended/action-hosting-deploy@v0
