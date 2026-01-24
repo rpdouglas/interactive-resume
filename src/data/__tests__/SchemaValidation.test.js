@@ -50,6 +50,7 @@ describe('Data Integrity (Schema Validation)', () => {
         
         // Check PAR Structure (Now inside the project)
         expect(project.par).toBeDefined();
+        if (project.diagram) expect(project.diagram).toBeTypeOf("string");
         expect(project.par.problem).toBeTypeOf('string');
         expect(project.par.action).toBeTypeOf('string');
         expect(project.par.result).toBeTypeOf('string');

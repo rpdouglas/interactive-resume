@@ -1,7 +1,8 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getFunctions, httpsCallable } from "firebase/functions";
 
-// Use environment variables (Vite requires VITE_ prefix)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_API_KEY,
   authDomain: import.meta.env.VITE_AUTH_DOMAIN,
@@ -12,10 +13,16 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+const functions = getFunctions(app);
 
-// Initialize Analytics (only in production/browser)
-const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+// Callable Functions
+export const architectProject = httpsCallable(functions, 'architectProject');
 
-export { app, analytics };
+const analytics = (typeof window !== 'undefined' && window.indexedDB) 
+  ? getAnalytics(app) 
+  : null;
+
+export { app, auth, googleProvider, analytics };

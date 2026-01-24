@@ -41,6 +41,7 @@ body {
 
 /* 🖨️ PRINT STYLES: The "White Paper" Transformation */
 @media print {
+  .print\:hidden { display: none !important; }
   /* 1. Global Reset for Paper */
   body {
     background-color: white !important;
