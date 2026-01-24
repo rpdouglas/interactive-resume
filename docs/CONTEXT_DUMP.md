@@ -8,3 +8,4 @@
 3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.
 4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.
 5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys.
+6. **Data Access:** All future data fetching must go through the `useResumeData` hook (Coming in Phase 16).
