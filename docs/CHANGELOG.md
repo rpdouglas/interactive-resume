@@ -1,18 +1,14 @@
 # 📜 Changelog
 
-## [v2.1.0-beta] - 2026-01-23
+## [v2.1.0-beta] - 2026-01-24
 ### Added
+- **CMS:** Added `ProjectArchitect` with Gemini 3.0 Integration.
 - **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
-- **AI:** Integrated `gemini-3-flash-preview` for Resume Architecture.
-- **Security:** Implemented Google Secret Manager for API Keys.
+- **Security:** Implemented `COOP/COEP` headers in `firebase.json` for safe browsing compliance.
+- **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.
 - **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
-
-## [v2.1.0-beta] - 2026-01-23
-### Added
-- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
-- **AI:** Integrated `gemini-3-flash-preview` for Resume Architecture.
-- **Security:** Implemented Google Secret Manager for API Keys.
-- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
+### Fixed
+- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).
 
 ## [v2.0.0-alpha] - 2026-01-23
 ### Added

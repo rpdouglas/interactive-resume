@@ -1,131 +1,84 @@
 import os
-import re
-from datetime import date
+
+def write_lines(filepath, lines):
+    """
+    Writes a list of strings to a file, ensuring correct encoding and newlines.
+    """
+    try:
+        with open(filepath, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+        print(f"✅ [UPDATED] {filepath}")
+    except Exception as e:
+        print(f"❌ [ERROR] Could not update {filepath}: {e}")
 
 # ==========================================
-# 📝 Configuration
+# 1. PROJECT_STATUS.md
 # ==========================================
-NEW_VERSION = "v2.1.0-beta"
-CURRENT_DATE = date.today().strftime("%Y-%m-%d")
-DOCS_DIR = "docs"
+project_status = [
+    "# 🟢 Project Status: Platform Expansion",
+    "",
+    "**Current Phase:** Phase 15 - Chart Stabilization & Visual Polish",
+    "**Version:** v2.1.0-beta",
+    "**Status:** 🛠️ Active Development",
+    "",
+    "## 🎯 Current Objectives",
+    "* [x] Sprint 15.1: Fix Recharts ResponsiveContainer width error.",
+    "* [ ] Sprint 15.2: Audit Mobile responsiveness for TimelineCard expansion.",
+    "",
+    "## ✅ Completed Roadmap",
+    "* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.",
+    "* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.",
+    "* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.",
+    "* **Phase 12:** [x] Integrated Conversion (Booking Agent).",
+    "* **Phase 1-11:** [x] Foundation, Matrix UI, Visual Systems, Testing Suite."
+]
 
-def update_project_status():
-    """Updates status, version, and checks off completed items."""
-    path = os.path.join(DOCS_DIR, "PROJECT_STATUS.md")
-    
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
+# ==========================================
+# 2. CHANGELOG.md
+# ==========================================
+changelog = [
+    "# 📜 Changelog",
+    "",
+    "## [v2.1.0-beta] - 2026-01-24",
+    "### Added",
+    "- **CMS:** Added `ProjectArchitect` with Gemini 3.0 Integration.",
+    "- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.",
+    "- **Security:** Implemented `COOP/COEP` headers in `firebase.json` for safe browsing compliance.",
+    "- **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.",
+    "- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.",
+    "### Fixed",
+    "- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).",
+    "",
+    "## [v2.0.0-alpha] - 2026-01-23",
+    "### Added",
+    "- **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.",
+    "- **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.",
+    "- **Auth Context:** Global `AuthProvider` managing user sessions across the platform.",
+    "- **Lazy Loading:** Admin dashboard code-split to optimize public bundle size.",
+    "### Fixed",
+    "- **Test Sync:** Updated Unit Tests to handle Auth Context dependencies in Header and Footer.",
+    "- **Pool Stability:** Optimized Vitest configuration for stable worker forks."
+]
 
-        # 1. Update Header Info
-        content = re.sub(
-            r"Current Phase: .*", 
-            "Current Phase: Phase 15: AI Cover Letter Generator", 
-            content
-        )
-        content = re.sub(
-            r"Version: .*", 
-            f"Version: {NEW_VERSION}", 
-            content
-        )
+# ==========================================
+# 3. CONTEXT_DUMP.md
+# ==========================================
+context_dump = [
+    "# Interactive Resume: Platform Context",
+    "**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0 Flash",
+    "**Version:** v2.1.0-beta",
+    "",
+    "## Architecture Rules (STRICT)",
+    "1. **Security:** All `/admin/*` routes must be protected by `ProtectedRoute` and a whitelist check.",
+    "2. **SSOT:** Versioning is controlled by `package.json`.",
+    "3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.",
+    "4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.",
+    "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys."
+]
 
-        # 2. Mark Objectives as Complete
-        content = content.replace(
-            "[ ] Sprint 14.2: Build the Gemini-integrated Project Architect Form.",
-            "[x] Sprint 14.2: Build the Gemini-integrated Project Architect Form."
-        )
-        content = content.replace(
-            "[ ] Integrate Google AI SDK for PAR formatting.",
-            "[x] Integrate Google AI SDK for PAR formatting."
-        )
-
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"✅ Updated {path}")
-
-    except FileNotFoundError:
-        print(f"❌ Error: Could not find {path}")
-
-def update_changelog():
-    """Prepends the new version entry to the Changelog."""
-    path = os.path.join(DOCS_DIR, "CHANGELOG.md")
-    
-    new_entry = f"""
-## [{NEW_VERSION}] - {CURRENT_DATE}
-### Added
-- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
-- **AI:** Integrated `gemini-3-flash-preview` for Resume Architecture.
-- **Security:** Implemented Google Secret Manager for API Keys.
-- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
-"""
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Insert after the main title but before the first existing version header
-        # We look for the first occurrence of "## [" to split the file
-        if "## [" in content:
-            parts = content.split("## [", 1)
-            # Reconstruct: Header + New Entry + Rest of file
-            new_content = parts[0] + new_entry.strip() + "\n\n" + "## [" + parts[1]
-        else:
-            # Fallback for empty changelogs
-            new_content = content + "\n" + new_entry
-
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(new_content)
-        print(f"✅ Updated {path}")
-
-    except FileNotFoundError:
-        print(f"❌ Error: Could not find {path}")
-
-def update_context_dump():
-    """Updates the architectural definition of the platform."""
-    path = os.path.join(DOCS_DIR, "CONTEXT_DUMP.md")
-    
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # 1. Update Version
-        content = re.sub(
-            r"Version: .*", 
-            f"Version: {NEW_VERSION} (Full-Stack AI)", 
-            content
-        )
-
-        # 2. Update Stack Definition
-        # We replace the specific Stack line
-        new_stack_line = "**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0"
-        content = re.sub(r"\*\*Stack:\*\*.*", new_stack_line, content)
-
-        # 3. Add Architecture Rule
-        # We append the new rule if it doesn't exist
-        new_rule = "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys."
-        
-        if "AI Logic must reside" not in content:
-            # Look for the last known rule (Rule 4) and append after it
-            if "4. **A11y:**" in content:
-                content = re.sub(
-                    r"(4\. \*\*A11y:\*\*.*)", 
-                    r"\1\n" + new_rule, 
-                    content
-                )
-            else:
-                # Fallback: Just append to the section
-                content = content.replace("## Architecture Rules (STRICT)", "## Architecture Rules (STRICT)\n" + new_rule)
-
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"✅ Updated {path}")
-
-    except FileNotFoundError:
-        print(f"❌ Error: Could not find {path}")
-
-if __name__ == "__main__":
-    print("🚀 Starting Documentation Audit for Phase 14...")
-    update_project_status()
-    update_changelog()
-    update_context_dump()
-    print(f"\n✨ Phase 14 Closed. Repository upgraded to {NEW_VERSION}.")
+# Execute Writes
+print("🤖 Starting Documentation Audit...")
+write_lines('docs/PROJECT_STATUS.md', project_status)
+write_lines('docs/CHANGELOG.md', changelog)
+write_lines('docs/CONTEXT_DUMP.md', context_dump)
+print("✨ Audit Complete. Repository is ready for Sprint 15.2.")

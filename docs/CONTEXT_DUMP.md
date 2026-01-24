@@ -1,6 +1,6 @@
 # Interactive Resume: Platform Context
-**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0
-**Version:** v2.0.0-alpha
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0 Flash
+**Version:** v2.1.0-beta
 
 ## Architecture Rules (STRICT)
 1. **Security:** All `/admin/*` routes must be protected by `ProtectedRoute` and a whitelist check.
