@@ -17,15 +17,15 @@ def write_lines(filepath, lines):
 project_status = [
     "# 🟢 Project Status: Platform Expansion",
     "",
-    "**Current Phase:** Phase 15 - Chart Stabilization & Visual Polish",
+    "**Current Phase:** Phase 16 - The Backbone Shift (Firestore Migration)",
     "**Version:** v2.1.0-beta",
     "**Status:** 🛠️ Active Development",
     "",
     "## 🎯 Current Objectives",
-    "* [x] Sprint 15.1: Fix Recharts ResponsiveContainer width error.",
-    "* [ ] Sprint 15.2: Audit Mobile responsiveness for TimelineCard expansion.",
+    "* [ ] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).",
     "",
     "## ✅ Completed Roadmap",
+    "* **Phase 15:** [x] Chart Stabilization & Visual Polish.",
     "* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.",
     "* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.",
     "* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.",
@@ -47,6 +47,7 @@ changelog = [
     "- **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.",
     "- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.",
     "### Fixed",
+    "- **UX/UI:** Implemented \"Adaptive Density\" layout for `TimelineCard` to improve readability on small screens (<375px).",
     "- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).",
     "",
     "## [v2.0.0-alpha] - 2026-01-23",
@@ -73,7 +74,8 @@ context_dump = [
     "2. **SSOT:** Versioning is controlled by `package.json`.",
     "3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.",
     "4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.",
-    "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys."
+    "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys.",
+    "6. **Data Access:** All future data fetching must go through the `useResumeData` hook (Coming in Phase 16)."
 ]
 
 # Execute Writes
@@ -81,4 +83,4 @@ print("🤖 Starting Documentation Audit...")
 write_lines('docs/PROJECT_STATUS.md', project_status)
 write_lines('docs/CHANGELOG.md', changelog)
 write_lines('docs/CONTEXT_DUMP.md', context_dump)
-print("✨ Audit Complete. Repository is ready for Sprint 15.2.")
+print("✨ Audit Complete. Repository is ready for Phase 16: The Backbone Shift.")

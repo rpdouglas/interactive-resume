@@ -8,6 +8,7 @@
 - **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.
 - **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
 ### Fixed
+- **UX/UI:** Implemented "Adaptive Density" layout for `TimelineCard` to improve readability on small screens (<375px).
 - **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).
 
 ## [v2.0.0-alpha] - 2026-01-23
