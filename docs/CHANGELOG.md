@@ -7,6 +7,13 @@
 - **Security:** Implemented Google Secret Manager for API Keys.
 - **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
 
+## [v2.1.0-beta] - 2026-01-23
+### Added
+- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
+- **AI:** Integrated `gemini-3-flash-preview` for Resume Architecture.
+- **Security:** Implemented Google Secret Manager for API Keys.
+- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
+
 ## [v2.0.0-alpha] - 2026-01-23
 ### Added
 - **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.
