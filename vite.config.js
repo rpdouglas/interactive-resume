@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import packageJson from './package.json'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -18,10 +17,10 @@ export default defineConfig({
       'react-dom': 'react-dom',
     },
   },
-  // ✅ Server Config: Enforce COOP/COEP for Google Auth
+  // ✅ Relaxed Headers for Dev Server
   server: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
     },
   },
@@ -39,6 +38,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // 1. Core React + Recharts
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/react-router-dom') ||
@@ -47,14 +47,17 @@ export default defineConfig({
               id.includes('node_modules/d3')) {
             return 'vendor-react';
           }
+          // 2. Firebase
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
+          // 3. Mermaid
           if (id.includes('node_modules/mermaid') || 
               id.includes('node_modules/khroma') || 
               id.includes('node_modules/cytoscape')) {
             return 'vendor-mermaid';
           }
+          // 4. Animation
           if (id.includes('node_modules/framer-motion')) {
             return 'vendor-animation';
           }
