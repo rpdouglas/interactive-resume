@@ -17,6 +17,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const SkillRadar = ({ skills, onSkillClick }) => {
+  if (!skills || skills.length === 0) return null;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {skills.map((category, idx) => (
@@ -34,7 +36,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
           <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
-          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and 100% dimensions 
+          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and fixed height
              ensures the ResizeObserver has a valid bounding box immediately.
           */}
           <div className="w-full h-[300px] relative">
@@ -48,7 +50,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
                   tick={{ 
                     fill: '#64748b', 
                     fontSize: 12, 
-                    cursor: 'pointer',
+                    cursor: 'pointer', 
                     className: 'hover:fill-blue-600 transition-colors font-semibold'
                   }} 
                   onClick={({ value }) => onSkillClick(value)}

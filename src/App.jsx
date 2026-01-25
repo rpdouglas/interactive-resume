@@ -1,6 +1,7 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ResumeProvider } from './context/ResumeContext'; // ✅ Added Provider
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // 🚀 Performance: Lazy Load Admin components
@@ -44,25 +45,28 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center bg-slate-950">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        }>
-          <Routes>
-            <Route path="/" element={<PublicResume />} />
-            <Route 
-              path="/admin/*" 
-              element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        {/* ✅ Resume Data Provider wraps the app to enable Global Context */}
+        <ResumeProvider>
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-950">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<PublicResume />} />
+              <Route 
+                path="/admin/*" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ResumeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

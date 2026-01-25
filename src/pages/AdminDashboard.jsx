@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, Database, Sparkles, ExternalLink } from 'lucide-react';
 
 // Lazy Load components for performance
 const ProjectArchitect = lazy(() => import('./admin/ProjectArchitect'));
@@ -41,7 +41,18 @@ const AdminDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {/* ✅ NEW: Link to Public Site */}
+          <a 
+            href="/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+          >
+            <ExternalLink size={18} />
+            View Live Site
+          </a>
+
           <button 
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"

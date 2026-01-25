@@ -2,19 +2,26 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X } from 'lucide-react';
 import TimelineContainer from '../components/timeline/TimelineContainer';
-import experienceData from '../data/experience.json';
+import { useResumeData } from '../hooks/useResumeData'; // ✅ Import Hook
 
 const ExperienceSection = ({ activeFilter, onClear }) => {
+  // ✅ Fetch Data from Context
+  const { experience, loading } = useResumeData();
+
+  // If loading, Dashboard skeleton handles the view height, 
+  // so we can return null or a simple spinner here to avoid double-skeleton
+  if (loading) return null; 
+
   const filteredData = activeFilter 
-    ? experienceData.filter(job => {
+    ? experience.filter(job => {
         // Match Job Skills
-        const jobMatch = job.skills.some(skill => 
+        const jobMatch = job.skills?.some(skill => 
           skill.toLowerCase().includes(activeFilter.toLowerCase())
         );
         
         // Match Project Skills OR Project Sectors
-        const projectMatch = job.projects.some(proj => 
-          proj.skills.some(skill => 
+        const projectMatch = job.projects?.some(proj => 
+          proj.skills?.some(skill => 
             skill.toLowerCase().includes(activeFilter.toLowerCase())
           ) || 
           (proj.sector && proj.sector.toLowerCase() === activeFilter.toLowerCase())
@@ -22,7 +29,7 @@ const ExperienceSection = ({ activeFilter, onClear }) => {
 
         return jobMatch || projectMatch;
       })
-    : experienceData;
+    : experience;
 
   return (
     <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden min-h-[600px] print:bg-white print:text-black print:py-0">
