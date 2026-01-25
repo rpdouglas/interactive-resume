@@ -1,15 +1,17 @@
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 16 - The Backbone Shift (Firestore Migration)
-**Version:** v2.1.0-beta
+**Current Phase:** Phase 17 - The Application Manager (Job Matcher)
+**Version:** v2.2.0-beta
 **Status:** 🛠️ Active Development
 
 ## 🎯 Current Objectives
-* [x] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).
-* [ ] Sprint 16.2: The Data Hook Layer (Public View Migration).
+* [ ] Sprint 17.1: The Job Input Interface (Admin UI).
+* [ ] Sprint 17.2: Vector Matching Logic (Gemini).
 
 ## ✅ Completed Roadmap
+* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
+    * Sprint 16.1: Schema & Seeding.
+    * Sprint 16.2: Data Hook Layer & Offline Fallback.
 * **Phase 15:** [x] Chart Stabilization & Visual Polish.
-* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.
-* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
-* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.
+* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding.
+* **v1.0.0:** [x] Gold Master Release.

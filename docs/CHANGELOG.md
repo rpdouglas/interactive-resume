@@ -1,16 +1,16 @@
 # 📜 Changelog
 
+## [v2.2.0-beta] - 2026-01-25
+### Added
+- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook.
+- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable, the app seamlessly loads local JSON.
+- **UX:** Added `LoadingSkeleton` to prevent layout shifts during data fetching.
+- **Testing:** Added "Indestructible" integration tests verifying the fallback logic.
+
 ## [v2.1.0-beta] - 2026-01-25
 ### Added
-- **Database:** Initialized Cloud Firestore architecture (`src/lib/db.js`).
-- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
-- **CMS:** Added `DataSeeder` utility to migrate local JSON to Firestore.
-- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
+- **Database:** Initialized Cloud Firestore architecture.
+- **Security:** Deployed strict `firestore.rules`.
+- **CMS:** Added `DataSeeder` utility.
 ### Fixed
-- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a React singleton chunk.
-- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar`.
-
-## [v2.0.0-alpha] - 2026-01-23
-### Added
-- **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.
-- **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.
+- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js`.
