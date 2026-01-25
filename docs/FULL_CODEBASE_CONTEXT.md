@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Sat Jan 24 18:11:42 EST 2026
+**Date:** Sun Jan 25 11:37:18 EST 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -77,7 +77,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['mermaid', 'framer-motion', 'react', 'react-dom'],
+    include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
   },
   build: {
     outDir: 'dist',
@@ -90,12 +90,34 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // 1. Core React Vendor (Critical for Singleton Pattern)
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler')) {
+            return 'vendor-react';
+          }
+
+          // 2. Firebase Vendor
+          if (id.includes('node_modules/firebase')) {
+            return 'vendor-firebase';
+          }
+
+          // 3. Visualization Vendor
+          if (id.includes('node_modules/mermaid') || 
+              id.includes('node_modules/recharts') || 
+              id.includes('node_modules/d3')) {
+            return 'vendor-viz';
+          }
+
+          // 4. Animation Vendor
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-animation';
+          }
+          
+          // 5. Everything else from node_modules
           if (id.includes('node_modules')) {
-            if (id.includes('mermaid')) return 'vendor-mermaid';
-            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
-            if (id.includes('framer-motion')) return 'vendor-animation';
-            if (id.includes('firebase')) return 'vendor-firebase';
-            return 'vendor-core';
+            return 'vendor-utils';
           }
         },
       },
@@ -164,6 +186,10 @@ export default defineConfig({
         "destination": "/index.html"
       }
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
 ```
@@ -513,6 +539,168 @@ describe('Header Component', () => {
     expect(mockBookClick).toHaveBeenCalled();
   });
 });
+
+```
+---
+
+## FILE: src/components/admin/DataSeeder.jsx
+```jsx
+import React, { useState } from 'react';
+import { db } from '../../lib/db';
+import { doc, setDoc, writeBatch, collection } from 'firebase/firestore';
+import { Database, CheckCircle, AlertCircle, Loader2, ArrowRight } from 'lucide-react';
+
+// Import Source Data
+import profileData from '../../data/profile.json';
+import skillsData from '../../data/skills.json';
+import sectorsData from '../../data/sectors.json';
+import experienceData from '../../data/experience.json';
+
+const DataSeeder = () => {
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [logs, setLogs] = useState([]);
+
+  const addLog = (msg) => setLogs(prev => [...prev, `> ${msg}`]);
+
+  const handleSeed = async () => {
+    if (!confirm("⚠️ This will overwrite existing data in Firestore with local JSON. Continue?")) return;
+    
+    setStatus('loading');
+    setLogs(['🚀 Starting Database Migration...']);
+
+    try {
+      // 1. Seed Profile
+      addLog("Seeding Profile...");
+      // Using 'primary' as a fixed ID for the single profile document
+      await setDoc(doc(db, "profile", "primary"), profileData);
+      addLog("✅ Profile synced.");
+
+      // 2. Seed Skills (Batch)
+      addLog("Seeding Skills...");
+      const batchSkills = writeBatch(db);
+      skillsData.forEach(skill => {
+        const ref = doc(db, "skills", skill.id);
+        batchSkills.set(ref, skill);
+      });
+      await batchSkills.commit();
+      addLog(`✅ ${skillsData.length} Skill Categories synced.`);
+
+      // 3. Seed Sectors (Batch)
+      addLog("Seeding Sectors...");
+      const batchSectors = writeBatch(db);
+      sectorsData.forEach(sector => {
+        const ref = doc(db, "sectors", sector.id);
+        batchSectors.set(ref, sector);
+      });
+      await batchSectors.commit();
+      addLog(`✅ ${sectorsData.length} Sectors synced.`);
+
+      // 4. Seed Experience & Nested Projects (Complex)
+      addLog("Seeding Experience & Nested Projects...");
+      
+      // We process jobs sequentially to ensure parent exists before children (though Firestore doesn't strictly enforce this)
+      for (const job of experienceData) {
+        // Separate projects array from the job metadata
+        const { projects, ...jobMeta } = job;
+        
+        // A. Write Job Document
+        const jobRef = doc(db, "experience", job.id);
+        await setDoc(jobRef, jobMeta);
+        addLog(`  ↳ Job: ${job.company}`);
+
+        // B. Write Sub-Collection: Projects
+        if (projects && projects.length > 0) {
+          const batchProjects = writeBatch(db);
+          projects.forEach(project => {
+            // Path: experience/{jobId}/projects/{projectId}
+            const projRef = doc(db, "experience", job.id, "projects", project.id);
+            batchProjects.set(projRef, project);
+          });
+          await batchProjects.commit();
+          addLog(`    + ${projects.length} projects linked.`);
+        }
+      }
+      
+      addLog("✅ Experience synced.");
+      addLog("🎉 MIGRATION COMPLETE.");
+      setStatus('success');
+
+    } catch (error) {
+      console.error(error);
+      addLog(`❌ ERROR: ${error.message}`);
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+            <Database size={32} />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Database Migration</h2>
+            <p className="text-slate-500">Seed Cloud Firestore with local JSON data.</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 mb-8">
+          <h3 className="font-bold text-slate-700 mb-2 flex items-center gap-2">
+            <ArrowRight size={16} /> Schema Architecture
+          </h3>
+          <ul className="list-disc list-inside text-sm text-slate-600 space-y-1 ml-2">
+            <li><strong>Profile:</strong> Single document <code>/profile/primary</code></li>
+            <li><strong>Skills:</strong> Collection <code>/skills/&#123;id&#125;</code></li>
+            <li><strong>Sectors:</strong> Collection <code>/sectors/&#123;id&#125;</code></li>
+            <li><strong>Experience:</strong> Collection <code>/experience/&#123;jobId&#125;</code>
+              <ul className="list-disc list-inside ml-6 text-indigo-600">
+                <li><strong>Projects:</strong> Sub-Collection <code>.../projects/&#123;projId&#125;</code></li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
+        <button
+          onClick={handleSeed}
+          disabled={status === 'loading'}
+          className={`w-full py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+            status === 'loading' 
+              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg hover:shadow-indigo-500/20'
+          }`}
+        >
+          {status === 'loading' ? (
+            <>
+              <Loader2 className="animate-spin" /> Seeding Database...
+            </>
+          ) : status === 'success' ? (
+            <>
+              <CheckCircle /> Migration Successful
+            </>
+          ) : (
+            <>
+              <Database size={20} /> Start Migration
+            </>
+          )}
+        </button>
+
+        {/* Logs Output */}
+        <div className="mt-6 bg-slate-900 rounded-xl p-4 font-mono text-xs md:text-sm text-green-400 h-64 overflow-y-auto shadow-inner border border-slate-800">
+          {logs.length === 0 ? (
+            <span className="text-slate-600 opacity-50">Waiting to start...</span>
+          ) : (
+            logs.map((log, i) => (
+              <div key={i} className="mb-1">{log}</div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DataSeeder;
 
 ```
 ---
@@ -2067,6 +2255,17 @@ body {
 ```
 ---
 
+## FILE: src/lib/db.js
+```js
+import { getFirestore } from "firebase/firestore";
+import { app } from "./firebase";
+
+// Initialize Cloud Firestore and get a reference to the service
+export const db = getFirestore(app);
+
+```
+---
+
 ## FILE: src/lib/firebase.js
 ```js
 import { initializeApp } from "firebase/app";
@@ -2119,10 +2318,13 @@ createRoot(document.getElementById('root')).render(
 
 ## FILE: src/pages/AdminDashboard.jsx
 ```jsx
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, FileText, Settings, LogOut, Database, Sparkles } from 'lucide-react';
-import ProjectArchitect from './admin/ProjectArchitect';
+import { LayoutDashboard, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+
+// Lazy Load components for performance
+const ProjectArchitect = lazy(() => import('./admin/ProjectArchitect'));
+const DataSeeder = lazy(() => import('../components/admin/DataSeeder'));
 
 const AdminDashboard = () => {
   const { logout, user } = useAuth();
@@ -2131,7 +2333,7 @@ const AdminDashboard = () => {
   const navItems = [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
     { id: 'architect', icon: Sparkles, label: 'Gemini Architect' },
-    { id: 'manager', icon: Database, label: 'Project Manager' },
+    { id: 'database', icon: Database, label: 'Database' },
     { id: 'settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -2172,13 +2374,17 @@ const AdminDashboard = () => {
 
       {/* Content Area */}
       <main className="flex-1 p-8 overflow-y-auto">
-        {activeTab === 'architect' ? (
-          <ProjectArchitect />
-        ) : (
-          <div className="h-full flex items-center justify-center text-slate-400">
-            <p>Module '{activeTab}' coming soon in Phase 15.</p>
-          </div>
-        )}
+        <Suspense fallback={
+          <div className="h-full flex items-center justify-center text-slate-400">Loading...</div>
+        }>
+          {activeTab === 'architect' && <ProjectArchitect />}
+          {activeTab === 'database' && <DataSeeder />}
+          {(activeTab === 'overview' || activeTab === 'settings') && (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              <p>Module '{activeTab}' coming soon in Phase 17.</p>
+            </div>
+          )}
+        </Suspense>
       </main>
     </div>
   );
@@ -2651,6 +2857,7 @@ afterEach(() => {
 - **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.
 - **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
 ### Fixed
+- **UX/UI:** Implemented "Adaptive Density" layout for `TimelineCard` to improve readability on small screens (<375px).
 - **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).
 
 ## [v2.0.0-alpha] - 2026-01-23
@@ -2678,6 +2885,7 @@ afterEach(() => {
 3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.
 4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.
 5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys.
+6. **Data Access:** All future data fetching must go through the `useResumeData` hook (Coming in Phase 16).
 
 ```
 ---
@@ -2769,15 +2977,15 @@ Standard Firebase Hosting workflow via GitHub Actions.
 ```md
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 15 - Chart Stabilization & Visual Polish
+**Current Phase:** Phase 16 - The Backbone Shift (Firestore Migration)
 **Version:** v2.1.0-beta
 **Status:** 🛠️ Active Development
 
 ## 🎯 Current Objectives
-* [x] Sprint 15.1: Fix Recharts ResponsiveContainer width error.
-* [ ] Sprint 15.2: Audit Mobile responsiveness for TimelineCard expansion.
+* [ ] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).
 
 ## ✅ Completed Roadmap
+* **Phase 15:** [x] Chart Stabilization & Visual Polish.
 * **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.
 * **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
 * **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.

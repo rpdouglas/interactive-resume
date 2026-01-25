@@ -19,7 +19,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['mermaid', 'framer-motion', 'react', 'react-dom'],
+    include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
   },
   build: {
     outDir: 'dist',
@@ -32,12 +32,34 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // 1. Core React Vendor (Critical for Singleton Pattern)
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler')) {
+            return 'vendor-react';
+          }
+
+          // 2. Firebase Vendor
+          if (id.includes('node_modules/firebase')) {
+            return 'vendor-firebase';
+          }
+
+          // 3. Visualization Vendor
+          if (id.includes('node_modules/mermaid') || 
+              id.includes('node_modules/recharts') || 
+              id.includes('node_modules/d3')) {
+            return 'vendor-viz';
+          }
+
+          // 4. Animation Vendor
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-animation';
+          }
+          
+          // 5. Everything else from node_modules
           if (id.includes('node_modules')) {
-            if (id.includes('mermaid')) return 'vendor-mermaid';
-            if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
-            if (id.includes('framer-motion')) return 'vendor-animation';
-            if (id.includes('firebase')) return 'vendor-firebase';
-            return 'vendor-core';
+            return 'vendor-utils';
           }
         },
       },
