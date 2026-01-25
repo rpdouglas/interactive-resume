@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Sun Jan 25 12:33:33 EST 2026
+**Date:** Sun Jan 25 22:17:27 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -76,13 +76,20 @@ export default defineConfig({
       'react-dom': 'react-dom',
     },
   },
+  // ✅ Server Config: Enforce COOP/COEP for Google Auth
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+    },
+  },
   optimizeDeps: {
     include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     commonjsOptions: {
       include: [/mermaid/, /node_modules/],
       transformMixedEsModules: true,
@@ -90,40 +97,29 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // 1. Core React Vendor (Critical for Singleton Pattern)
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/react-router-dom') ||
-              id.includes('node_modules/scheduler')) {
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/recharts') || 
+              id.includes('node_modules/d3')) {
             return 'vendor-react';
           }
-
-          // 2. Firebase Vendor
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
-
-          // 3. Visualization Vendor
           if (id.includes('node_modules/mermaid') || 
-              id.includes('node_modules/recharts') || 
-              id.includes('node_modules/d3')) {
-            return 'vendor-viz';
+              id.includes('node_modules/khroma') || 
+              id.includes('node_modules/cytoscape')) {
+            return 'vendor-mermaid';
           }
-
-          // 4. Animation Vendor
           if (id.includes('node_modules/framer-motion')) {
             return 'vendor-animation';
-          }
-          
-          // 5. Everything else from node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-utils';
           }
         },
       },
     },
   },
-  // ✅ FIX: Modernized Pool Configuration for Vitest 4+
   pool: 'forks',
   poolOptions: {
     forks: {
@@ -1391,24 +1387,16 @@ const SkillRadar = ({ skills, onSkillClick }) => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.4 + (idx * 0.1) }}
-          /* ✅ CSS ENFORCER: 'min-w-0' is critical. 
-             It forces the Flex/Grid child to respect the container width 
-             instead of collapsing to content width (0) during the render cycle.
-          */
           className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center min-w-0 overflow-hidden"
         >
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
           <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
-          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and fixed height
-             ensures the ResizeObserver has a valid bounding box immediately.
-          */}
-          <div className="w-full h-[300px] relative">
+          {/* ✅ FIXED: Inline style ensures Recharts can measure container immediately */}
+          <div style={{ width: '100%', height: '300px', position: 'relative' }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={category.data}>
                 <PolarGrid stroke="#e2e8f0" />
-                
-                {/* 🎯 INTERACTIVITY LAYER */}
                 <PolarAngleAxis 
                   dataKey="subject" 
                   tick={{ 
@@ -1419,9 +1407,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
                   }} 
                   onClick={({ value }) => onSkillClick(value)}
                 />
-                
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                
                 <Radar
                   name={category.label}
                   dataKey="A"
@@ -1908,6 +1894,153 @@ export const ResumeProvider = ({ children }) => {
     </ResumeContext.Provider>
   );
 };
+
+```
+---
+
+## FILE: src/context/__tests__/ResumeContext.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ResumeProvider } from '../ResumeContext';
+import { useResumeData } from '../../hooks/useResumeData';
+import * as Firestore from 'firebase/firestore';
+
+// =============================================================================
+// 1. MOCK DATA & IMPORTS
+// We inline the mock data inside the factory to avoid hoisting ReferenceErrors.
+// =============================================================================
+
+vi.mock('../../data/profile.json', () => ({ 
+  default: { basics: { name: "Local Fallback Ryan" }, metrics: {} } 
+}));
+vi.mock('../../data/skills.json', () => ({ default: [] }));
+vi.mock('../../data/sectors.json', () => ({ default: [] }));
+vi.mock('../../data/experience.json', () => ({ 
+  default: [{ id: "local_job", role: "Local Dev", projects: [] }] 
+}));
+
+// Mock Firebase Service
+vi.mock('../../lib/db', () => ({ db: {} }));
+
+// Mock Firestore SDK methods
+vi.mock('firebase/firestore', () => ({
+  getDoc: vi.fn(),
+  getDocs: vi.fn(),
+  collection: vi.fn(),
+  doc: vi.fn(),
+}));
+
+// =============================================================================
+// 2. HELPER COMPONENTS
+// =============================================================================
+
+const TestConsumer = () => {
+  const { profile, experience, loading } = useResumeData();
+
+  if (loading) return <div data-testid="loading">Loading...</div>;
+  
+  return (
+    <div>
+      <div data-testid="profile-name">{profile?.basics?.name}</div>
+      <div data-testid="job-role">{experience?.[0]?.role}</div>
+      <div data-testid="project-count">{experience?.[0]?.projects?.length || 0}</div>
+    </div>
+  );
+};
+
+// =============================================================================
+// 3. TEST SUITE
+// =============================================================================
+
+describe('ResumeContext & Data Layer', () => {
+  
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('fetches and merges deep data from Firestore on success', async () => {
+    // 1. Mock Profile
+    Firestore.getDoc.mockResolvedValue({
+      exists: () => true,
+      data: () => ({ basics: { name: "Firestore Ryan" }, metrics: {} })
+    });
+
+    // 2. Mock Collections (Sequence: Skills, Sectors, Experience, Projects)
+    const mockJobDoc = { 
+      id: 'cloud_job', 
+      data: () => ({ role: "Cloud Architect" }),
+      ref: 'mock_ref' 
+    };
+
+    Firestore.getDocs
+      .mockResolvedValueOnce({ docs: [] }) // Skills
+      .mockResolvedValueOnce({ docs: [] }) // Sectors
+      .mockResolvedValueOnce({ docs: [mockJobDoc] }) // Experience Parent
+      .mockResolvedValueOnce({ docs: [{ id: 'p1', data: () => ({ title: 'Cloud Project' }) }] }); // Projects Sub
+
+    render(
+      <ResumeProvider>
+        <TestConsumer />
+      </ResumeProvider>
+    );
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('profile-name')).toHaveTextContent('Firestore Ryan');
+    expect(screen.getByTestId('job-role')).toHaveTextContent('Cloud Architect');
+    expect(screen.getByTestId('project-count')).toHaveTextContent('1');
+  });
+
+  it('falls back to Local JSON seamlessly if Firestore fails', async () => {
+    // Force fail first call
+    Firestore.getDoc.mockRejectedValue(new Error("Simulated Network Crash"));
+
+    render(
+      <ResumeProvider>
+        <TestConsumer />
+      </ResumeProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+
+    // Verify Error Log
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("Firestore Fetch Failed"), 
+      expect.any(Error)
+    );
+
+    // Verify Fallback Data
+    expect(screen.getByTestId('profile-name')).toHaveTextContent('Local Fallback Ryan');
+    expect(screen.getByTestId('job-role')).toHaveTextContent('Local Dev');
+  });
+
+  it('provides isLoading=true initially', () => {
+    Firestore.getDoc.mockReturnValue(new Promise(() => {}));
+    render(
+      <ResumeProvider>
+        <TestConsumer />
+      </ResumeProvider>
+    );
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+  });
+
+  it('throws an error if hook is used outside Provider', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => {
+      renderHook(() => useResumeData());
+    }).toThrow('useResumeData must be used within a ResumeProvider');
+    consoleSpy.mockRestore();
+  });
+});
 
 ```
 ---
@@ -2938,7 +3071,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import ExperienceSection from '../ExperienceSection';
 
-// Mock Framer Motion
+// 1. Mock Framer Motion
 vi.mock('framer-motion', () => ({
   motion: {
     div: ({ children, className }) => <div className={className}>{children}</div>,
@@ -2947,19 +3080,73 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
+// 2. Mock useResumeData Hook with COMPLETE Data Structure
+const mockExperienceData = [
+  {
+    id: "job1",
+    role: "Consultant",
+    company: "PwC Canada LLP",
+    date: "2020",
+    summary: "Work stuff",
+    skills: ["Power BI", "SQL"],
+    projects: [
+      { 
+        id: "p1", 
+        title: "Project A",
+        sector: "Public Sector", 
+        skills: ["Power BI"],
+        // ✅ FIX: Added missing PAR object required by TimelineCard
+        par: { 
+          problem: "Test problem", 
+          action: "Test action", 
+          result: "Test result" 
+        }
+      }
+    ]
+  },
+  {
+    id: "job2",
+    role: "Dev",
+    company: "Biond Consulting",
+    date: "2019",
+    summary: "Old job",
+    skills: ["SSIS"],
+    projects: [
+      { 
+        id: "p2", 
+        title: "Project B",
+        sector: "Retail", 
+        skills: ["SSIS"],
+        // ✅ FIX: Added missing PAR object
+        par: { 
+          problem: "Retail problem", 
+          action: "Retail action", 
+          result: "Retail result" 
+        }
+      }
+    ]
+  }
+];
+
+vi.mock('../../hooks/useResumeData', () => ({
+  useResumeData: vi.fn(() => ({
+    experience: mockExperienceData,
+    loading: false
+  }))
+}));
+
 describe('ExperienceSection Filter Logic', () => {
   it('filters by technical skill (e.g., Power BI)', () => {
     render(<ExperienceSection activeFilter="Power BI" />);
     // PwC project uses Power BI
     expect(screen.getByText(/PwC Canada LLP/i)).toBeDefined();
-    // Teleperformance should be filtered out
-    expect(screen.queryByText(/Teleperformance/i)).toBeNull();
+    // Biond should be filtered out (it has SSIS)
+    expect(screen.queryByText(/Biond Consulting/i)).toBeNull();
   });
 
   it('filters by industry sector (e.g., Public Sector)', () => {
     render(<ExperienceSection activeFilter="Public Sector" />);
     expect(screen.getByText(/PwC Canada LLP/i)).toBeDefined();
-    // Biond is Retail/Distribution, should be hidden
     expect(screen.queryByText(/Biond Consulting/i)).toBeNull();
   });
 
@@ -2988,7 +3175,14 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 vi.mock('../components/timeline/TimelineContainer', () => ({ default: () => <div>Timeline</div> }));
-vi.mock('../data/experience.json', () => ({ default: [] }));
+
+// Mock the hook to return empty data so the component renders
+vi.mock('../../hooks/useResumeData', () => ({
+  useResumeData: vi.fn(() => ({
+    experience: [],
+    loading: false
+  }))
+}));
 
 describe('ExperienceSection Accessibility', () => {
   it('renders the Clear Filter button with an accessible label', () => {
