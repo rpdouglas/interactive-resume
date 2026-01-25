@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Sun Jan 25 11:37:18 EST 2026
+**Date:** Sun Jan 25 12:33:33 EST 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -211,6 +211,7 @@ export default defineConfig({
 import React, { Suspense, lazy, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ResumeProvider } from './context/ResumeContext'; // ✅ Added Provider
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 // 🚀 Performance: Lazy Load Admin components
@@ -254,25 +255,28 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center bg-slate-950">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        }>
-          <Routes>
-            <Route path="/" element={<PublicResume />} />
-            <Route 
-              path="/admin/*" 
-              element={
-                <ProtectedRoute>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        {/* ✅ Resume Data Provider wraps the app to enable Global Context */}
+        <ResumeProvider>
+          <Suspense fallback={
+            <div className="min-h-screen flex items-center justify-center bg-slate-950">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          }>
+            <Routes>
+              <Route path="/" element={<PublicResume />} />
+              <Route 
+                path="/admin/*" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ResumeProvider>
       </AuthProvider>
     </BrowserRouter>
   );
@@ -971,6 +975,52 @@ export default BookingModal;
 ```
 ---
 
+## FILE: src/components/common/LoadingSkeleton.jsx
+```jsx
+import React from 'react';
+
+const LoadingSkeleton = () => {
+  return (
+    <div className="w-full max-w-6xl mx-auto px-4 py-8 animate-pulse space-y-12">
+      {/* Header Section */}
+      <div className="space-y-4">
+        <div className="h-10 bg-slate-200 rounded w-1/3 md:w-1/4"></div>
+        <div className="h-4 bg-slate-200 rounded w-1/2 md:w-1/3"></div>
+        <div className="h-20 bg-slate-100 rounded w-full md:w-2/3 mt-4"></div>
+      </div>
+
+      {/* KPI Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-32 bg-slate-100 rounded-xl border border-slate-200"></div>
+        ))}
+      </div>
+
+      {/* Sectors Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="h-24 bg-slate-100 rounded-xl"></div>
+        ))}
+      </div>
+
+      {/* Chart & Timeline Area */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="h-96 bg-slate-100 rounded-xl border border-slate-200"></div>
+        <div className="space-y-6">
+          {[1, 2].map(i => (
+            <div key={i} className="h-48 bg-slate-100 rounded-xl border border-slate-200"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoadingSkeleton;
+
+```
+---
+
 ## FILE: src/components/common/Mermaid.jsx
 ```jsx
 import React, { useEffect, useRef } from 'react';
@@ -1117,18 +1167,29 @@ import React from 'react';
 import KPIGrid from './KPIGrid';
 import SkillRadar from './SkillRadar';
 import SectorGrid from './SectorGrid';
-import profileData from '../../data/profile.json';
-import skillsData from '../../data/skills.json';
 import { useTypewriter } from '../../hooks/useTypewriter';
 import { logUserInteraction } from '../../hooks/useAnalytics';
+import { useResumeData } from '../../hooks/useResumeData'; // ✅ Import Hook
+import LoadingSkeleton from '../common/LoadingSkeleton'; // ✅ Import Skeleton
 
 const Dashboard = ({ activeFilter, onSkillClick }) => {
+  // ✅ Fetch data from Context instead of importing JSON
+  const { profile, skills, loading } = useResumeData();
+
   const typeWriterText = useTypewriter([
     "Management Consultant",
     "Power BI Developer",
     "Data & Analytics Leader",
     "Strategy Advisor"
   ]);
+
+  // ✅ Show High-Fidelity Skeleton while loading
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  // Safety check if profile is somehow null (e.g. initial render blink)
+  if (!profile) return null;
 
   const handleInteraction = (label, type) => {
     logUserInteraction('filter_click', { filter_value: label, filter_type: type });
@@ -1139,18 +1200,18 @@ const Dashboard = ({ activeFilter, onSkillClick }) => {
     <section id="dashboard" className="w-full max-w-6xl mx-auto px-4 py-8">
       <div className="mb-8 text-center md:text-left">
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">
-          {profileData.basics.name}
+          {profile.basics.name}
         </h1>
         <p className="text-xl text-blue-600 mt-2 font-mono h-8">
           {typeWriterText}
           <span className="animate-pulse">|</span>
         </p>
         <p className="text-slate-400 mt-2 max-w-2xl text-sm md:text-base">
-          {profileData.basics.summary}
+          {profile.basics.summary}
         </p>
       </div>
 
-      <KPIGrid metrics={profileData.metrics} />
+      <KPIGrid metrics={profile.metrics} />
 
       <SectorGrid 
         activeSector={activeFilter} 
@@ -1158,7 +1219,7 @@ const Dashboard = ({ activeFilter, onSkillClick }) => {
       />
 
       <SkillRadar 
-        skills={skillsData} 
+        skills={skills} 
         onSkillClick={(label) => handleInteraction(label, 'skill')} 
       />
     </section>
@@ -1320,6 +1381,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const SkillRadar = ({ skills, onSkillClick }) => {
+  if (!skills || skills.length === 0) return null;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {skills.map((category, idx) => (
@@ -1337,7 +1400,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
           <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
-          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and 100% dimensions 
+          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and fixed height
              ensures the ResizeObserver has a valid bounding box immediately.
           */}
           <div className="w-full h-[300px] relative">
@@ -1351,7 +1414,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
                   tick={{ 
                     fill: '#64748b', 
                     fontSize: 12, 
-                    cursor: 'pointer',
+                    cursor: 'pointer', 
                     className: 'hover:fill-blue-600 transition-colors font-semibold'
                   }} 
                   onClick={({ value }) => onSkillClick(value)}
@@ -1760,6 +1823,95 @@ export const useAuth = () => useContext(AuthContext);
 ```
 ---
 
+## FILE: src/context/ResumeContext.jsx
+```jsx
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { db } from '../lib/db';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+
+// 🛡️ FALLBACK DATA (Local JSON)
+import localProfile from '../data/profile.json';
+import localSkills from '../data/skills.json';
+import localSectors from '../data/sectors.json';
+import localExperience from '../data/experience.json';
+
+// ✅ FIX: Added 'export' so the hook can consume it
+export const ResumeContext = createContext();
+
+export const ResumeProvider = ({ children }) => {
+  const [data, setData] = useState({
+    profile: null,
+    skills: [],
+    sectors: [],
+    experience: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        console.log("🔥 Fetching Resume Data from Firestore...");
+
+        // 1. Fetch Profile (Singleton)
+        const profileSnap = await getDoc(doc(db, 'profile', 'primary'));
+        const profile = profileSnap.exists() ? profileSnap.data() : localProfile;
+
+        // 2. Fetch Skills
+        const skillsSnap = await getDocs(collection(db, 'skills'));
+        const skills = skillsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 3. Fetch Sectors
+        const sectorsSnap = await getDocs(collection(db, 'sectors'));
+        const sectors = sectorsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // 4. Fetch Experience (DEEP FETCH PATTERN)
+        const expSnap = await getDocs(collection(db, 'experience'));
+        
+        const experience = await Promise.all(expSnap.docs.map(async (jobDoc) => {
+          const jobData = { id: jobDoc.id, ...jobDoc.data() };
+          // Fetch Sub-collection: projects
+          const projectsSnap = await getDocs(collection(jobDoc.ref, 'projects'));
+          const projects = projectsSnap.docs.map(p => ({ id: p.id, ...p.data() }));
+          return { ...jobData, projects };
+        }));
+
+        setData({
+          profile: profile,
+          skills: skills.length > 0 ? skills : localSkills,
+          sectors: sectors.length > 0 ? sectors : localSectors,
+          experience: experience.length > 0 ? experience : localExperience
+        });
+        
+        setLoading(false);
+
+      } catch (err) {
+        console.error("⚠️ Firestore Fetch Failed. Activating Backup Protocols.", err);
+        // 🛡️ FAILOVER: Load Local JSON
+        setData({
+          profile: localProfile,
+          skills: localSkills,
+          sectors: localSectors,
+          experience: localExperience
+        });
+        setError(err);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  return (
+    <ResumeContext.Provider value={{ ...data, loading, error }}>
+      {children}
+    </ResumeContext.Provider>
+  );
+};
+
+```
+---
+
 ## FILE: src/data/__tests__/SchemaValidation.test.js
 ```js
 import { describe, it, expect } from 'vitest';
@@ -2110,6 +2262,24 @@ export const logUserInteraction = (eventName, params = {}) => {
 ```
 ---
 
+## FILE: src/hooks/useResumeData.js
+```js
+import { useContext } from 'react';
+import { ResumeContext } from '../context/ResumeContext';
+
+// Custom Hook to consume the Resume Context
+// This abstracts the useContext logic from components
+export const useResumeData = () => {
+  const context = useContext(ResumeContext);
+  if (context === undefined) {
+    throw new Error('useResumeData must be used within a ResumeProvider');
+  }
+  return context;
+};
+
+```
+---
+
 ## FILE: src/hooks/useTypewriter.js
 ```js
 import { useState, useEffect } from 'react';
@@ -2320,7 +2490,7 @@ createRoot(document.getElementById('root')).render(
 ```jsx
 import React, { useState, Suspense, lazy } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, Database, Sparkles, ExternalLink } from 'lucide-react';
 
 // Lazy Load components for performance
 const ProjectArchitect = lazy(() => import('./admin/ProjectArchitect'));
@@ -2361,7 +2531,18 @@ const AdminDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-800 space-y-2">
+          {/* ✅ NEW: Link to Public Site */}
+          <a 
+            href="/" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
+          >
+            <ExternalLink size={18} />
+            View Live Site
+          </a>
+
           <button 
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
@@ -2661,19 +2842,26 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X } from 'lucide-react';
 import TimelineContainer from '../components/timeline/TimelineContainer';
-import experienceData from '../data/experience.json';
+import { useResumeData } from '../hooks/useResumeData'; // ✅ Import Hook
 
 const ExperienceSection = ({ activeFilter, onClear }) => {
+  // ✅ Fetch Data from Context
+  const { experience, loading } = useResumeData();
+
+  // If loading, Dashboard skeleton handles the view height, 
+  // so we can return null or a simple spinner here to avoid double-skeleton
+  if (loading) return null; 
+
   const filteredData = activeFilter 
-    ? experienceData.filter(job => {
+    ? experience.filter(job => {
         // Match Job Skills
-        const jobMatch = job.skills.some(skill => 
+        const jobMatch = job.skills?.some(skill => 
           skill.toLowerCase().includes(activeFilter.toLowerCase())
         );
         
         // Match Project Skills OR Project Sectors
-        const projectMatch = job.projects.some(proj => 
-          proj.skills.some(skill => 
+        const projectMatch = job.projects?.some(proj => 
+          proj.skills?.some(skill => 
             skill.toLowerCase().includes(activeFilter.toLowerCase())
           ) || 
           (proj.sector && proj.sector.toLowerCase() === activeFilter.toLowerCase())
@@ -2681,7 +2869,7 @@ const ExperienceSection = ({ activeFilter, onClear }) => {
 
         return jobMatch || projectMatch;
       })
-    : experienceData;
+    : experience;
 
   return (
     <section id="experience" className="py-20 bg-slate-900 relative overflow-hidden min-h-[600px] print:bg-white print:text-black print:py-0">
@@ -2849,26 +3037,20 @@ afterEach(() => {
 ```md
 # 📜 Changelog
 
-## [v2.1.0-beta] - 2026-01-24
+## [v2.1.0-beta] - 2026-01-25
 ### Added
-- **CMS:** Added `ProjectArchitect` with Gemini 3.0 Integration.
+- **Database:** Initialized Cloud Firestore architecture (`src/lib/db.js`).
+- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
+- **CMS:** Added `DataSeeder` utility to migrate local JSON to Firestore.
 - **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
-- **Security:** Implemented `COOP/COEP` headers in `firebase.json` for safe browsing compliance.
-- **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.
-- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.
 ### Fixed
-- **UX/UI:** Implemented "Adaptive Density" layout for `TimelineCard` to improve readability on small screens (<375px).
-- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).
+- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a React singleton chunk.
+- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar`.
 
 ## [v2.0.0-alpha] - 2026-01-23
 ### Added
 - **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.
 - **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.
-- **Auth Context:** Global `AuthProvider` managing user sessions across the platform.
-- **Lazy Loading:** Admin dashboard code-split to optimize public bundle size.
-### Fixed
-- **Test Sync:** Updated Unit Tests to handle Auth Context dependencies in Header and Footer.
-- **Pool Stability:** Optimized Vitest configuration for stable worker forks.
 
 ```
 ---
@@ -2876,40 +3058,34 @@ afterEach(() => {
 ## FILE: docs/CONTEXT_DUMP.md
 ```md
 # Interactive Resume: Platform Context
-**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0 Flash
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
 **Version:** v2.1.0-beta
 
-## Architecture Rules (STRICT)
-1. **Security:** All `/admin/*` routes must be protected by `ProtectedRoute` and a whitelist check.
-2. **SSOT:** Versioning is controlled by `package.json`.
-3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.
-4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.
-5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys.
-6. **Data Access:** All future data fetching must go through the `useResumeData` hook (Coming in Phase 16).
+## 🧠 Coding Standards (The Brain)
 
-```
----
+### 1. React 19 Patterns
+* **No Manual Memoization:** Do NOT use `useMemo` or `useCallback` unless specifically profiling a performance bottleneck. Rely on the React Compiler (future-proof).
+* **Hooks:** Hooks must strictly follow the rules. `vite.config.js` is patched to bundle React as a singleton to prevent "Invalid Hook Call" errors.
+* **Data Fetching:** Transitioning to `Suspense` and `lazy` loading. Avoid "Waterfall" fetching in `useEffect`.
 
-## FILE: docs/DATA_DICTIONARY.md
-```md
-# 📖 Data Dictionary
+### 2. Tailwind v4 Architecture
+* **CSS-First:** Theme configuration lives in `src/index.css` via CSS variables (`--color-brand-accent`), NOT `tailwind.config.js`.
+* **Responsive:** Mobile-First. Always write `p-4 md:p-6`, never `p-6 sm:p-4`.
+* **Layout:** Use `min-w-0` on Flex/Grid children to prevent `Recharts` layout blowouts.
 
-## experience.json
-| Key | Type | Description |
-| :--- | :--- | :--- |
-| `id` | String | Unique job ID. |
-| `role` | String | Professional title. |
-| `projects` | Array | List of engagement objects. |
-| `projects.sector` | String | The industry vertical (e.g. Retail). |
-| `projects.par` | Object | Problem, Action, Result text blocks. |
-| `projects.diagram` | String | Optional Mermaid.js flowchart string. |
+### 3. Data & State
+* **SSOT:** Firestore is the Single Source of Truth for Admin.
+* **Hook:** `useResumeData` (Phase 16.2) will govern all data access.
+* **Mutations:** Never write to Firestore from UI components. Use the `DataSeeder` or designated Admin hooks.
 
-## sectors.json
-| Key | Type | Description |
-| :--- | :--- | :--- |
-| `id` | String | Unique sector ID. |
-| `label` | String | Display name (Must match project.sector). |
-| `icon` | String | Lucide icon name. |
+### 4. AI Isolation
+* **Server-Side AI:** All calls to Gemini 3.0 via the Google AI SDK must occur in **Cloud Functions** (`functions/`).
+* **Client:** The client only sends `rawText` or `jobDescription` to the function and renders the result.
+
+## Directory Structure
+* `src/components/admin` -> CMS specific UI.
+* `src/data` -> Legacy JSON (Deprecated).
+* `src/lib` -> Firebase services (`db.js`, `firebase.js`).
 
 ```
 ---
@@ -2927,47 +3103,85 @@ The following secrets must be present in GitHub Actions and `.env`:
 | `VITE_PROJECT_ID` | Firebase Project ID |
 | `VITE_ADMIN_EMAIL` | Whitelisted email authorized for /admin access |
 
-## 2. CI/CD Pipeline
+## 2. Database Management
+### Deploying Rules
+Security rules are defined in `firestore.rules`.
+```bash
+firebase deploy --only firestore:rules
+```
+
+### Deploying Indexes
+Indexes are defined in `firestore.indexes.json`.
+```bash
+firebase deploy --only firestore:indexes
+```
+
+## 3. CI/CD Pipeline
 Standard Firebase Hosting workflow via GitHub Actions.
-**Note:** Ensure `VITE_ADMIN_EMAIL` is added to the GitHub Repository Secrets.
+
 ```
 ---
 
 ## FILE: docs/PERSONAS.md
 ```md
-# 👥 Target Audience & UX Constraints
+# 👥 Persona-Based Development Model
 
-> **Goal:** Convince three distinct types of viewers to book an interview.
+Our development strategy is guided by specific user archetypes. Features must pass the "Persona Check" before implementation.
 
 ---
+
+## 🌍 External Audiences (The Public View)
+*Goal: Conversion (Booking an Interview)*
 
 ### 1. "The Skimmer" (Technical Recruiter)
 * **Goal:** Match keywords to a Job Description in < 10 seconds.
 * **Behavior:** Opens link, scans for "Power BI", "React", "15 Years", then leaves.
-* **Constraint:** **The "Above the Fold" Dashboard.**
-    * *Rule:* Key metrics (Years Exp, Top Skills) must be visible immediately without scrolling.
-    * *Rule:* No "Enter Site" loading screens. Instant access.
+* **UX Constraint:** **The "Above the Fold" Dashboard.**
+    * *Rule:* Key metrics must be visible immediately without scrolling.
+    * *Rule:* Zero layout shift. No spinners for critical text.
 
 ### 2. "The Narrator" (Hiring Manager / Director)
 * **Goal:** Understand the *context* of your career. "Why did he move from Dev to Consulting?"
 * **Behavior:** Scrolls down. Reads the bullet points. Looks for business impact.
-* **Constraint:** **The PAR Timeline.**
+* **UX Constraint:** **The PAR Timeline.**
     * *Rule:* Experience must be framed as Problem/Action/Result.
     * *Rule:* "Click to expand" interaction to keep the initial view clean.
 
 ### 3. "The Skeptic" (Lead Developer / CTO)
 * **Goal:** Verify technical competence. "Is this a template or did he build it?"
 * **Behavior:** Inspects Element. Looks at the source code. Tests the interactivity.
-* **Constraint:** **The "Live" Matrix.**
+* **UX Constraint:** **The "Live" Matrix.**
     * *Rule:* Clicking "React" should filter the entire timeline. This proves state management expertise.
-    * *Rule:* Code must be clean, typed, and commented.
+    * *Rule:* Code must be clean, typed, and commented (in case they check the repo).
 
 ---
 
-### 4. "The Mobile User" (LinkedIn Traffic)
+## 🔐 Internal Actors (The Admin View)
+*Goal: Productivity & Strategy*
+
+### 4. "The Candidate" (The Super Admin - You)
+* **Goal:** Manage the job hunt campaign with high velocity and high quality.
+* **Pain Point:** Repetitive data entry. rewriting cover letters. losing track of applications.
+* **Behavior:** Pastes a JD into the system, expects an instant analysis and tailored assets.
+* **UX Constraint:** **Zero Friction Input.**
+    * *Rule:* If it takes more than 2 clicks to generate a Cover Letter, the feature has failed.
+    * *Rule:* Data Seeding must be idempotent (running it twice shouldn't break things).
+
+### 5. "The Staff Engineer" (The AI Agent)
+* **Role:** Gemini 3.0 Integration.
+* **Goal:** Act as a strategic career coach and copywriter.
+* **Behavior:** Analyzes the gap between *Stored Experience* (Firestore) and *Target Job* (Input).
+* **Constraint:** **Hallucination Control.**
+    * *Rule:* The AI must strictly cite actual projects from the database. It cannot invent experience.
+
+---
+
+## 📱 Hardware Contexts
+
+### 6. "The Mobile User" (LinkedIn Traffic)
 * **Context:** 60% of traffic will come from the LinkedIn mobile app browser.
 * **Constraint:** **Thumb-Friendly UI.**
-    * *Rule:* Charts must be readable vertically.
+    * *Rule:* Charts must be readable vertically (Adaptive Density).
     * *Rule:* No hover-only tooltips (must be click/tap accessible).
 
 ```
@@ -2982,22 +3196,21 @@ Standard Firebase Hosting workflow via GitHub Actions.
 **Status:** 🛠️ Active Development
 
 ## 🎯 Current Objectives
-* [ ] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).
+* [x] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).
+* [ ] Sprint 16.2: The Data Hook Layer (Public View Migration).
 
 ## ✅ Completed Roadmap
 * **Phase 15:** [x] Chart Stabilization & Visual Polish.
 * **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.
 * **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
 * **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.
-* **Phase 12:** [x] Integrated Conversion (Booking Agent).
-* **Phase 1-11:** [x] Foundation, Matrix UI, Visual Systems, Testing Suite.
 
 ```
 ---
 
 ## FILE: docs/PROMPT_APPROVAL.md
 ```md
-# ✅ AI Approval & Execution Prompt (Builder Mode)
+# ✅ AI Approval & Execution Prompt (Builder Mode v2.0)
 
 **Instructions:**
 Use this prompt **after** the AI has presented the 3 Architectural Options. This signals approval for a specific approach and triggers code generation.
@@ -3013,19 +3226,20 @@ Use this prompt **after** the AI has presented the 3 Architectural Options. This
     * Creates/Updates all necessary files.
     * Installs any missing dependencies (`npm install ...`).
     * Uses `cat << 'EOF'` patterns to write file contents safely.
-2.  **Code Quality:**
+2.  **Data Strategy (The "Backbone" Check):**
+    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections (like `experience/{id}/projects`), you MUST implement logic to fetch the sub-collection data explicitly.
+    * **Failover Logic:** Wrap all critical data fetching in `try/catch`. If the Database fails (Offline/Quota/Rules), return a safe **Fallback** (e.g., Local JSON or Empty State) to prevent a crash.
+    * **Idempotency:** Seeding or Mutation scripts must be safe to run multiple times without creating duplicate data.
+3.  **Code Quality:**
     * **NO Placeholders:** Never use `// ... rest of code`.
     * **Type Safety:** Use PropType checks or clean Interface definitions.
-    * **Comments:** Include JSDoc comments explaining *complex* logic (e.g., the Radar chart coordinate math).
-3.  **Responsiveness:**
-    * **Mobile Parity:** If a chart is too wide for mobile, provide a fallback or a responsive container logic.
-    * **Tailwind:** Use `clsx` and `tailwind-merge` for dynamic classes.
+    * **Performance:** Ensure `useEffect` dependencies are stable to prevent infinite fetch loops.
 
 **Persona Validation (The "Self-Correction" Step):**
 Before generating the script, verify the code against our Personas:
-* **The Skimmer:** Is the data visible immediately? (No artificial delays > 0.5s).
-* **The Mobile User:** Will this overflow horizontally on a 375px screen?
-* **The Skeptic:** Are we using crisp SVGs (Recharts)?
+* **The Skimmer:** Is the data visible immediately? (Use Skeletons, not Spinners).
+* **The Mobile User:** Will this fallback work on a spotty connection?
+* **The Skeptic:** Are we using strict Security Rules?
 
 **Output Requirements:**
 
@@ -3035,16 +3249,16 @@ Before generating the script, verify the code against our Personas:
 
 2.  **Manual Verification Steps:**
     * A brief bulleted list of what I should see when I run `npm run dev` after installing.
+    * Steps to simulate a failure (e.g., "Disconnect Internet") to test the Fallback.
 
 *Please generate the installation script now.*
-
 
 ```
 ---
 
 ## FILE: docs/PROMPT_FEATURE_REQUEST.md
 ```md
-# 📝 AI Feature Request Prompt (Architect Mode)
+# 📝 AI Feature Request Prompt (Architect Mode v2.0)
 
 **Instructions:**
 1.  Copy your current codebase context.
@@ -3055,7 +3269,7 @@ Before generating the script, verify the code against our Personas:
 
 ### **Prompt Template**
 
-**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume.
+**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume (React 19 + Firebase).
 **Task:** Analyze the requirements for a new feature and propose architectural solutions.
 
 **Feature Request:** [INSERT FEATURE NAME]
@@ -3066,32 +3280,34 @@ I need to add a module that [DESCRIBE FUNCTION].
 
 **Core Requirements:**
 
-1.  **👥 The Persona Check:**
-    * **The Skimmer:** Does this convey value in < 5 seconds?
-    * **The Mobile User:** Is the touch-target size appropriate (44px+)? Does it reflow without scrolling?
-    * **The Skeptic:** Is the implementation clean, typed, and performant?
+1.  **👥 The Persona Check (Select Relevant):**
+    * **The Candidate (Admin):** Maximize velocity. Is input zero-friction? Is the UI dense and data-rich?
+    * **The Staff Engineer (AI):** Is the prompt engineering robust? Are we hallucinating data?
+    * **The Mobile User (Public):** Touch targets 44px+? No horizontal scrolling on 320px?
+    * **The Skimmer (Public):** Value delivered in < 5 seconds?
 
 2.  **Constraints & Tech Strategy:**
-    * **HTML5 Canvas vs. SVG:** Use the best tool for the job.
-        * *SVG (Recharts):* Preferred for standard charts where text crispness and accessibility are priority.
-        * *HTML5 Canvas (Three.js/WebGL):* Encouraged for high-performance animations, particle effects, or 3D elements.
-    * **Data Separation:** No hardcoded text; use `src/data/*.json`.
-    * **Responsiveness:** Mobile-first architecture.
+    * **Data Source:** **Firestore is the SSOT.**
+        * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
+        * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.
+    * **Security:** Does this require a change to `firestore.rules`?
+    * **State:** Prefer React 19 `Suspense` and URL-based state over complex `useEffect` chains.
+    * **Styling:** Tailwind v4 (Mobile-First).
 
 **🛑 STOP & THINK: Architectural Options**
-Do **NOT** write code yet. Instead, analyze the request and propose **3 Distinct Approaches**:
+Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approaches**:
 
-1.  **The "High-Impact" Approach:** Prioritizes visual "wow" factor (often uses Canvas/WebGL).
-2.  **The "Performance" Approach:** Prioritizes Lighthouse scores, accessibility, and lightweight DOM.
-3.  **The "Balanced" Approach:** The sweet spot between visual appeal and engineering rigor.
+1.  **The "Client-Heavy" Approach:** fast UI, relies on client-side SDK. Good for real-time interactivity.
+2.  **The "Server-Secure" Approach:** Offloads logic to Cloud Functions. Mandatory for AI/LLM operations and sensitive data writes.
+3.  **The "Balanced/Hybrid" Approach:** Optimistic UI updates with background server validation.
 
 **Your Output Deliverable:**
-1.  **Analysis:** A brief breakdown of the UX challenges for this specific feature.
-2.  **The Options Table:** Compare the 3 approaches based on:
-    * *Tech Stack / Libraries needed*
-    * *Complexity (Low/Med/High)*
-    * *Pros & Cons*
-3.  **Recommendation:** Select one approach and explain *why* it fits the "Medium is the Message" philosophy best.
+1.  **Analysis:** A brief breakdown of the UX and Security challenges.
+2.  **The Options Table:** Compare approaches based on:
+    * *Security Risk*
+    * *Latency/Performance*
+    * *Maintenance Cost*
+3.  **Recommendation:** Select one approach and explain *why* it fits our "Secure Productivity" philosophy.
 4.  **Wait:** End your response by asking for approval to proceed.
 
 ---
@@ -3215,6 +3431,177 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 
 **Wait:** Ask me to paste the Component Code to begin.
 
+```
+---
+
+## FILE: docs/SCHEMA_ARCHITECTURE.md
+```md
+# 🗄️ Schema Architecture & Data Graph
+
+**Storage Engine:** Cloud Firestore (NoSQL)
+**Pattern:** Collection-Centric with Sub-Collections for scalability.
+
+## 1. High-Level Topology
+```mermaid
+graph TD
+    root[🔥 Firestore Root]
+    
+    %% Top Level Collections
+    root --> profile[📂 profile]
+    root --> skills[📂 skills]
+    root --> sectors[📂 sectors]
+    root --> experience[📂 experience]
+    
+    %% Relationships
+    experience --> job[📄 Job Document]
+    job --> projects[📂 projects (Sub-Collection)]
+    projects --> project[📄 Project Document]
+```
+
+## 2. Collection Definitions
+
+### `profile` (Singleton)
+* **Path:** `/profile/primary`
+* **Purpose:** Stores bio, contact info, and global metrics.
+* **Fields:**
+  * `basics` (Map): `{ name, label, email, phone, location, website, github }`
+  * `metrics` (Map): `{ yearsExperience (Int), projectsDelivered (Int), certifications (Int) }`
+
+### `skills` (Lookup)
+* **Path:** `/skills/{categoryId}`
+* **Example ID:** `strategy`, `technical`
+* **Purpose:** Data source for the Radar Charts.
+* **Fields:**
+  * `label` (String): Display name (e.g., "Business Strategy")
+  * `data` (Array<Map>): List of skill points `{ subject, A (Score), fullMark }`
+
+### `sectors` (Lookup)
+* **Path:** `/sectors/{sectorId}`
+* **Example ID:** `public`, `retail`
+* **Purpose:** Data source for the Sector Grid (Industry Impact).
+* **Fields:**
+  * `label` (String): Display Name
+  * `icon` (String): Lucide-React Icon Name
+
+### `experience` (Core Data)
+* **Path:** `/experience/{jobId}`
+* **Purpose:** High-level job history.
+* **Fields:**
+  * `role` (String)
+  * `company` (String)
+  * `date` (String): Formatted date range.
+  * `summary` (String): Short abstract.
+  * `logo` (String): Emoji or URL.
+
+### `experience/{jobId}/projects` (Sub-Collection)
+* **Path:** `/experience/{jobId}/projects/{projectId}`
+* **Purpose:** Granular details for AI analysis and UI expansion. **This is a sub-collection to allow independent querying.**
+* **Fields:**
+  * `title` (String)
+  * `sector` (String): Foreign Key link to `sectors`.
+  * `skills` (Array<String>): List of tech used.
+  * `par` (Map): `{ problem, action, result }` - The narrative core.
+  * `diagram` (String): Mermaid.js graph definition.
+
+## 3. Query Patterns (Planned)
+* **Standard Load:** Fetch `profile`, `skills`, `sectors`, and `experience` (collection group query or recursive fetch).
+* **AI Analysis:** The Application Manager will perform a `collectionGroup` query on `projects` to find matches based on vector embeddings (Phase 17).
+
+```
+---
+
+## FILE: docs/SECURITY_MODEL.md
+```md
+# 🛡️ Security Model & Access Control
+
+**Auth Provider:** Firebase Authentication (Google OAuth)
+**Strategy:** Zero Trust Client / Strict Server-Side Rules
+
+## 1. Authentication Layer
+### The Whitelist Gate
+* **Location:** Client-Side (`src/context/AuthContext.jsx`) & Server-Side (`firestore.rules`).
+* **Mechanism:**
+  1. User signs in via Google.
+  2. App checks `user.email` against `import.meta.env.VITE_ADMIN_EMAIL`.
+  3. If no match, the user is signed out immediately or redirected to Public View.
+
+## 2. Authorization (Firestore Rules)
+We utilize a **"Public Read / Admin Write"** policy.
+
+| Collection | Read Permission | Write Permission |
+| :--- | :--- | :--- |
+| `profile` | 🌍 Public | 🔐 Auth Only |
+| `skills` | 🌍 Public | 🔐 Auth Only |
+| `experience` | 🌍 Public | 🔐 Auth Only |
+| `projects` | 🌍 Public | 🔐 Auth Only |
+
+**Current Rule Implementation:**
+```javascript
+allow read: if true;
+allow write: if request.auth != null; // Relies on UI Whitelisting for now
+```
+> ⚠️ **Note:** In Phase 17, we will upgrade the Write rule to strictly check `request.auth.token.email == 'YOUR_EMAIL'` for backend-level enforcement.
+
+## 3. API Key Exposure Strategy
+It is standard practice to expose the `VITE_API_KEY` in the frontend bundle. This key **does not** grant administrative access. It simply identifies the Firebase project.
+
+**Defense in Depth:**
+1. **Security Rules:** Prevent unauthorized writes even if someone steals the API Key.
+2. **App Check:** (Planned Phase 18) Verify traffic comes from your specific domain.
+3. **Cloud Functions:** Sensitive AI logic (Gemini) runs on the server, keeping the LLM API Key strictly hidden from the browser.
+
+## 4. Header Security (COOP/COEP)
+To support high-performance `SharedArrayBuffer` (potential future use) and Google Identity Services, we enforce:
+* `Cross-Origin-Opener-Policy: same-origin-allow-popups`
+* `Cross-Origin-Embedder-Policy: unsafe-none`
+
+```
+---
+
+## FILE: scripts/deploy_feature.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# 🚀 DEPLOYMENT PROTOCOL: PHASE 16.1
+# ==========================================
+
+BRANCH_NAME="feature/phase-16-firestore"
+COMMIT_MSG="feat(db): initialize firestore schema, seeding tool, and vite fix"
+
+echo "🔍 Checking Git Status..."
+if [ -n "$(git status --porcelain)" ]; then 
+    echo "⚠️  Uncommitted changes detected. Staging them now..."
+else
+    echo "✅ Working directory clean."
+fi
+
+# 1. Create/Switch Branch
+echo "🌿 Switching to branch: $BRANCH_NAME"
+git checkout -b $BRANCH_NAME 2>/dev/null || git checkout $BRANCH_NAME
+
+# 2. Stage & Commit
+echo "📦 Staging files..."
+git add .
+
+echo "💾 Committing changes..."
+git commit -m "$COMMIT_MSG"
+
+# 3. Push to Origin
+echo "🚀 Pushing to origin..."
+git push -u origin $BRANCH_NAME
+
+# 4. Instructions
+echo ""
+echo "=========================================="
+echo "✅ Feature Branch Pushed Successfully!"
+echo "=========================================="
+echo "👉 Next Steps:"
+echo "1. Go to GitHub and open a Pull Request for '$BRANCH_NAME'."
+echo "2. Wait for the 'Deploy to Preview Channel' action to pass."
+echo "3. Verify the Preview URL provided by the bot."
+echo "4. If stable, merge to 'main' to deploy to Production."
+echo "=========================================="
 ```
 ---
 

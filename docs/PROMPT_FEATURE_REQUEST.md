@@ -1,4 +1,4 @@
-# 📝 AI Feature Request Prompt (Architect Mode)
+# 📝 AI Feature Request Prompt (Architect Mode v2.0)
 
 **Instructions:**
 1.  Copy your current codebase context.
@@ -9,7 +9,7 @@
 
 ### **Prompt Template**
 
-**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume.
+**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume (React 19 + Firebase).
 **Task:** Analyze the requirements for a new feature and propose architectural solutions.
 
 **Feature Request:** [INSERT FEATURE NAME]
@@ -20,32 +20,34 @@ I need to add a module that [DESCRIBE FUNCTION].
 
 **Core Requirements:**
 
-1.  **👥 The Persona Check:**
-    * **The Skimmer:** Does this convey value in < 5 seconds?
-    * **The Mobile User:** Is the touch-target size appropriate (44px+)? Does it reflow without scrolling?
-    * **The Skeptic:** Is the implementation clean, typed, and performant?
+1.  **👥 The Persona Check (Select Relevant):**
+    * **The Candidate (Admin):** Maximize velocity. Is input zero-friction? Is the UI dense and data-rich?
+    * **The Staff Engineer (AI):** Is the prompt engineering robust? Are we hallucinating data?
+    * **The Mobile User (Public):** Touch targets 44px+? No horizontal scrolling on 320px?
+    * **The Skimmer (Public):** Value delivered in < 5 seconds?
 
 2.  **Constraints & Tech Strategy:**
-    * **HTML5 Canvas vs. SVG:** Use the best tool for the job.
-        * *SVG (Recharts):* Preferred for standard charts where text crispness and accessibility are priority.
-        * *HTML5 Canvas (Three.js/WebGL):* Encouraged for high-performance animations, particle effects, or 3D elements.
-    * **Data Separation:** No hardcoded text; use `src/data/*.json`.
-    * **Responsiveness:** Mobile-first architecture.
+    * **Data Source:** **Firestore is the SSOT.**
+        * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
+        * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.
+    * **Security:** Does this require a change to `firestore.rules`?
+    * **State:** Prefer React 19 `Suspense` and URL-based state over complex `useEffect` chains.
+    * **Styling:** Tailwind v4 (Mobile-First).
 
 **🛑 STOP & THINK: Architectural Options**
-Do **NOT** write code yet. Instead, analyze the request and propose **3 Distinct Approaches**:
+Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approaches**:
 
-1.  **The "High-Impact" Approach:** Prioritizes visual "wow" factor (often uses Canvas/WebGL).
-2.  **The "Performance" Approach:** Prioritizes Lighthouse scores, accessibility, and lightweight DOM.
-3.  **The "Balanced" Approach:** The sweet spot between visual appeal and engineering rigor.
+1.  **The "Client-Heavy" Approach:** fast UI, relies on client-side SDK. Good for real-time interactivity.
+2.  **The "Server-Secure" Approach:** Offloads logic to Cloud Functions. Mandatory for AI/LLM operations and sensitive data writes.
+3.  **The "Balanced/Hybrid" Approach:** Optimistic UI updates with background server validation.
 
 **Your Output Deliverable:**
-1.  **Analysis:** A brief breakdown of the UX challenges for this specific feature.
-2.  **The Options Table:** Compare the 3 approaches based on:
-    * *Tech Stack / Libraries needed*
-    * *Complexity (Low/Med/High)*
-    * *Pros & Cons*
-3.  **Recommendation:** Select one approach and explain *why* it fits the "Medium is the Message" philosophy best.
+1.  **Analysis:** A brief breakdown of the UX and Security challenges.
+2.  **The Options Table:** Compare approaches based on:
+    * *Security Risk*
+    * *Latency/Performance*
+    * *Maintenance Cost*
+3.  **Recommendation:** Select one approach and explain *why* it fits our "Secure Productivity" philosophy.
 4.  **Wait:** End your response by asking for approval to proceed.
 
 ---

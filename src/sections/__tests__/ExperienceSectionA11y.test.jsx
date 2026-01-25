@@ -12,7 +12,14 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 vi.mock('../components/timeline/TimelineContainer', () => ({ default: () => <div>Timeline</div> }));
-vi.mock('../data/experience.json', () => ({ default: [] }));
+
+// Mock the hook to return empty data so the component renders
+vi.mock('../../hooks/useResumeData', () => ({
+  useResumeData: vi.fn(() => ({
+    experience: [],
+    loading: false
+  }))
+}));
 
 describe('ExperienceSection Accessibility', () => {
   it('renders the Clear Filter button with an accessible label', () => {
