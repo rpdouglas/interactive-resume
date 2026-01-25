@@ -1,86 +1,78 @@
 import os
 
-def write_lines(filepath, lines):
-    """
-    Writes a list of strings to a file, ensuring correct encoding and newlines.
-    """
+def write_file(filepath, content):
     try:
         with open(filepath, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(lines) + '\n')
+            f.write('\n'.join(content) + '\n')
         print(f"✅ [UPDATED] {filepath}")
     except Exception as e:
-        print(f"❌ [ERROR] Could not update {filepath}: {e}")
+        print(f"❌ [ERROR] {filepath}: {e}")
 
 # ==========================================
-# 1. PROJECT_STATUS.md
+# UPDATED PERSONAS.md
 # ==========================================
-project_status = [
-    "# 🟢 Project Status: Platform Expansion",
+personas_content = [
+    "# 👥 Persona-Based Development Model",
     "",
-    "**Current Phase:** Phase 16 - The Backbone Shift (Firestore Migration)",
-    "**Version:** v2.1.0-beta",
-    "**Status:** 🛠️ Active Development",
+    "Our development strategy is guided by specific user archetypes. Features must pass the \"Persona Check\" before implementation.",
     "",
-    "## 🎯 Current Objectives",
-    "* [ ] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).",
+    "---",
     "",
-    "## ✅ Completed Roadmap",
-    "* **Phase 15:** [x] Chart Stabilization & Visual Polish.",
-    "* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.",
-    "* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.",
-    "* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.",
-    "* **Phase 12:** [x] Integrated Conversion (Booking Agent).",
-    "* **Phase 1-11:** [x] Foundation, Matrix UI, Visual Systems, Testing Suite."
+    "## 🌍 External Audiences (The Public View)",
+    "*Goal: Conversion (Booking an Interview)*",
+    "",
+    "### 1. \"The Skimmer\" (Technical Recruiter)",
+    "* **Goal:** Match keywords to a Job Description in < 10 seconds.",
+    "* **Behavior:** Opens link, scans for \"Power BI\", \"React\", \"15 Years\", then leaves.",
+    "* **UX Constraint:** **The \"Above the Fold\" Dashboard.**",
+    "    * *Rule:* Key metrics must be visible immediately without scrolling.",
+    "    * *Rule:* Zero layout shift. No spinners for critical text.",
+    "",
+    "### 2. \"The Narrator\" (Hiring Manager / Director)",
+    "* **Goal:** Understand the *context* of your career. \"Why did he move from Dev to Consulting?\"",
+    "* **Behavior:** Scrolls down. Reads the bullet points. Looks for business impact.",
+    "* **UX Constraint:** **The PAR Timeline.**",
+    "    * *Rule:* Experience must be framed as Problem/Action/Result.",
+    "    * *Rule:* \"Click to expand\" interaction to keep the initial view clean.",
+    "",
+    "### 3. \"The Skeptic\" (Lead Developer / CTO)",
+    "* **Goal:** Verify technical competence. \"Is this a template or did he build it?\"",
+    "* **Behavior:** Inspects Element. Looks at the source code. Tests the interactivity.",
+    "* **UX Constraint:** **The \"Live\" Matrix.**",
+    "    * *Rule:* Clicking \"React\" should filter the entire timeline. This proves state management expertise.",
+    "    * *Rule:* Code must be clean, typed, and commented (in case they check the repo).",
+    "",
+    "---",
+    "",
+    "## 🔐 Internal Actors (The Admin View)",
+    "*Goal: Productivity & Strategy*",
+    "",
+    "### 4. \"The Candidate\" (The Super Admin - You)",
+    "* **Goal:** Manage the job hunt campaign with high velocity and high quality.",
+    "* **Pain Point:** Repetitive data entry. rewriting cover letters. losing track of applications.",
+    "* **Behavior:** Pastes a JD into the system, expects an instant analysis and tailored assets.",
+    "* **UX Constraint:** **Zero Friction Input.**",
+    "    * *Rule:* If it takes more than 2 clicks to generate a Cover Letter, the feature has failed.",
+    "    * *Rule:* Data Seeding must be idempotent (running it twice shouldn't break things).",
+    "",
+    "### 5. \"The Staff Engineer\" (The AI Agent)",
+    "* **Role:** Gemini 3.0 Integration.",
+    "* **Goal:** Act as a strategic career coach and copywriter.",
+    "* **Behavior:** Analyzes the gap between *Stored Experience* (Firestore) and *Target Job* (Input).",
+    "* **Constraint:** **Hallucination Control.**",
+    "    * *Rule:* The AI must strictly cite actual projects from the database. It cannot invent experience.",
+    "",
+    "---",
+    "",
+    "## 📱 Hardware Contexts",
+    "",
+    "### 6. \"The Mobile User\" (LinkedIn Traffic)",
+    "* **Context:** 60% of traffic will come from the LinkedIn mobile app browser.",
+    "* **Constraint:** **Thumb-Friendly UI.**",
+    "    * *Rule:* Charts must be readable vertically (Adaptive Density).",
+    "    * *Rule:* No hover-only tooltips (must be click/tap accessible)."
 ]
 
-# ==========================================
-# 2. CHANGELOG.md
-# ==========================================
-changelog = [
-    "# 📜 Changelog",
-    "",
-    "## [v2.1.0-beta] - 2026-01-24",
-    "### Added",
-    "- **CMS:** Added `ProjectArchitect` with Gemini 3.0 Integration.",
-    "- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.",
-    "- **Security:** Implemented `COOP/COEP` headers in `firebase.json` for safe browsing compliance.",
-    "- **Auth:** Finalized `VITE_ADMIN_EMAIL` whitelist logic for the protected Admin route.",
-    "- **UI:** Added `/admin/architect` with live JSON preview and Mermaid rendering.",
-    "### Fixed",
-    "- **UX/UI:** Implemented \"Adaptive Density\" layout for `TimelineCard` to improve readability on small screens (<375px).",
-    "- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar` using CSS enforcement (`min-w-0`).",
-    "",
-    "## [v2.0.0-alpha] - 2026-01-23",
-    "### Added",
-    "- **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.",
-    "- **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.",
-    "- **Auth Context:** Global `AuthProvider` managing user sessions across the platform.",
-    "- **Lazy Loading:** Admin dashboard code-split to optimize public bundle size.",
-    "### Fixed",
-    "- **Test Sync:** Updated Unit Tests to handle Auth Context dependencies in Header and Footer.",
-    "- **Pool Stability:** Optimized Vitest configuration for stable worker forks."
-]
-
-# ==========================================
-# 3. CONTEXT_DUMP.md
-# ==========================================
-context_dump = [
-    "# Interactive Resume: Platform Context",
-    "**Stack:** React 19 + Vite + Tailwind v4 + Firebase (Auth/Analytics/Functions) + Google Secret Manager + Gemini 3.0 Flash",
-    "**Version:** v2.1.0-beta",
-    "",
-    "## Architecture Rules (STRICT)",
-    "1. **Security:** All `/admin/*` routes must be protected by `ProtectedRoute` and a whitelist check.",
-    "2. **SSOT:** Versioning is controlled by `package.json`.",
-    "3. **Code Splitting:** Admin components must be `lazy` loaded to keep public performance high.",
-    "4. **A11y:** Mobile menu and Auth triggers must maintain `aria-label` compliance.",
-    "5. **AI Isolation:** AI Logic must reside in `functions/` to protect API Keys.",
-    "6. **Data Access:** All future data fetching must go through the `useResumeData` hook (Coming in Phase 16)."
-]
-
-# Execute Writes
-print("🤖 Starting Documentation Audit...")
-write_lines('docs/PROJECT_STATUS.md', project_status)
-write_lines('docs/CHANGELOG.md', changelog)
-write_lines('docs/CONTEXT_DUMP.md', context_dump)
-print("✨ Audit Complete. Repository is ready for Phase 16: The Backbone Shift.")
+print("🤖 Updating Personas...")
+write_file('docs/PERSONAS.md', personas_content)
+print("✨ Personas updated to include Internal & AI roles.")

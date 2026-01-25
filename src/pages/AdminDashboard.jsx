@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, FileText, Settings, LogOut, Database, Sparkles } from 'lucide-react';
-import ProjectArchitect from './admin/ProjectArchitect';
+import { LayoutDashboard, Settings, LogOut, Database, Sparkles } from 'lucide-react';
+
+// Lazy Load components for performance
+const ProjectArchitect = lazy(() => import('./admin/ProjectArchitect'));
+const DataSeeder = lazy(() => import('../components/admin/DataSeeder'));
 
 const AdminDashboard = () => {
   const { logout, user } = useAuth();
@@ -10,7 +13,7 @@ const AdminDashboard = () => {
   const navItems = [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
     { id: 'architect', icon: Sparkles, label: 'Gemini Architect' },
-    { id: 'manager', icon: Database, label: 'Project Manager' },
+    { id: 'database', icon: Database, label: 'Database' },
     { id: 'settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -51,13 +54,17 @@ const AdminDashboard = () => {
 
       {/* Content Area */}
       <main className="flex-1 p-8 overflow-y-auto">
-        {activeTab === 'architect' ? (
-          <ProjectArchitect />
-        ) : (
-          <div className="h-full flex items-center justify-center text-slate-400">
-            <p>Module '{activeTab}' coming soon in Phase 15.</p>
-          </div>
-        )}
+        <Suspense fallback={
+          <div className="h-full flex items-center justify-center text-slate-400">Loading...</div>
+        }>
+          {activeTab === 'architect' && <ProjectArchitect />}
+          {activeTab === 'database' && <DataSeeder />}
+          {(activeTab === 'overview' || activeTab === 'settings') && (
+            <div className="h-full flex items-center justify-center text-slate-400">
+              <p>Module '{activeTab}' coming soon in Phase 17.</p>
+            </div>
+          )}
+        </Suspense>
       </main>
     </div>
   );
