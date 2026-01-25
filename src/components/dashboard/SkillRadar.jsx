@@ -27,24 +27,16 @@ const SkillRadar = ({ skills, onSkillClick }) => {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.4 + (idx * 0.1) }}
-          /* ✅ CSS ENFORCER: 'min-w-0' is critical. 
-             It forces the Flex/Grid child to respect the container width 
-             instead of collapsing to content width (0) during the render cycle.
-          */
           className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex flex-col items-center min-w-0 overflow-hidden"
         >
           <h3 className="text-lg font-bold text-slate-700 mb-4">{category.label}</h3>
           <p className="text-xs text-slate-400 mb-2 italic">Click a skill label to filter experience</p>
           
-          {/* ✅ LAYOUT LOCK: Explicitly setting relative positioning and fixed height
-             ensures the ResizeObserver has a valid bounding box immediately.
-          */}
-          <div className="w-full h-[300px] relative">
+          {/* ✅ FIXED: Inline style ensures Recharts can measure container immediately */}
+          <div style={{ width: '100%', height: '300px', position: 'relative' }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={category.data}>
                 <PolarGrid stroke="#e2e8f0" />
-                
-                {/* 🎯 INTERACTIVITY LAYER */}
                 <PolarAngleAxis 
                   dataKey="subject" 
                   tick={{ 
@@ -55,9 +47,7 @@ const SkillRadar = ({ skills, onSkillClick }) => {
                   }} 
                   onClick={({ value }) => onSkillClick(value)}
                 />
-                
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                
                 <Radar
                   name={category.label}
                   dataKey="A"

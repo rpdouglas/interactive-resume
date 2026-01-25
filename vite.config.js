@@ -18,13 +18,20 @@ export default defineConfig({
       'react-dom': 'react-dom',
     },
   },
+  // ✅ Server Config: Enforce COOP/COEP for Google Auth
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+    },
+  },
   optimizeDeps: {
     include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 1500,
     commonjsOptions: {
       include: [/mermaid/, /node_modules/],
       transformMixedEsModules: true,
@@ -32,40 +39,29 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // 1. Core React Vendor (Critical for Singleton Pattern)
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/react-router-dom') ||
-              id.includes('node_modules/scheduler')) {
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/recharts') || 
+              id.includes('node_modules/d3')) {
             return 'vendor-react';
           }
-
-          // 2. Firebase Vendor
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
-
-          // 3. Visualization Vendor
           if (id.includes('node_modules/mermaid') || 
-              id.includes('node_modules/recharts') || 
-              id.includes('node_modules/d3')) {
-            return 'vendor-viz';
+              id.includes('node_modules/khroma') || 
+              id.includes('node_modules/cytoscape')) {
+            return 'vendor-mermaid';
           }
-
-          // 4. Animation Vendor
           if (id.includes('node_modules/framer-motion')) {
             return 'vendor-animation';
-          }
-          
-          // 5. Everything else from node_modules
-          if (id.includes('node_modules')) {
-            return 'vendor-utils';
           }
         },
       },
     },
   },
-  // ✅ FIX: Modernized Pool Configuration for Vitest 4+
   pool: 'forks',
   poolOptions: {
     forks: {
