@@ -1,51 +1,42 @@
-# 📝 AI Documentation Audit Prompt (The Maintainer)
+# 📝 AI Documentation Audit Prompt (The Maintainer v2.3)
 
 **Instructions:**
-Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified in Production.
+Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified.
 
 ---
 
 ### **Prompt Template**
 
-**Role:** You are the Lead Technical Writer and Open Source Maintainer for this project.
-**Task:** Perform a comprehensive documentation audit and synchronization.
+**Role:** You are the Lead Technical Writer and Open Source Maintainer.
+**Task:** Perform a comprehensive documentation audit, synchronization, and process retrospective.
 
-**Trigger:** We have just completed and deployed the feature: **[INSERT FEATURE NAME]**.
+**Trigger:** We have just completed: **[INSERT FEATURE NAME]**.
 
-**Current Context:**
-* The code is live.
-* The tests (or manual checks) have passed.
-* I need to close this sprint and prepare the repo for the next phase.
+**The "Preservation Protocol" (CRITICAL RULES):**
+1.  **Never Truncate History:** When updating logs or status files, preserve all previous entries. Use `read()` + `append/insert` logic.
+2.  **No Placeholders:** Output full, compilable files only.
+3.  **Holistic Scan:** You must evaluate **ALL** files in `/docs`, not just the status trackers.
 
-**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that updates the following files to reflect the new state of the application:
+**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following updates:
 
-1.  **`docs/PROJECT_STATUS.md`**:
-    * Mark the current feature as `[x] Completed`.
-    * Update the "Current Phase" and "Version" if applicable.
-    * Select the next logical item from the Backlog to be the "Current Sprint".
+### Phase 1: Status & Logs
+1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version. **Keep** the "Completed Roadmap".
+2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top. **Keep** all older versions.
 
-2.  **`docs/CHANGELOG.md`**:
-    * Add a new entry under the current version.
-    * List key technical changes (e.g., "Added Recharts", "Configured CI/CD").
+### Phase 2: Technical Context
+3.  **`docs/CONTEXT_DUMP.md`**: Update stack details, new libraries, or architectural decisions.
+4.  **`docs/DEPLOYMENT.md`**: Did we add new Secrets or Config? Update the instructions.
+5.  **`docs/SECURITY_MODEL.md`**: Did we change headers or rules? Update the policy.
 
-3.  **`docs/CONTEXT_DUMP.md`**:
-    * Update the "Stack" if new libraries were added.
-    * Update the "Architecture Rules" if we established new patterns (e.g., "Use Python for text generation").
-
-4.  **`README.md` (Root)**:
-    * Ensure badges are correct.
-    * Update the "Architecture" diagram if the data flow changed.
-
-**🛑 STOP & THINK: The Consistency Check**
-Before writing the script, ask yourself:
-* *Did we add new Environment Variables?* If yes, does `docs/DEPLOYMENT.md` need an update?
-* *Did we change the project structure?* If yes, does the `CONTEXT_DUMP` file structure section need verification?
+### Phase 3: The "Continuous Improvement" Loop (CRITICAL)
+*Did we encounter recurring errors or discover new best practices during this sprint?*
+6.  **`docs/PROMPT_FEATURE_REQUEST.md`**: If a new requirement type emerged (e.g., "Mobile-First"), add it to the "Persona Check".
+7.  **`docs/PROMPT_APPROVAL.md`**: If we fixed a deployment bug (e.g., "Missing Headers"), add a **Strict Technical Constraint** to the Builder's list to prevent recurrence.
+8.  **`docs/PROMPT_TESTING.md`**: If a test crashed (e.g., "Env vars missing"), add a constraint to the QA Engineer's list.
 
 **Output Requirement:**
-* Provide a single, robust **Python Script** (using the `write_lines` list approach to avoid syntax errors).
-* Do NOT use Bash for writing markdown files.
+* Provide a single, robust **Python Script**.
+* The script must handle UTF-8 encoding.
+* The script must explicitly reconstruct file content to ensure no data loss.
 
----
-
-**Codebase Context:**
-[PASTE RELEVANT DOCS OR FILE LIST IF NEEDED]
+**Wait:** Ask me for the feature name and **"Were there any specific errors we fixed that should be added to the process constraints?"**
