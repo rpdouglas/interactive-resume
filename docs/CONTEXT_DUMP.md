@@ -23,6 +23,7 @@
 
 ## Directory Structure
 * `src/components/admin` -> CMS specific UI.
+    * `JobTracker.jsx`: Input for AI Analysis.
 * `src/context` -> Data Providers (`ResumeContext`).
 * `src/hooks` -> Logic Consumers (`useResumeData`).
 * `src/data` -> **Indestructible Fallback** (Do not delete).

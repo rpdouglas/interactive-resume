@@ -20,6 +20,7 @@ We utilize a **"Public Read / Admin Write"** policy.
 | `skills` | 🌍 Public | 🔐 Auth Only |
 | `experience` | 🌍 Public | 🔐 Auth Only |
 | `projects` | 🌍 Public | 🔐 Auth Only |
+| `applications` | ⛔ None | 🔐 Admin Only |
 
 **Current Rule Implementation:**
 ```javascript

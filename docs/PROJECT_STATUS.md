@@ -1,11 +1,11 @@
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 17 - The Application Manager (Job Matcher)
+**Current Phase:** Phase 17 - Application Manager
 **Version:** v2.2.0-beta
-**Status:** 🛠️ Active Development
+**Status:** 🟢 Phase 17.1 Complete
 
 ## 🎯 Current Objectives
-* [ ] Sprint 17.1: The Job Input Interface (Admin UI).
+* [x] Sprint 17.1: The Job Input Interface (Admin UI).
 * [ ] Sprint 17.2: Vector Matching Logic (Gemini).
 
 ## ✅ Completed Roadmap

@@ -20,6 +20,9 @@ Use this prompt **after** the AI has presented the 3 Architectural Options.
 3.  **Environment Awareness:**
     * **Secrets:** Never hardcode keys. Use `import.meta.env.VITE_VAR`.
     * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
+4.  **UI Resilience:**
+    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
+
 
 **Persona Validation:**
 * **The Skimmer:** Is data visible immediately? (Use Skeletons).
