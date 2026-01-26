@@ -1,60 +1,44 @@
 import os
 
-def write_file(filepath, content):
-    try:
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write('\n'.join(content) + '\n')
-        print(f"✅ [UPDATED] {filepath}")
-    except Exception as e:
-        print(f"❌ [ERROR] {filepath}: {e}")
+# We use a variable for backticks to prevent syntax errors
+fence = "```"
 
-# ==========================================
-# 1. PROJECT_STATUS.md
-# ==========================================
-project_status = [
-    "# 🟢 Project Status: Platform Expansion",
-    "",
-    "**Current Phase:** Phase 17 - The Application Manager (Job Matcher)",
-    "**Version:** v2.2.0-beta",
-    "**Status:** 🛠️ Active Development",
-    "",
-    "## 🎯 Current Objectives",
-    "* [ ] Sprint 17.1: The Job Input Interface (Admin UI).",
-    "* [ ] Sprint 17.2: Vector Matching Logic (Gemini).",
-    "",
-    "## ✅ Completed Roadmap",
-    "* **Phase 16:** [x] The Backbone Shift (Firestore Migration).",
-    "    * Sprint 16.1: Schema & Seeding.",
-    "    * Sprint 16.2: Data Hook Layer & Offline Fallback.",
-    "* **Phase 15:** [x] Chart Stabilization & Visual Polish.",
-    "* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding.",
-    "* **v1.0.0:** [x] Gold Master Release."
-]
+content = f"""# Interactive Resume: Platform Context
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
+**Environment:** GitHub Codespaces
+**Version:** v2.2.0-beta
 
-# ==========================================
-# 2. CHANGELOG.md
-# ==========================================
-changelog = [
-    "# 📜 Changelog",
-    "",
-    "## [v2.2.0-beta] - 2026-01-25",
-    "### Added",
-    "- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook.",
-    "- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable, the app seamlessly loads local JSON.",
-    "- **UX:** Added `LoadingSkeleton` to prevent layout shifts during data fetching.",
-    "- **Testing:** Added \"Indestructible\" integration tests verifying the fallback logic.",
-    "",
-    "## [v2.1.0-beta] - 2026-01-25",
-    "### Added",
-    "- **Database:** Initialized Cloud Firestore architecture.",
-    "- **Security:** Deployed strict `firestore.rules`.",
-    "- **CMS:** Added `DataSeeder` utility.",
-    "### Fixed",
-    "- **Build:** Fixed critical \"Split-React\" bundling issue in `vite.config.js`."
-]
+## 🧠 Coding Standards (The Brain)
 
-# Execute Writes
-print("🤖 Synchronizing Documentation...")
-write_file('docs/PROJECT_STATUS.md', project_status)
-write_file('docs/CHANGELOG.md', changelog)
-print("✨ Documentation Audit Complete. Ready for Phase 17.")
+### 1. Data & State (SSOT)
+* **Public View:** `ResumeContext` is the Single Source of Truth.
+* **Hybrid Strategy:** Firestore (Primary) -> JSON (Fallback).
+* **Deep Fetch:** We strictly use Recursive Fetching for nested sub-collections (`projects`).
+
+### 2. React 19 Patterns
+* **Hooks:** Hooks must strictly follow the rules.
+* **Bundling:** We manually chunk `react`, `recharts`, and `react-dom` together in `vite.config.js` to prevent `forwardRef` errors.
+
+### 3. Security & Headers
+* **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
+* **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
+
+### 4. AI Isolation
+* **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
+
+## Directory Structure
+* `src/components/admin` -> CMS specific UI.
+* `src/context` -> Data Providers (`ResumeContext`).
+* `src/hooks` -> Logic Consumers (`useResumeData`).
+* `src/data` -> **Indestructible Fallback** (Do not delete).
+* `src/lib` -> Firebase services.
+"""
+
+# Ensure directory exists
+os.makedirs('docs', exist_ok=True)
+
+# Write the file
+with open('docs/CONTEXT_DUMP.md', 'w', encoding='utf-8') as f:
+    f.write(content)
+
+print("✅ Successfully updated docs/CONTEXT_DUMP.md")

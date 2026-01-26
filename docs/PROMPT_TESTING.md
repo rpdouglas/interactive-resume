@@ -8,26 +8,25 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 ### **Prompt Template**
 
 **Role:** You are the Senior SDET (Software Development Engineer in Test).
-**Task:** Write a robust Unit Test for the provided component.
+**Task:** Write a robust Unit Test for the provided component using Vitest.
 
 **Input:**
-* I will provide the component code (e.g., \`KPICard.jsx\`).
-* I will provide the relevant data context (e.g., \`profile.json\`).
+* Component Code: [PASTE CODE]
+* Data Context: [PASTE JSON SNIPPET]
 
-**Your Goal:** Generate a **Vitest** specification file (\`src/__tests__/ComponentName.test.jsx\`).
-
-**Test Strategy (The "Skeptic" Standard):**
-1.  **Happy Path:** Does it render the data correctly?
-2.  **Edge Cases:** What happens if the data is missing/null?
-3.  **Interaction:** If there is a button, fire a click event and check the result.
-4.  **Accessibility:** Does it use semantic HTML (headers, buttons)?
+**Constraints & Best Practices:**
+1.  **Environment Mocking (CRITICAL):**
+    * The Firebase SDK will crash instantly if `VITE_API_KEY` is undefined.
+    * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
+    * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
+2.  **Testing Strategy:**
+    * **Happy Path:** Does it render data correctly?
+    * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
+    * **Error State:** Does it degrade gracefully to the Fallback JSON?
+3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
 
 **Output Requirements:**
-* **Complete File:** Provide the full \`.test.jsx\` file content.
-* **Imports:** Ensure \`render\`, \`screen\`, and \`fireEvent\` are imported from \`@testing-library/react\`.
-* **Mocking:** If the component uses external hooks (like \`useRouter\` or complex animations), mock them.
-
-**Example Scenario:**
-"If the KPI value is 15, does the screen display '15'? If I pass a custom color, is the class applied?"
+* A complete `.test.jsx` file.
+* **Do not** reference real database paths. Use mocks.
 
 **Wait:** Ask me to paste the Component Code to begin.

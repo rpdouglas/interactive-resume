@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Sun Jan 25 22:17:27 UTC 2026
+**Date:** Sun Jan 25 22:58:23 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -61,7 +61,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import packageJson from './package.json'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -76,10 +75,10 @@ export default defineConfig({
       'react-dom': 'react-dom',
     },
   },
-  // ✅ Server Config: Enforce COOP/COEP for Google Auth
+  // ✅ Relaxed Headers for Dev Server
   server: {
     headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
       'Cross-Origin-Embedder-Policy': 'unsafe-none',
     },
   },
@@ -97,6 +96,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // 1. Core React + Recharts
           if (id.includes('node_modules/react') || 
               id.includes('node_modules/react-dom') || 
               id.includes('node_modules/react-router-dom') ||
@@ -105,14 +105,17 @@ export default defineConfig({
               id.includes('node_modules/d3')) {
             return 'vendor-react';
           }
+          // 2. Firebase
           if (id.includes('node_modules/firebase')) {
             return 'vendor-firebase';
           }
+          // 3. Mermaid
           if (id.includes('node_modules/mermaid') || 
               id.includes('node_modules/khroma') || 
               id.includes('node_modules/cytoscape')) {
             return 'vendor-mermaid';
           }
+          // 4. Animation
           if (id.includes('node_modules/framer-motion')) {
             return 'vendor-animation';
           }
@@ -167,11 +170,15 @@ export default defineConfig({
         "headers": [
           {
             "key": "Cross-Origin-Opener-Policy",
-            "value": "same-origin-allow-popups"
+            "value": "unsafe-none"
           },
           {
             "key": "Cross-Origin-Embedder-Policy",
             "value": "unsafe-none"
+          },
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
           }
         ]
       }
@@ -188,6 +195,7 @@ export default defineConfig({
     "indexes": "firestore.indexes.json"
   }
 }
+
 ```
 ---
 
@@ -3231,20 +3239,20 @@ afterEach(() => {
 ```md
 # 📜 Changelog
 
+## [v2.2.0-beta] - 2026-01-25
+### Added
+- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook.
+- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable, the app seamlessly loads local JSON.
+- **UX:** Added `LoadingSkeleton` to prevent layout shifts during data fetching.
+- **Testing:** Added "Indestructible" integration tests verifying the fallback logic.
+
 ## [v2.1.0-beta] - 2026-01-25
 ### Added
-- **Database:** Initialized Cloud Firestore architecture (`src/lib/db.js`).
-- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
-- **CMS:** Added `DataSeeder` utility to migrate local JSON to Firestore.
-- **Backend:** Added Firebase Cloud Functions (`functions/`) for secure AI processing.
+- **Database:** Initialized Cloud Firestore architecture.
+- **Security:** Deployed strict `firestore.rules`.
+- **CMS:** Added `DataSeeder` utility.
 ### Fixed
-- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a React singleton chunk.
-- **Visuals:** Resolved `ResponsiveContainer` layout race condition in `SkillRadar`.
-
-## [v2.0.0-alpha] - 2026-01-23
-### Added
-- **Bifurcated Routing:** Implemented `react-router-dom` for `/` (Public) and `/admin` (CMS) separation.
-- **Security Perimeter:** Integrated Firebase Auth with strict Google Email Whitelisting.
+- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js`.
 
 ```
 ---
@@ -3385,19 +3393,21 @@ Our development strategy is guided by specific user archetypes. Features must pa
 ```md
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 16 - The Backbone Shift (Firestore Migration)
-**Version:** v2.1.0-beta
+**Current Phase:** Phase 17 - The Application Manager (Job Matcher)
+**Version:** v2.2.0-beta
 **Status:** 🛠️ Active Development
 
 ## 🎯 Current Objectives
-* [x] Sprint 16.1: Schema Design & Seeding (JSON -> Firestore).
-* [ ] Sprint 16.2: The Data Hook Layer (Public View Migration).
+* [ ] Sprint 17.1: The Job Input Interface (Admin UI).
+* [ ] Sprint 17.2: Vector Matching Logic (Gemini).
 
 ## ✅ Completed Roadmap
+* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
+    * Sprint 16.1: Schema & Seeding.
+    * Sprint 16.2: Data Hook Layer & Offline Fallback.
 * **Phase 15:** [x] Chart Stabilization & Visual Polish.
-* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding, AI Architect & Production Auth.
-* **v2.0.0-alpha:** [x] Phase 14.1 - Admin Auth Guard & Routing established.
-* **v1.0.0:** [x] Gold Master Release - Static Interactive Resume.
+* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding.
+* **v1.0.0:** [x] Gold Master Release.
 
 ```
 ---

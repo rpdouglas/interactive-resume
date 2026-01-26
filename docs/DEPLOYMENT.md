@@ -1,26 +1,44 @@
 # ☁️ Deployment & Infrastructure Manual
 
-## 1. Environment Variables (Required)
-The following secrets must be present in GitHub Actions and `.env`:
-| Key | Description |
-| :--- | :--- |
-| `VITE_API_KEY` | Firebase Web API Key |
-| `VITE_AUTH_DOMAIN` | Firebase Project Auth Domain |
-| `VITE_PROJECT_ID` | Firebase Project ID |
-| `VITE_ADMIN_EMAIL` | Whitelisted email authorized for /admin access |
+**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
+**Stack:** Vite + React 19 + Tailwind v4
 
-## 2. Database Management
-### Deploying Rules
-Security rules are defined in `firestore.rules`.
+## 1. Secrets Management (The 2-File System)
+Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
+
+### A. Development (`.env.local`)
+* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
+* **Status:** Ignored by Git.
+* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
+
+### B. Testing (`.env.test`)
+* **Purpose:** Runs `npm run test`. Used by Vitest.
+* **Status:** Committed to Git.
+* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
+
+## 2. CLI Authentication (Headless Mode)
+In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
+
 ```bash
-firebase deploy --only firestore:rules
+# 1. Request login link
+firebase login --no-localhost
+
+# 2. Open the URL provided in a separate tab.
+# 3. Authenticate with Google.
+# 4. Copy the Authorization Code.
+# 5. Paste code back into the terminal.
 ```
 
-### Deploying Indexes
-Indexes are defined in `firestore.indexes.json`.
-```bash
-firebase deploy --only firestore:indexes
-```
+## 3. Database Security
+Rules: Defined in firestore.rules.
 
-## 3. CI/CD Pipeline
-Standard Firebase Hosting workflow via GitHub Actions.
+Deploy: firebase deploy --only firestore:rules
+
+## 4. Header Policy (Critical)
+To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
+
+Cross-Origin-Opener-Policy: unsafe-none
+
+Cross-Origin-Embedder-Policy: unsafe-none
+
+Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 

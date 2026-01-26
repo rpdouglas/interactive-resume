@@ -1,7 +1,7 @@
-# ✅ AI Approval & Execution Prompt (Builder Mode v2.0)
+# ✅ AI Approval & Execution Prompt (Builder Mode v2.1)
 
 **Instructions:**
-Use this prompt **after** the AI has presented the 3 Architectural Options. This signals approval for a specific approach and triggers code generation.
+Use this prompt **after** the AI has presented the 3 Architectural Options.
 
 ---
 
@@ -12,31 +12,21 @@ Use this prompt **after** the AI has presented the 3 Architectural Options. This
 **Strict Technical Constraints (The "Builder" Standard):**
 1.  **Execution First:** Output a single **Bash Script** (`install_feature.sh`) that:
     * Creates/Updates all necessary files.
-    * Installs any missing dependencies (`npm install ...`).
-    * Uses `cat << 'EOF'` patterns to write file contents safely.
+    * Installs dependencies.
+    * Uses `cat << 'EOF'` patterns.
 2.  **Data Strategy (The "Backbone" Check):**
-    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections (like `experience/{id}/projects`), you MUST implement logic to fetch the sub-collection data explicitly.
-    * **Failover Logic:** Wrap all critical data fetching in `try/catch`. If the Database fails (Offline/Quota/Rules), return a safe **Fallback** (e.g., Local JSON or Empty State) to prevent a crash.
-    * **Idempotency:** Seeding or Mutation scripts must be safe to run multiple times without creating duplicate data.
-3.  **Code Quality:**
-    * **NO Placeholders:** Never use `// ... rest of code`.
-    * **Type Safety:** Use PropType checks or clean Interface definitions.
-    * **Performance:** Ensure `useEffect` dependencies are stable to prevent infinite fetch loops.
+    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections, you MUST explicitly fetch the sub-collection and merge it.
+    * **Failover Logic:** Wrap all critical fetches in `try/catch`. If the DB fails, return Local JSON.
+3.  **Environment Awareness:**
+    * **Secrets:** Never hardcode keys. Use `import.meta.env.VITE_VAR`.
+    * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
 
-**Persona Validation (The "Self-Correction" Step):**
-Before generating the script, verify the code against our Personas:
-* **The Skimmer:** Is the data visible immediately? (Use Skeletons, not Spinners).
-* **The Mobile User:** Will this fallback work on a spotty connection?
-* **The Skeptic:** Are we using strict Security Rules?
+**Persona Validation:**
+* **The Skimmer:** Is data visible immediately? (Use Skeletons).
+* **The Mobile User:** Will this overflow on 320px?
 
 **Output Requirements:**
-
-1.  **The "One-Shot" Installer:**
-    * A single bash script block.
-    * *Note:* Escape special characters (`$`) correctly for bash.
-
-2.  **Manual Verification Steps:**
-    * A brief bulleted list of what I should see when I run `npm run dev` after installing.
-    * Steps to simulate a failure (e.g., "Disconnect Internet") to test the Fallback.
+1.  **The "One-Shot" Installer:** A single bash script block.
+2.  **Manual Verification Steps:** Specific steps to verify the feature (e.g., "Disconnect Internet to test fallback").
 
 *Please generate the installation script now.*
