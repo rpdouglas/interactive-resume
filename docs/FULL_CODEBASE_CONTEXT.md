@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Sun Jan 25 22:58:23 UTC 2026
+**Date:** Mon Jan 26 02:55:09 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: package.json
@@ -3228,10 +3228,59 @@ afterEach(() => {
 ```md
 # 🤖 AI Development Framework
 
-## 6. The Security Auditor ('The Gatekeeper') - NEW
-* **Trigger:** Any changes to `/admin`, Firebase Rules, or Environment Variables.
-* **Goal:** Ensure Least Privilege access. Never allow 'Admin' logic to leak into the 'Public' bundle.
-* **Output:** Updated `firestore.rules` or sanitized Auth logic.
+**Version:** 2.1
+**Purpose:** Standard Operating Procedure for AI-Assisted Development.
+
+---
+
+## 1. The Product Manager ("The Vision")
+* **Trigger:** User has a raw idea or vague requirement.
+* **Goal:** Clarify the "What" and "Why". Map requirements to User Personas (The Skimmer, The Candidate).
+* **Action:** Analyze the `PROMPT_FEATURE_REQUEST.md` input.
+* **Output:** A structured Feature Request with clear constraints.
+
+## 2. The Architect ("The Strategy")
+* **Trigger:** A defined Feature Request.
+* **Goal:** Determine the "How". Analyze Security, Performance, and Data Integrity.
+* **Action:** Propose **3 Distinct Implementation Options** (e.g., Client-Heavy vs. Server-Secure).
+* **Output:** A decision table recommending the best path. **Wait for user approval.**
+
+## 3. The Builder ("The Execution")
+* **Trigger:** User uses `PROMPT_APPROVAL.md` (Decision Made).
+* **Goal:** Implement the approved option with zero regressions.
+* **Action:** Generate "One-Shot" installation scripts (Bash/Python) to create files and install dependencies.
+* **Constraint:** strictly adhere to `docs/CONTEXT_DUMP.md` (Stack rules, React 19 patterns).
+* **Output:** `install_feature.sh` or specific file writes.
+
+## 4. The QA Engineer ("The Skeptic")
+* **Trigger:** Code is written but not verified.
+* **Goal:** Prove it works (Happy Path) and prove it fails gracefully (Edge Cases).
+* **Action:** Use `docs/PROMPT_TESTING.md` to generate Vitest specifications.
+* **Constraint:** **Environment Mocking** is mandatory. Never hit live Firebase in tests.
+* **Output:** `src/__tests__/FeatureName.test.jsx`.
+
+## 5. The Maintainer ("The Scribe")
+* **Trigger:** Feature passed tests and is live.
+* **Goal:** Ensure documentation reflects reality.
+* **Action:** Use `docs/PROMPT_POST_FEATURE.md` to audit the repo.
+* **Output:** Updates to `PROJECT_STATUS`, `CHANGELOG`, `DEPLOYMENT`, and `CONTEXT_DUMP`.
+
+## 6. The Security Auditor ("The Gatekeeper")
+* **Trigger:** Any changes to `/admin`, Authentication logic, or Environment Variables.
+* **Goal:** Ensure "Least Privilege" and prevent leakage.
+* **Action:** Review `firestore.rules`, `firebase.json` headers, and `.env` handling.
+* **Output:** Security patches (e.g., `unsafe-none` for Google Auth) and Rule updates.
+
+---
+
+## 🔄 The Feedback Loop
+1.  **Product** defines.
+2.  **Architect** plans.
+3.  **Builder** codes.
+4.  **QA** breaks it.
+5.  **Security** locks it.
+6.  **Maintainer** records it.
+
 ```
 ---
 
@@ -3239,20 +3288,47 @@ afterEach(() => {
 ```md
 # 📜 Changelog
 
+All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
+
 ## [v2.2.0-beta] - 2026-01-25
 ### Added
-- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook.
-- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable, the app seamlessly loads local JSON.
-- **UX:** Added `LoadingSkeleton` to prevent layout shifts during data fetching.
-- **Testing:** Added "Indestructible" integration tests verifying the fallback logic.
+- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook for global state management.
+- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable (or quotas exceeded), the app seamlessly loads local JSON.
+- **UX:** Added `LoadingSkeleton` to prevent layout shifts during asynchronous data fetching.
+- **Testing:** Added "Indestructible" integration tests verifying the database fallback logic.
 
 ## [v2.1.0-beta] - 2026-01-25
 ### Added
-- **Database:** Initialized Cloud Firestore architecture.
-- **Security:** Deployed strict `firestore.rules`.
-- **CMS:** Added `DataSeeder` utility.
+- **Database:** Initialized Cloud Firestore architecture with `profile`, `experience`, `skills`, and `sectors` collections.
+- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
+- **CMS:** Added `DataSeeder` utility to migrate local JSON data to the cloud.
+- **Backend:** configured `firebase.json` for Cloud Functions and Hosting headers.
 ### Fixed
-- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js`.
+- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a singleton React chunk.
+- **Auth:** Relaxed COOP/COEP headers to allow Google OAuth popups to function in production.
+
+## [v2.0.0-alpha] - 2026-01-23
+### Added
+- **Routing:** Implemented `react-router-dom` to bifurcate the app into Public (`/`) and Admin (`/admin`) zones.
+- **Security Perimeter:** Integrated Firebase Authentication with strict Email Whitelisting.
+- **Admin UI:** Created the `AdminDashboard` shell and `ProtectedRoute` components.
+- **Analytics:** Integrated Firebase Analytics for tracking interactions.
+
+## [v1.5.0] - 2026-01-20
+### Changed
+- **Visualization:** Stabilized `Recharts` implementation for the Skill Radar.
+- **Performance:** Optimized `framer-motion` animations for mobile devices.
+- **Print Styles:** Added "White Paper" CSS overrides for clean PDF export (`print:hidden`, high-contrast text).
+
+## [v1.0.0] - 2026-01-15 (Gold Master)
+### Released
+- **Core Platform:** Initial release of the Static Interactive Resume.
+- **Tech Stack:** React 19, Vite, Tailwind CSS v4.
+- **Features:**
+    - Interactive "PAR" Timeline.
+    - Skill Radar Chart.
+    - Sector Impact Grid.
+    - Responsive "Mobile-First" Design.
 
 ```
 ---
@@ -3261,33 +3337,33 @@ afterEach(() => {
 ```md
 # Interactive Resume: Platform Context
 **Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
-**Version:** v2.1.0-beta
+**Environment:** GitHub Codespaces
+**Version:** v2.2.0-beta
 
 ## 🧠 Coding Standards (The Brain)
 
-### 1. React 19 Patterns
-* **No Manual Memoization:** Do NOT use `useMemo` or `useCallback` unless specifically profiling a performance bottleneck. Rely on the React Compiler (future-proof).
-* **Hooks:** Hooks must strictly follow the rules. `vite.config.js` is patched to bundle React as a singleton to prevent "Invalid Hook Call" errors.
-* **Data Fetching:** Transitioning to `Suspense` and `lazy` loading. Avoid "Waterfall" fetching in `useEffect`.
+### 1. Data & State (SSOT)
+* **Public View:** `ResumeContext` is the Single Source of Truth.
+* **Hybrid Strategy:** Firestore (Primary) -> JSON (Fallback).
+* **Deep Fetch:** We strictly use Recursive Fetching for nested sub-collections (`projects`).
 
-### 2. Tailwind v4 Architecture
-* **CSS-First:** Theme configuration lives in `src/index.css` via CSS variables (`--color-brand-accent`), NOT `tailwind.config.js`.
-* **Responsive:** Mobile-First. Always write `p-4 md:p-6`, never `p-6 sm:p-4`.
-* **Layout:** Use `min-w-0` on Flex/Grid children to prevent `Recharts` layout blowouts.
+### 2. React 19 Patterns
+* **Hooks:** Hooks must strictly follow the rules.
+* **Bundling:** We manually chunk `react`, `recharts`, and `react-dom` together in `vite.config.js` to prevent `forwardRef` errors.
 
-### 3. Data & State
-* **SSOT:** Firestore is the Single Source of Truth for Admin.
-* **Hook:** `useResumeData` (Phase 16.2) will govern all data access.
-* **Mutations:** Never write to Firestore from UI components. Use the `DataSeeder` or designated Admin hooks.
+### 3. Security & Headers
+* **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
+* **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
 
 ### 4. AI Isolation
-* **Server-Side AI:** All calls to Gemini 3.0 via the Google AI SDK must occur in **Cloud Functions** (`functions/`).
-* **Client:** The client only sends `rawText` or `jobDescription` to the function and renders the result.
+* **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
 
 ## Directory Structure
 * `src/components/admin` -> CMS specific UI.
-* `src/data` -> Legacy JSON (Deprecated).
-* `src/lib` -> Firebase services (`db.js`, `firebase.js`).
+* `src/context` -> Data Providers (`ResumeContext`).
+* `src/hooks` -> Logic Consumers (`useResumeData`).
+* `src/data` -> **Indestructible Fallback** (Do not delete).
+* `src/lib` -> Firebase services.
 
 ```
 ---
@@ -3296,30 +3372,48 @@ afterEach(() => {
 ```md
 # ☁️ Deployment & Infrastructure Manual
 
-## 1. Environment Variables (Required)
-The following secrets must be present in GitHub Actions and `.env`:
-| Key | Description |
-| :--- | :--- |
-| `VITE_API_KEY` | Firebase Web API Key |
-| `VITE_AUTH_DOMAIN` | Firebase Project Auth Domain |
-| `VITE_PROJECT_ID` | Firebase Project ID |
-| `VITE_ADMIN_EMAIL` | Whitelisted email authorized for /admin access |
+**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
+**Stack:** Vite + React 19 + Tailwind v4
 
-## 2. Database Management
-### Deploying Rules
-Security rules are defined in `firestore.rules`.
+## 1. Secrets Management (The 2-File System)
+Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
+
+### A. Development (`.env.local`)
+* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
+* **Status:** Ignored by Git.
+* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
+
+### B. Testing (`.env.test`)
+* **Purpose:** Runs `npm run test`. Used by Vitest.
+* **Status:** Committed to Git.
+* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
+
+## 2. CLI Authentication (Headless Mode)
+In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
+
 ```bash
-firebase deploy --only firestore:rules
+# 1. Request login link
+firebase login --no-localhost
+
+# 2. Open the URL provided in a separate tab.
+# 3. Authenticate with Google.
+# 4. Copy the Authorization Code.
+# 5. Paste code back into the terminal.
 ```
 
-### Deploying Indexes
-Indexes are defined in `firestore.indexes.json`.
-```bash
-firebase deploy --only firestore:indexes
-```
+## 3. Database Security
+Rules: Defined in firestore.rules.
 
-## 3. CI/CD Pipeline
-Standard Firebase Hosting workflow via GitHub Actions.
+Deploy: firebase deploy --only firestore:rules
+
+## 4. Header Policy (Critical)
+To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
+
+Cross-Origin-Opener-Policy: unsafe-none
+
+Cross-Origin-Embedder-Policy: unsafe-none
+
+Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
 
 ```
 ---
@@ -3414,10 +3508,10 @@ Our development strategy is guided by specific user archetypes. Features must pa
 
 ## FILE: docs/PROMPT_APPROVAL.md
 ```md
-# ✅ AI Approval & Execution Prompt (Builder Mode v2.0)
+# ✅ AI Approval & Execution Prompt (Builder Mode v2.1)
 
 **Instructions:**
-Use this prompt **after** the AI has presented the 3 Architectural Options. This signals approval for a specific approach and triggers code generation.
+Use this prompt **after** the AI has presented the 3 Architectural Options.
 
 ---
 
@@ -3428,32 +3522,22 @@ Use this prompt **after** the AI has presented the 3 Architectural Options. This
 **Strict Technical Constraints (The "Builder" Standard):**
 1.  **Execution First:** Output a single **Bash Script** (`install_feature.sh`) that:
     * Creates/Updates all necessary files.
-    * Installs any missing dependencies (`npm install ...`).
-    * Uses `cat << 'EOF'` patterns to write file contents safely.
+    * Installs dependencies.
+    * Uses `cat << 'EOF'` patterns.
 2.  **Data Strategy (The "Backbone" Check):**
-    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections (like `experience/{id}/projects`), you MUST implement logic to fetch the sub-collection data explicitly.
-    * **Failover Logic:** Wrap all critical data fetching in `try/catch`. If the Database fails (Offline/Quota/Rules), return a safe **Fallback** (e.g., Local JSON or Empty State) to prevent a crash.
-    * **Idempotency:** Seeding or Mutation scripts must be safe to run multiple times without creating duplicate data.
-3.  **Code Quality:**
-    * **NO Placeholders:** Never use `// ... rest of code`.
-    * **Type Safety:** Use PropType checks or clean Interface definitions.
-    * **Performance:** Ensure `useEffect` dependencies are stable to prevent infinite fetch loops.
+    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections, you MUST explicitly fetch the sub-collection and merge it.
+    * **Failover Logic:** Wrap all critical fetches in `try/catch`. If the DB fails, return Local JSON.
+3.  **Environment Awareness:**
+    * **Secrets:** Never hardcode keys. Use `import.meta.env.VITE_VAR`.
+    * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
 
-**Persona Validation (The "Self-Correction" Step):**
-Before generating the script, verify the code against our Personas:
-* **The Skimmer:** Is the data visible immediately? (Use Skeletons, not Spinners).
-* **The Mobile User:** Will this fallback work on a spotty connection?
-* **The Skeptic:** Are we using strict Security Rules?
+**Persona Validation:**
+* **The Skimmer:** Is data visible immediately? (Use Skeletons).
+* **The Mobile User:** Will this overflow on 320px?
 
 **Output Requirements:**
-
-1.  **The "One-Shot" Installer:**
-    * A single bash script block.
-    * *Note:* Escape special characters (`$`) correctly for bash.
-
-2.  **Manual Verification Steps:**
-    * A brief bulleted list of what I should see when I run `npm run dev` after installing.
-    * Steps to simulate a failure (e.g., "Disconnect Internet") to test the Fallback.
+1.  **The "One-Shot" Installer:** A single bash script block.
+2.  **Manual Verification Steps:** Specific steps to verify the feature (e.g., "Disconnect Internet to test fallback").
 
 *Please generate the installation script now.*
 
@@ -3544,57 +3628,48 @@ Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approach
 
 ## FILE: docs/PROMPT_POST_FEATURE.md
 ```md
-# 📝 AI Documentation Audit Prompt (The Maintainer)
+# 📝 AI Documentation Audit Prompt (The Maintainer v2.3)
 
 **Instructions:**
-Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified in Production.
+Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified.
 
 ---
 
 ### **Prompt Template**
 
-**Role:** You are the Lead Technical Writer and Open Source Maintainer for this project.
-**Task:** Perform a comprehensive documentation audit and synchronization.
+**Role:** You are the Lead Technical Writer and Open Source Maintainer.
+**Task:** Perform a comprehensive documentation audit, synchronization, and process retrospective.
 
-**Trigger:** We have just completed and deployed the feature: **[INSERT FEATURE NAME]**.
+**Trigger:** We have just completed: **[INSERT FEATURE NAME]**.
 
-**Current Context:**
-* The code is live.
-* The tests (or manual checks) have passed.
-* I need to close this sprint and prepare the repo for the next phase.
+**The "Preservation Protocol" (CRITICAL RULES):**
+1.  **Never Truncate History:** When updating logs or status files, preserve all previous entries. Use `read()` + `append/insert` logic.
+2.  **No Placeholders:** Output full, compilable files only.
+3.  **Holistic Scan:** You must evaluate **ALL** files in `/docs`, not just the status trackers.
 
-**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that updates the following files to reflect the new state of the application:
+**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following updates:
 
-1.  **`docs/PROJECT_STATUS.md`**:
-    * Mark the current feature as `[x] Completed`.
-    * Update the "Current Phase" and "Version" if applicable.
-    * Select the next logical item from the Backlog to be the "Current Sprint".
+### Phase 1: Status & Logs
+1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version. **Keep** the "Completed Roadmap".
+2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top. **Keep** all older versions.
 
-2.  **`docs/CHANGELOG.md`**:
-    * Add a new entry under the current version.
-    * List key technical changes (e.g., "Added Recharts", "Configured CI/CD").
+### Phase 2: Technical Context
+3.  **`docs/CONTEXT_DUMP.md`**: Update stack details, new libraries, or architectural decisions.
+4.  **`docs/DEPLOYMENT.md`**: Did we add new Secrets or Config? Update the instructions.
+5.  **`docs/SECURITY_MODEL.md`**: Did we change headers or rules? Update the policy.
 
-3.  **`docs/CONTEXT_DUMP.md`**:
-    * Update the "Stack" if new libraries were added.
-    * Update the "Architecture Rules" if we established new patterns (e.g., "Use Python for text generation").
-
-4.  **`README.md` (Root)**:
-    * Ensure badges are correct.
-    * Update the "Architecture" diagram if the data flow changed.
-
-**🛑 STOP & THINK: The Consistency Check**
-Before writing the script, ask yourself:
-* *Did we add new Environment Variables?* If yes, does `docs/DEPLOYMENT.md` need an update?
-* *Did we change the project structure?* If yes, does the `CONTEXT_DUMP` file structure section need verification?
+### Phase 3: The "Continuous Improvement" Loop (CRITICAL)
+*Did we encounter recurring errors or discover new best practices during this sprint?*
+6.  **`docs/PROMPT_FEATURE_REQUEST.md`**: If a new requirement type emerged (e.g., "Mobile-First"), add it to the "Persona Check".
+7.  **`docs/PROMPT_APPROVAL.md`**: If we fixed a deployment bug (e.g., "Missing Headers"), add a **Strict Technical Constraint** to the Builder's list to prevent recurrence.
+8.  **`docs/PROMPT_TESTING.md`**: If a test crashed (e.g., "Env vars missing"), add a constraint to the QA Engineer's list.
 
 **Output Requirement:**
-* Provide a single, robust **Python Script** (using the `write_lines` list approach to avoid syntax errors).
-* Do NOT use Bash for writing markdown files.
+* Provide a single, robust **Python Script**.
+* The script must handle UTF-8 encoding.
+* The script must explicitly reconstruct file content to ensure no data loss.
 
----
-
-**Codebase Context:**
-[PASTE RELEVANT DOCS OR FILE LIST IF NEEDED]
+**Wait:** Ask me for the feature name and **"Were there any specific errors we fixed that should be added to the process constraints?"**
 
 ```
 ---
@@ -3611,27 +3686,26 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 ### **Prompt Template**
 
 **Role:** You are the Senior SDET (Software Development Engineer in Test).
-**Task:** Write a robust Unit Test for the provided component.
+**Task:** Write a robust Unit Test for the provided component using Vitest.
 
 **Input:**
-* I will provide the component code (e.g., \`KPICard.jsx\`).
-* I will provide the relevant data context (e.g., \`profile.json\`).
+* Component Code: [PASTE CODE]
+* Data Context: [PASTE JSON SNIPPET]
 
-**Your Goal:** Generate a **Vitest** specification file (\`src/__tests__/ComponentName.test.jsx\`).
-
-**Test Strategy (The "Skeptic" Standard):**
-1.  **Happy Path:** Does it render the data correctly?
-2.  **Edge Cases:** What happens if the data is missing/null?
-3.  **Interaction:** If there is a button, fire a click event and check the result.
-4.  **Accessibility:** Does it use semantic HTML (headers, buttons)?
+**Constraints & Best Practices:**
+1.  **Environment Mocking (CRITICAL):**
+    * The Firebase SDK will crash instantly if `VITE_API_KEY` is undefined.
+    * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
+    * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
+2.  **Testing Strategy:**
+    * **Happy Path:** Does it render data correctly?
+    * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
+    * **Error State:** Does it degrade gracefully to the Fallback JSON?
+3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
 
 **Output Requirements:**
-* **Complete File:** Provide the full \`.test.jsx\` file content.
-* **Imports:** Ensure \`render\`, \`screen\`, and \`fireEvent\` are imported from \`@testing-library/react\`.
-* **Mocking:** If the component uses external hooks (like \`useRouter\` or complex animations), mock them.
-
-**Example Scenario:**
-"If the KPI value is 15, does the screen display '15'? If I pass a custom color, is the class applied?"
+* A complete `.test.jsx` file.
+* **Do not** reference real database paths. Use mocks.
 
 **Wait:** Ask me to paste the Component Code to begin.
 
@@ -3643,7 +3717,7 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 # 🗄️ Schema Architecture & Data Graph
 
 **Storage Engine:** Cloud Firestore (NoSQL)
-**Pattern:** Collection-Centric with Sub-Collections for scalability.
+**Pattern:** Collection-Centric with Sub-Collections.
 
 ## 1. High-Level Topology
 ```mermaid
@@ -3662,54 +3736,36 @@ graph TD
     projects --> project[📄 Project Document]
 ```
 
-## 2. Collection Definitions
+## 2. The "Deep Fetch" Strategy (CRITICAL)
+**Firestore queries are shallow.** Fetching a Job document **DOES NOT** automatically fetch its `projects` sub-collection.
 
-### `profile` (Singleton)
-* **Path:** `/profile/primary`
-* **Purpose:** Stores bio, contact info, and global metrics.
-* **Fields:**
-  * `basics` (Map): `{ name, label, email, phone, location, website, github }`
-  * `metrics` (Map): `{ yearsExperience (Int), projectsDelivered (Int), certifications (Int) }`
+### The Client-Side Join Pattern
+Any component displaying Experience (e.g., `ResumeContext`) **MUST** implement this recursive logic:
+1.  Fetch all `experience` documents.
+2.  Map over the results.
+3.  For *each* job, perform a second `getDocs` call to its `projects` sub-collection.
+4.  Merge the `projects` array into the parent job object.
+5.  Return the hydrated tree.
 
-### `skills` (Lookup)
-* **Path:** `/skills/{categoryId}`
-* **Example ID:** `strategy`, `technical`
-* **Purpose:** Data source for the Radar Charts.
-* **Fields:**
-  * `label` (String): Display name (e.g., "Business Strategy")
-  * `data` (Array<Map>): List of skill points `{ subject, A (Score), fullMark }`
+**❌ BAD (Will Result in Empty Projects):**
+```javascript
+const jobs = await getDocs(collection(db, 'experience'));
+return jobs.docs.map(d => d.data());
+```
 
-### `sectors` (Lookup)
-* **Path:** `/sectors/{sectorId}`
-* **Example ID:** `public`, `retail`
-* **Purpose:** Data source for the Sector Grid (Industry Impact).
-* **Fields:**
-  * `label` (String): Display Name
-  * `icon` (String): Lucide-React Icon Name
+**✅ GOOD (Hydrated):**
+```javascript
+const jobs = await Promise.all(snapshot.docs.map(async (doc) => {
+  const projects = await getDocs(collection(doc.ref, 'projects'));
+  return { ...doc.data(), projects: projects.docs.map(p => p.data()) };
+}));
+```
 
-### `experience` (Core Data)
-* **Path:** `/experience/{jobId}`
-* **Purpose:** High-level job history.
-* **Fields:**
-  * `role` (String)
-  * `company` (String)
-  * `date` (String): Formatted date range.
-  * `summary` (String): Short abstract.
-  * `logo` (String): Emoji or URL.
-
-### `experience/{jobId}/projects` (Sub-Collection)
-* **Path:** `/experience/{jobId}/projects/{projectId}`
-* **Purpose:** Granular details for AI analysis and UI expansion. **This is a sub-collection to allow independent querying.**
-* **Fields:**
-  * `title` (String)
-  * `sector` (String): Foreign Key link to `sectors`.
-  * `skills` (Array<String>): List of tech used.
-  * `par` (Map): `{ problem, action, result }` - The narrative core.
-  * `diagram` (String): Mermaid.js graph definition.
-
-## 3. Query Patterns (Planned)
-* **Standard Load:** Fetch `profile`, `skills`, `sectors`, and `experience` (collection group query or recursive fetch).
-* **AI Analysis:** The Application Manager will perform a `collectionGroup` query on `projects` to find matches based on vector embeddings (Phase 17).
+## 3. The "Indestructible" Fallback
+We implement a **Hybrid Data Strategy**:
+1.  **Attempt:** Fetch from Firestore.
+2.  **Catch:** If *any* error occurs (Quota, Offline, Rules), swallow the error and return `src/data/*.json`.
+3.  **Result:** The app never crashes, even if the database is down.
 
 ```
 ---

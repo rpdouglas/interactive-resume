@@ -2,42 +2,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper: Check if user is authenticated
-    // For MVP/Admin, we assume any Auth'd user (since we have the Whitelist in UI) 
-    // constitutes a valid writer for the Seed script.
-    // In Phase 17, we can enforce uid checks if needed.
-    function isAuth() {
-      return request.auth != null;
+    // 🌍 Public Read, Admin Write
+    match /profile/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /skills/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /sectors/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /experience/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
 
-    // 1. Profile (Single Document)
-    match /profile/{document} {
-      allow read: if true;
-      allow write: if isAuth();
-    }
-
-    // 2. Skills (Collection of Categories)
-    match /skills/{document} {
-      allow read: if true;
-      allow write: if isAuth();
-    }
-
-    // 3. Sectors (Collection of Industries)
-    match /sectors/{document} {
-      allow read: if true;
-      allow write: if isAuth();
-    }
-
-    // 4. Experience (Jobs) & Nested Projects
-    match /experience/{jobId} {
-      allow read: if true;
-      allow write: if isAuth();
-
-      // Sub-Collection: Projects
-      match /projects/{projectId} {
-        allow read: if true;
-        allow write: if isAuth();
-      }
+    // 🔐 PRIVATE: Admin Only (No Public Read)
+    match /applications/{document=**} {
+      allow read, write: if request.auth != null;
     }
   }
 }

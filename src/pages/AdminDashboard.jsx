@@ -1,17 +1,18 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Settings, LogOut, Database, Sparkles, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, Database, Sparkles, ExternalLink, Briefcase } from 'lucide-react';
 
 // Lazy Load components for performance
 const ProjectArchitect = lazy(() => import('./admin/ProjectArchitect'));
 const DataSeeder = lazy(() => import('../components/admin/DataSeeder'));
+const JobTracker = lazy(() => import('../components/admin/JobTracker'));
 
 const AdminDashboard = () => {
   const { logout, user } = useAuth();
-  const [activeTab, setActiveTab] = useState('architect');
+  const [activeTab, setActiveTab] = useState('tracker'); // Default to new feature for testing
 
   const navItems = [
-    { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
+    { id: 'tracker', icon: Briefcase, label: 'Job Tracker' },
     { id: 'architect', icon: Sparkles, label: 'Gemini Architect' },
     { id: 'database', icon: Database, label: 'Database' },
     { id: 'settings', icon: Settings, label: 'Settings' },
@@ -42,11 +43,10 @@ const AdminDashboard = () => {
         </nav>
 
         <div className="p-4 border-t border-slate-800 space-y-2">
-          {/* ✅ NEW: Link to Public Site */}
           <a 
             href="/" 
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" 
+            rel="noopener noreferrer" 
             className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-colors"
           >
             <ExternalLink size={18} />
@@ -68,11 +68,12 @@ const AdminDashboard = () => {
         <Suspense fallback={
           <div className="h-full flex items-center justify-center text-slate-400">Loading...</div>
         }>
+          {activeTab === 'tracker' && <JobTracker />}
           {activeTab === 'architect' && <ProjectArchitect />}
           {activeTab === 'database' && <DataSeeder />}
-          {(activeTab === 'overview' || activeTab === 'settings') && (
+          {activeTab === 'settings' && (
             <div className="h-full flex items-center justify-center text-slate-400">
-              <p>Module '{activeTab}' coming soon in Phase 17.</p>
+              <p>Module '{activeTab}' coming soon.</p>
             </div>
           )}
         </Suspense>

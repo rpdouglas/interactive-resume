@@ -2,6 +2,20 @@
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
+## [v2.3.0-beta] - 2026-01-26
+### Added
+- **Admin:** New `JobTracker` module for inputting raw job descriptions.
+- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
+- **Security:** Restricted `applications` to Admin-Write/Read only.
+- **Testing:** Added environment-mocked unit tests for Admin components.
+
+## [v2.3.0-beta] - 2026-01-26
+### Added
+- **Admin:** New `JobTracker` module for inputting raw job descriptions.
+- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
+- **Security:** Locked down `applications` collection (Strict Admin Write / No Public Read).
+- **Testing:** Added environment-mocked unit tests for Admin components.
+
 ## [v2.2.0-beta] - 2026-01-25
 ### Added
 - **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook for global state management.
