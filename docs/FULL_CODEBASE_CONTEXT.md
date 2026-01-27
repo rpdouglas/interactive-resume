@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Tue Jan 27 15:47:34 UTC 2026
+**Date:** Tue Jan 27 21:24:50 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: .firebaserc
@@ -140,6 +140,8 @@ firebase-debug.log*
 .firebase
 update_docs.py
 
+.env*
+update_docs.py
 
 ```
 ---
@@ -229,6 +231,12 @@ This application implements a **Hard Perimeter** for its CMS features.
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
+## [v2.5.0-beta] - 2026-01-27
+### Added
+- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
+- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
+- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
+
 ## [v2.3.0-beta] - 2026-01-26
 ### Added
 - **Admin:** New `JobTracker` module for inputting raw job descriptions.
@@ -309,7 +317,17 @@ All notable changes to the **Fresh Nest / Interactive Resume** platform will be 
 * **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
 
 ### 4. AI Isolation
-* **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
+* **Server-Side AI:** Gemini logic resides in `functions/index.js`.
+    * `architectProject`: Callable (Gemini 3.0) for UI generation.
+    * `analyzeApplication`: Trigger (Gemini 2.5) for background processing.
+* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY` injected by Secret Manager.
+
+
+### 5. Async UI Patterns
+* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
+* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
+    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
+    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
 
 ## Directory Structure
 * `src/components/admin` -> CMS specific UI.
@@ -368,6 +386,13 @@ Cross-Origin-Opener-Policy: unsafe-none
 Cross-Origin-Embedder-Policy: unsafe-none
 
 Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
+
+## 5. Cloud Functions (Gen 2) Setup
+When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
+```bash
+gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
+```
+*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
 
 ```
 ---
@@ -441,15 +466,20 @@ Our development strategy is guided by specific user archetypes. Features must pa
 ```md
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 17 - Application Manager
+**Current Phase:** Phase 17 - Application Manager (Complete)
 **Version:** v2.2.0-beta
 **Status:** 🟢 Phase 17.1 Complete
 
 ## 🎯 Current Objectives
+* [ ] Phase 18: Security Hardening & Deployment.
 * [x] Sprint 17.1: The Job Input Interface (Admin UI).
 * [ ] Sprint 17.2: Vector Matching Logic (Gemini).
 
 ## ✅ Completed Roadmap
+* **Phase 17:** [x] Application Manager Complete.
+    * Sprint 17.1: Input Interface.
+    * Sprint 17.2: Vector Engine.
+    * Sprint 17.3: Analysis Dashboard (Real-time UI).
 * **Phase 16:** [x] The Backbone Shift (Firestore Migration).
     * Sprint 16.1: Schema & Seeding.
     * Sprint 16.2: Data Hook Layer & Offline Fallback.
@@ -655,12 +685,17 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
     * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
     * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
     * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
-    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
+    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables
+    * **Defensive Rendering:** UI components consuming Cloud Function data MUST use optional chaining (`?.`) or default values. The data structure returned by the SDK often wraps the result in `data`, leading to `response.data.data`.
+    * **Secret Binding:** When testing Cloud Functions, ensure `secrets` are whitelisted in the function definition object (`{ secrets: ["KEY_NAME"] }`).
+ in Firebase tests to prevent SDK crashes.
 
 2.  **Testing Strategy:**
     * **Happy Path:** Does it render data correctly?
     * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
     * **Error State:** Does it degrade gracefully to the Fallback JSON?
+
+    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
 3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
 
 **Output Requirements:**
@@ -1098,10 +1133,50 @@ listModels();
 
 ## FILE: functions/index.js
 ```js
+/**
+ * 🧠 The Fresh Nest Backend Brain
+ * Includes:
+ * 1. architectProject: Callable function for the "Gemini Architect" UI.
+ * 2. analyzeApplication: Firestore trigger for the "Job Tracker" Vector Engine.
+ */
+
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const SYSTEM_PROMPT = `
+initializeApp();
+const db = getFirestore();
+
+// ==========================================
+// 1. HELPER FUNCTIONS
+// ==========================================
+
+async function getResumeContext() {
+  const profileSnap = await db.doc('profile/primary').get();
+  const profile = profileSnap.data();
+
+  const skillsSnap = await db.collection('skills').get();
+  const skills = skillsSnap.docs.map(d => d.data());
+
+  const expSnap = await db.collection('experience').get();
+  const experience = await Promise.all(expSnap.docs.map(async (doc) => {
+    const jobData = doc.data();
+    // Fetch sub-collection 'projects'
+    const projectsSnap = await doc.ref.collection('projects').get();
+    const projects = projectsSnap.docs.map(p => ({ id: p.id, ...p.data() }));
+    return { ...jobData, projects };
+  }));
+
+  return { profile, skills, experience };
+}
+
+// ==========================================
+// 2. ARCHITECT PROJECT (Restored & Robust)
+// ==========================================
+
+const ARCHITECT_SYSTEM_PROMPT = `
   You are a Management Consultant & Resume Architect. 
   Convert raw project notes into a high-impact, professional JSON object.
   
@@ -1123,7 +1198,7 @@ const SYSTEM_PROMPT = `
 
 exports.architectProject = onCall({ 
   cors: true, 
-  secrets: ["GEMINI_API_KEY"],
+  secrets: ["GOOGLE_API_KEY"], // ✅ Standardized to the key you just set
   timeoutSeconds: 60,
   maxInstances: 10
 }, async (request) => {
@@ -1134,7 +1209,7 @@ exports.architectProject = onCall({
     throw new HttpsError("unauthenticated", "You must be logged in.");
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GOOGLE_API_KEY;
   if (!apiKey) {
     throw new HttpsError("internal", "Server misconfiguration: API Key missing.");
   }
@@ -1142,25 +1217,100 @@ exports.architectProject = onCall({
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // ✅ FIX: Updated to valid 2026 Model
+    // Using 2.5 Flash as the standard high-speed model
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-3-flash-preview", 
+      model: "gemini-2.5-flash", 
       generationConfig: { responseMimeType: "application/json" }
     });
 
-    console.log("🤖 Calling Gemini 3.0 API...");
+    console.log("🤖 Calling Gemini API...");
     const { rawText } = request.data;
-    const result = await model.generateContent([SYSTEM_PROMPT, rawText]);
+    const result = await model.generateContent([ARCHITECT_SYSTEM_PROMPT, rawText]);
     const responseText = result.response.text();
     
-    console.log("✅ Gemini 3.0 Success.");
-    return JSON.parse(responseText);
+    console.log("✅ Gemini Success.");
+    return { data: JSON.parse(responseText) }; // Wrap in { data } for onCall client SDK compatibility
 
   } catch (error) {
     console.error("🔥 AI GENERATION FAILED:", error);
     throw new HttpsError("internal", error.message);
   }
 });
+
+// ==========================================
+// 3. ANALYZE APPLICATION (Vector Engine)
+// ==========================================
+
+exports.analyzeApplication = onDocumentWritten(
+  { 
+    document: "applications/{docId}",
+    secrets: ["GOOGLE_API_KEY"]
+  }, 
+  async (event) => {
+    const apiKey = process.env.GOOGLE_API_KEY;
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const newData = snapshot.after.data();
+    const previousData = snapshot.before.data();
+
+    // 🛑 GUARDRAIL: Infinite Loop Prevention
+    if (newData.ai_status !== 'pending') return;
+    if (previousData && previousData.ai_status === 'pending') return;
+
+    console.log(`🚀 Starting analysis for Application: ${newData.company}`);
+
+    try {
+      await snapshot.after.ref.update({ ai_status: 'processing' });
+      const resumeContext = await getResumeContext();
+
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      const systemPrompt = `
+        You are a Senior Technical Recruiter and Career Strategist.
+        YOUR GOAL: Analyze the provided Job Description (JD) against the Candidate's Resume Context.
+        
+        RESUME CONTEXT:
+        ${JSON.stringify(resumeContext)}
+
+        OUTPUT REQUIREMENTS:
+        Return strictly a JSON object with this schema:
+        {
+          "match_score": Integer (0-100),
+          "keywords_missing": Array of Strings (Critical tech/skills in JD not in Resume),
+          "suggested_projects": Array of Strings (IDs of the 3 most relevant projects from Resume),
+          "tailored_summary": String (A 2-sentence professional summary tailored to this JD),
+          "gap_analysis": String (Brief explanation of why the score is what it is)
+        }
+      `;
+
+      const userPrompt = `JOB DESCRIPTION FOR: ${newData.company} (${newData.role})\n\n${newData.raw_text}`;
+
+      const result = await model.generateContent([systemPrompt, userPrompt]);
+      const response = await result.response;
+      const analysis = JSON.parse(response.text());
+
+      await snapshot.after.ref.update({
+        ...analysis,
+        ai_status: 'complete',
+        updated_at: new Date()
+      });
+
+      console.log(`✅ Analysis complete. Score: ${analysis.match_score}`);
+
+    } catch (error) {
+      console.error("💥 AI Analysis Failed:", error);
+      await snapshot.after.ref.update({
+        ai_status: 'error',
+        error_log: error.message
+      });
+    }
+  }
+);
 
 ```
 ---
@@ -1181,9 +1331,9 @@ exports.architectProject = onCall({
     "node": "20"
   },
   "dependencies": {
-    "firebase-admin": "^12.0.0",
-    "firebase-functions": "^5.0.0",
-    "@google/generative-ai": "^0.21.0"
+    "@google/generative-ai": "^0.21.0",
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^7.0.3"
   },
   "private": true
 }
@@ -1228,6 +1378,548 @@ exports.architectProject = onCall({
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
+
+```
+---
+
+## FILE: install_sprint_17_3.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# 🚀 SPRINT 17.3: ANALYSIS DASHBOARD (UI)
+# ==========================================
+
+echo "🎨 Installing Analysis Dashboard & Real-time Logic..."
+
+# 1. Create the Visual Dashboard Component
+# ----------------------------------------
+echo "📝 Creating src/components/admin/AnalysisDashboard.jsx..."
+cat << 'JSX' > src/components/admin/AnalysisDashboard.jsx
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
+import clsx from 'clsx';
+
+/**
+ * 📊 Circular Gauge Component
+ * Visualizes the 0-100 match score with color coding.
+ */
+const ScoreGauge = ({ score }) => {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  
+  // Color Logic: <60 Red, 60-79 Yellow, 80+ Green
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg width="80" height="80" className="transform -rotate-90">
+        <circle cx="40" cy="40" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="transparent" />
+        <motion.circle 
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          cx="40" cy="40" r={radius} 
+          stroke={color} 
+          strokeWidth="8" 
+          fill="transparent" 
+          strokeDasharray={circumference} 
+          strokeLinecap="round"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-xl font-bold text-slate-800">{score}%</span>
+        <span className="text-[8px] uppercase font-bold text-slate-400">Match</span>
+      </div>
+    </div>
+  );
+};
+
+const AnalysisDashboard = ({ data, onReset }) => {
+  const [copied, setCopied] = useState(false);
+  const [showGapAnalysis, setShowGapAnalysis] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(data.tailored_summary);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Safe Defaults (Defensive Rendering)
+  const missingKeywords = data.keywords_missing || [];
+  const suggestedProjects = data.suggested_projects || [];
+
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full"
+    >
+      {/* 🏆 Header: Score & Quick Stats */}
+      <div className="bg-white p-6 border-b border-slate-100 flex items-center gap-6">
+        <ScoreGauge score={data.match_score || 0} />
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-slate-800">Strategy Report</h3>
+          <p className="text-sm text-slate-500">
+            {data.match_score >= 80 ? "🚀 High Fit. Apply immediately." : "⚠️ Gaps detected. Tailoring required."}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        {/* 🧩 Missing Keywords */}
+        {missingKeywords.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <AlertCircle size={12} className="text-red-500" /> Critical Gaps
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {missingKeywords.map((kw, i) => (
+                <span key={i} className="px-3 py-1 bg-red-50 text-red-600 border border-red-100 rounded-full text-xs font-medium">
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 📝 Tailored Summary */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tailored Executive Summary</label>
+            <button 
+              onClick={handleCopy} 
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium transition-colors"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied!" : "Copy Text"}
+            </button>
+          </div>
+          <div className="p-4 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed shadow-sm">
+            {data.tailored_summary || "Summary generation failed."}
+          </div>
+        </div>
+
+        {/* 📂 Relevant Projects */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Suggested Evidence</label>
+          <div className="grid grid-cols-1 gap-2">
+            {suggestedProjects.map((projId, i) => (
+              <div key={i} className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-blue-800 font-mono">
+                {projId}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 🧠 Gap Analysis (Expandable) */}
+        <div className="pt-2">
+          <button 
+            onClick={() => setShowGapAnalysis(!showGapAnalysis)}
+            className="w-full flex items-center justify-between p-3 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-bold text-slate-600"
+          >
+            <span>VIEW STRATEGIC GAP ANALYSIS</span>
+            {showGapAnalysis ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <AnimatePresence>
+            {showGapAnalysis && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 mt-2 bg-slate-100 rounded-lg text-xs text-slate-600 leading-relaxed">
+                  {data.gap_analysis || "No detailed analysis provided."}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 🔄 Footer Action */}
+      <div className="p-4 bg-white border-t border-slate-100">
+        <button 
+          onClick={onReset}
+          className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+        >
+          <RefreshCw size={16} /> Start New Application
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+export default AnalysisDashboard;
+JSX
+
+# 2. Refactor JobTracker to include the Listener Logic
+# ----------------------------------------------------
+echo "♻️ Refactoring src/components/admin/JobTracker.jsx..."
+cat << 'JSX' > src/components/admin/JobTracker.jsx
+import React, { useState, useEffect } from 'react';
+import { db } from '../../lib/db';
+import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
+import { Briefcase, FileText, Save, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AnalysisDashboard from './AnalysisDashboard';
+
+const JobTracker = () => {
+  const [formData, setFormData] = useState({
+    company: '',
+    role: '',
+    raw_text: '',
+    source_url: ''
+  });
+  
+  // State Machine: 'idle' | 'saving' | 'analyzing' | 'complete'
+  const [viewState, setViewState] = useState('idle');
+  const [activeDocId, setActiveDocId] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // 👂 Real-time Listener for the Active Document
+  useEffect(() => {
+    if (!activeDocId) return;
+
+    console.log(`👂 Listening for updates on: ${activeDocId}`);
+    
+    const unsubscribe = onSnapshot(doc(db, "applications", activeDocId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("🔥 Firestore Update:", data.ai_status);
+
+        if (data.ai_status === 'processing') {
+          setViewState('analyzing');
+        } 
+        else if (data.ai_status === 'complete') {
+          setAnalysisResult(data);
+          setViewState('complete');
+        }
+        else if (data.ai_status === 'error') {
+          setErrorMsg(data.error_log || "Unknown AI Error");
+          setViewState('idle'); // Allow retry
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeDocId]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setViewState('saving');
+    setErrorMsg('');
+
+    try {
+      // 1. Write Initial Document
+      const payload = {
+        ...formData,
+        status: 'draft',
+        ai_status: 'pending', // ⚡ Trigger the Cloud Function
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp()
+      };
+
+      const docRef = await addDoc(collection(db, "applications"), payload);
+      
+      // 2. Set Active ID to trigger Listener
+      setActiveDocId(docRef.id);
+      
+      // 3. UI waits for Listener to flip state to 'analyzing' -> 'complete'
+
+    } catch (err) {
+      console.error("Submission Error:", err);
+      setErrorMsg(err.message);
+      setViewState('idle');
+    }
+  };
+
+  const handleReset = () => {
+    setFormData({ company: '', role: '', raw_text: '', source_url: '' });
+    setViewState('idle');
+    setActiveDocId(null);
+    setAnalysisResult(null);
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto h-full flex flex-col relative">
+      <AnimatePresence mode="wait">
+        
+        {/* 1️⃣ STATE: FORM INPUT (Idle / Saving) */}
+        {(viewState === 'idle' || viewState === 'saving') && (
+          <motion.div 
+            key="form"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden"
+          >
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Briefcase className="text-blue-600" size={24} />
+                New Application
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Paste a Job Description to initialize the AI analysis pipeline.
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Company Name</label>
+                  <input type="text" name="company" required value={formData.company} onChange={handleChange} placeholder="e.g. Acme Corp" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Role Title</label>
+                  <input type="text" name="role" required value={formData.role} onChange={handleChange} placeholder="e.g. Senior React Developer" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+              </div>
+              <div className="space-y-2 flex-1 flex flex-col">
+                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex justify-between">
+                  <span>Job Description (Raw Text)</span>
+                </label>
+                <div className="relative flex-1">
+                  <textarea name="raw_text" required value={formData.raw_text} onChange={handleChange} placeholder="Paste the full job description here..." className="w-full h-64 md:h-96 p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm leading-relaxed" />
+                  <div className="absolute right-4 top-4 text-slate-300 pointer-events-none"><FileText size={20} /></div>
+                </div>
+              </div>
+            </form>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10 flex items-center justify-between">
+              <div className="text-sm font-medium text-red-500">{errorMsg}</div>
+              <button onClick={handleSubmit} disabled={viewState === 'saving' || !formData.company || !formData.raw_text} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95">
+                {viewState === 'saving' ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                {viewState === 'saving' ? 'Initializing...' : 'Analyze Job'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 2️⃣ STATE: ANALYZING (Pulsing Brain) */}
+        {viewState === 'analyzing' && (
+          <motion.div 
+            key="loading"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 p-8 text-center"
+          >
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-4xl">🧠</div>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">Analyzing Vectors...</h3>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto">
+              Comparing your experience against {formData.company}'s requirements.
+            </p>
+          </motion.div>
+        )}
+
+        {/* 3️⃣ STATE: COMPLETE (Dashboard) */}
+        {viewState === 'complete' && analysisResult && (
+          <motion.div 
+            key="results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 h-full"
+          >
+            <AnalysisDashboard data={analysisResult} onReset={handleReset} />
+          </motion.div>
+        )}
+
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default JobTracker;
+JSX
+
+echo "🎉 Sprint 17.3 UI Installed Successfully."
+
+```
+---
+
+## FILE: install_sprint_17_3_tests.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# 🧪 SPRINT 17.3: TEST SUITE INSTALLER
+# ==========================================
+
+echo "🧪 Installing Analysis Dashboard Tests..."
+
+# Ensure directory exists
+mkdir -p src/components/admin/__tests__
+
+# Write the Test File
+cat << 'JSX' > src/components/admin/__tests__/AnalysisDashboard.test.jsx
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import AnalysisDashboard from '../AnalysisDashboard';
+
+// ==========================================
+// 1. ENVIRONMENT MOCKING
+// ==========================================
+
+// 🎥 Mock Framer Motion
+// We replace animated components with standard HTML elements to avoid 
+// animation delays and JS-based styling issues in JSDOM.
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, layout, initial, animate, exit, ...props }) => (
+      <div {...props}>{children}</div>
+    ),
+    circle: ({ children, initial, animate, transition, ...props }) => (
+      <circle {...props}>{children}</circle>
+    ),
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+// 📋 Mock Navigator Clipboard
+const mockWriteText = vi.fn();
+Object.assign(navigator, {
+  clipboard: {
+    writeText: mockWriteText,
+  },
+});
+
+describe('AnalysisDashboard Component', () => {
+  const mockOnReset = vi.fn();
+  
+  const fullMockData = {
+    match_score: 85,
+    keywords_missing: ['TypeScript', 'Docker', 'AWS'],
+    suggested_projects: ['pwc_proj_1'],
+    tailored_summary: 'This is a tailored summary for the candidate.',
+    gap_analysis: 'You need more cloud experience.'
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // --- TEST CASE 1: HAPPY PATH ---
+  it('renders the dashboard with correct data', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+
+    // Check Score
+    expect(screen.getByText('85%')).toBeDefined();
+    
+    // Check Summary
+    expect(screen.getByText(fullMockData.tailored_summary)).toBeDefined();
+    
+    // Check Missing Keywords
+    expect(screen.getByText('TypeScript')).toBeDefined();
+    expect(screen.getByText('Docker')).toBeDefined();
+    expect(screen.getByText('AWS')).toBeDefined();
+  });
+
+  // --- TEST CASE 2: VISUAL LOGIC (GAUGE COLOR) ---
+  it('renders correct gauge color based on score thresholds', () => {
+    const { rerender } = render(<AnalysisDashboard data={{ match_score: 85 }} />); // Green (>80)
+    let gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#10b981');
+
+    rerender(<AnalysisDashboard data={{ match_score: 70 }} />); // Yellow (60-79)
+    gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#f59e0b');
+
+    rerender(<AnalysisDashboard data={{ match_score: 40 }} />); // Red (<60)
+    gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#ef4444');
+  });
+
+  // --- TEST CASE 3: INTERACTION (COPY) ---
+  it('copies summary to clipboard and updates button text temporarily', async () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+
+    const copyBtn = screen.getByRole('button', { name: /Copy Summary/i });
+    
+    // Initial state
+    expect(screen.getByText(/Copy Text/i)).toBeDefined();
+
+    // Click
+    fireEvent.click(copyBtn);
+
+    // Verify Mock Call
+    expect(mockWriteText).toHaveBeenCalledWith(fullMockData.tailored_summary);
+
+    // Verify UI Feedback
+    expect(await screen.findByText(/Copied!/i)).toBeDefined();
+  });
+
+  // --- TEST CASE 4: INTERACTION (EXPAND GAP ANALYSIS) ---
+  it('toggles the Gap Analysis section visibility', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+
+    // 1. Initially hidden
+    expect(screen.queryByText(fullMockData.gap_analysis)).toBeNull();
+
+    // 2. Click Toggle
+    const toggleBtn = screen.getByText(/VIEW STRATEGIC GAP ANALYSIS/i);
+    fireEvent.click(toggleBtn);
+
+    // 3. Now Visible
+    expect(screen.getByText(fullMockData.gap_analysis)).toBeDefined();
+
+    // 4. Click Toggle again
+    fireEvent.click(toggleBtn);
+
+    // 5. Hidden again
+    expect(screen.queryByText(fullMockData.gap_analysis)).toBeNull();
+  });
+
+  // --- TEST CASE 5: DEFENSIVE RENDERING ---
+  it('renders gracefully with empty or missing data', () => {
+    // Pass empty object to simulate fresh/broken DB record
+    render(<AnalysisDashboard data={{}} onReset={mockOnReset} />);
+
+    // Should default to 0%
+    expect(screen.getByText('0%')).toBeDefined();
+    
+    // Should not crash on missing array maps
+    const keywords = screen.queryByText('TypeScript');
+    expect(keywords).toBeNull();
+
+    // Summary might be empty but shouldn't throw error
+    const copyBtn = screen.getByRole('button', { name: /Copy Summary/i });
+    expect(copyBtn).toBeDefined();
+  });
+
+  // --- TEST CASE 6: RESET ACTION ---
+  it('calls onReset when the start over button is clicked', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+    
+    const resetBtn = screen.getByText(/Start New Application/i);
+    fireEvent.click(resetBtn);
+
+    expect(mockOnReset).toHaveBeenCalledTimes(1);
+  });
+});
+JSX
+
+echo "✅ Test file created at: src/components/admin/__tests__/AnalysisDashboard.test.jsx"
+echo "👉 Run 'npm test' to verify."
 
 ```
 ---
@@ -2514,6 +3206,176 @@ describe('Header Component', () => {
 ```
 ---
 
+## FILE: src/components/admin/AnalysisDashboard.jsx
+```jsx
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Copy, Check, ChevronDown, ChevronUp, AlertCircle, RefreshCw } from 'lucide-react';
+import clsx from 'clsx';
+
+/**
+ * 📊 Circular Gauge Component
+ * Visualizes the 0-100 match score with color coding.
+ */
+const ScoreGauge = ({ score }) => {
+  const radius = 30;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (score / 100) * circumference;
+  
+  // Color Logic: <60 Red, 60-79 Yellow, 80+ Green
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#f59e0b' : '#ef4444';
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg width="80" height="80" className="transform -rotate-90">
+        <circle cx="40" cy="40" r={radius} stroke="#e2e8f0" strokeWidth="8" fill="transparent" />
+        <motion.circle 
+          initial={{ strokeDashoffset: circumference }}
+          animate={{ strokeDashoffset: offset }}
+          transition={{ duration: 1.5, ease: "easeOut" }}
+          cx="40" cy="40" r={radius} 
+          stroke={color} 
+          strokeWidth="8" 
+          fill="transparent" 
+          strokeDasharray={circumference} 
+          strokeLinecap="round"
+          data-testid="gauge-circle"
+        />
+      </svg>
+      <div className="absolute flex flex-col items-center">
+        <span className="text-xl font-bold text-slate-800">{score}%</span>
+        <span className="text-[8px] uppercase font-bold text-slate-400">Match</span>
+      </div>
+    </div>
+  );
+};
+
+const AnalysisDashboard = ({ data, onReset }) => {
+  const [copied, setCopied] = useState(false);
+  const [showGapAnalysis, setShowGapAnalysis] = useState(false);
+
+  const handleCopy = () => {
+    if (data.tailored_summary) {
+      navigator.clipboard.writeText(data.tailored_summary);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Safe Defaults (Defensive Rendering)
+  const missingKeywords = data.keywords_missing || [];
+  const suggestedProjects = data.suggested_projects || [];
+
+  return (
+    <motion.div 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden flex flex-col h-full"
+    >
+      {/* 🏆 Header: Score & Quick Stats */}
+      <div className="bg-white p-6 border-b border-slate-100 flex items-center gap-6">
+        <ScoreGauge score={data.match_score || 0} />
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-slate-800">Strategy Report</h3>
+          <p className="text-sm text-slate-500">
+            {data.match_score >= 80 ? "🚀 High Fit. Apply immediately." : "⚠️ Gaps detected. Tailoring required."}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        
+        {/* 🧩 Missing Keywords */}
+        {missingKeywords.length > 0 && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <AlertCircle size={12} className="text-red-500" /> Critical Gaps
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {missingKeywords.map((kw, i) => (
+                <span key={i} className="px-3 py-1 bg-red-50 text-red-600 border border-red-100 rounded-full text-xs font-medium">
+                  {kw}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 📝 Tailored Summary */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tailored Executive Summary</label>
+            <button 
+              onClick={handleCopy} 
+              aria-label="Copy Summary"
+              className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1 font-medium transition-colors"
+            >
+              {copied ? <Check size={12} /> : <Copy size={12} />}
+              {copied ? "Copied!" : "Copy Text"}
+            </button>
+          </div>
+          <div className="p-4 bg-white rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed shadow-sm">
+            {data.tailored_summary || "Summary generation failed."}
+          </div>
+        </div>
+
+        {/* 📂 Relevant Projects */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Suggested Evidence</label>
+          <div className="grid grid-cols-1 gap-2">
+            {suggestedProjects.map((projId, i) => (
+              <div key={i} className="px-3 py-2 bg-blue-50/50 border border-blue-100 rounded-lg text-xs text-blue-800 font-mono">
+                {projId}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 🧠 Gap Analysis (Expandable) */}
+        <div className="pt-2">
+          <button 
+            onClick={() => setShowGapAnalysis(!showGapAnalysis)}
+            className="w-full flex items-center justify-between p-3 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors text-xs font-bold text-slate-600"
+          >
+            <span>VIEW STRATEGIC GAP ANALYSIS</span>
+            {showGapAnalysis ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+          <AnimatePresence>
+            {showGapAnalysis && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 mt-2 bg-slate-100 rounded-lg text-xs text-slate-600 leading-relaxed">
+                  {data.gap_analysis || "No detailed analysis provided."}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 🔄 Footer Action */}
+      <div className="p-4 bg-white border-t border-slate-100">
+        <button 
+          onClick={onReset}
+          className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+        >
+          <RefreshCw size={16} /> Start New Application
+        </button>
+      </div>
+    </motion.div>
+  );
+};
+
+export default AnalysisDashboard;
+
+```
+---
+
 ## FILE: src/components/admin/DataSeeder.jsx
 ```jsx
 import React, { useState } from 'react';
@@ -2678,10 +3540,12 @@ export default DataSeeder;
 
 ## FILE: src/components/admin/JobTracker.jsx
 ```jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/db';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Briefcase, FileText, Save, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
+import { Briefcase, FileText, Save, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import AnalysisDashboard from './AnalysisDashboard';
 
 const JobTracker = () => {
   const [formData, setFormData] = useState({
@@ -2690,8 +3554,40 @@ const JobTracker = () => {
     raw_text: '',
     source_url: ''
   });
-  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  
+  // State Machine: 'idle' | 'saving' | 'analyzing' | 'complete'
+  const [viewState, setViewState] = useState('idle');
+  const [activeDocId, setActiveDocId] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // 👂 Real-time Listener for the Active Document
+  useEffect(() => {
+    if (!activeDocId) return;
+
+    console.log(`👂 Listening for updates on: ${activeDocId}`);
+    
+    const unsubscribe = onSnapshot(doc(db, "applications", activeDocId), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        console.log("🔥 Firestore Update:", data.ai_status);
+
+        if (data.ai_status === 'processing') {
+          setViewState('analyzing');
+        } 
+        else if (data.ai_status === 'complete') {
+          setAnalysisResult(data);
+          setViewState('complete');
+        }
+        else if (data.ai_status === 'error') {
+          setErrorMsg(data.error_log || "Unknown AI Error");
+          setViewState('idle'); // Allow retry
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [activeDocId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -2700,123 +3596,132 @@ const JobTracker = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatus('loading');
+    setViewState('saving');
     setErrorMsg('');
 
     try {
-      // 💾 Data Strategy: Async Trigger Pattern
-      // We purposefully set 'ai_status' to 'pending' to trigger future Cloud Functions
+      // 1. Write Initial Document
       const payload = {
         ...formData,
         status: 'draft',
-        ai_status: 'pending', // ⚡ The trigger for Sprint 17.2
-        ai_analysis: null,
+        ai_status: 'pending', // ⚡ Trigger the Cloud Function
         created_at: serverTimestamp(),
         updated_at: serverTimestamp()
       };
 
-      await addDoc(collection(db, "applications"), payload);
-
-      // Reset Form
-      setFormData({ company: '', role: '', raw_text: '', source_url: '' });
-      setStatus('success');
+      const docRef = await addDoc(collection(db, "applications"), payload);
       
-      // Auto-dismiss success message after 3s
-      setTimeout(() => setStatus('idle'), 3000);
+      // 2. Set Active ID to trigger Listener
+      setActiveDocId(docRef.id);
+      
+      // 3. UI waits for Listener to flip state to 'analyzing' -> 'complete'
 
     } catch (err) {
-      console.error("Firestore Write Failed:", err);
+      console.error("Submission Error:", err);
       setErrorMsg(err.message);
-      setStatus('error');
+      setViewState('idle');
     }
   };
 
+  const handleReset = () => {
+    setFormData({ company: '', role: '', raw_text: '', source_url: '' });
+    setViewState('idle');
+    setActiveDocId(null);
+    setAnalysisResult(null);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto h-full flex flex-col">
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
+    <div className="max-w-4xl mx-auto h-full flex flex-col relative">
+      <AnimatePresence mode="wait">
         
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Briefcase className="text-blue-600" size={24} />
-            New Application
-          </h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Paste a Job Description to initialize the AI analysis pipeline.
-          </p>
-        </div>
-
-        {/* Scrollable Form Area */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Company Name</label>
-              <input 
-                type="text" 
-                name="company"
-                required
-                value={formData.company}
-                onChange={handleChange}
-                placeholder="e.g. Acme Corp"
-                className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Role Title</label>
-              <input 
-                type="text" 
-                name="role"
-                required
-                value={formData.role}
-                onChange={handleChange}
-                placeholder="e.g. Senior React Developer"
-                className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2 flex-1 flex flex-col">
-            <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex justify-between">
-              <span>Job Description (Raw Text)</span>
-              <span className="text-[10px] text-blue-500 font-normal">Auto-Expanding</span>
-            </label>
-            <div className="relative flex-1">
-              <textarea 
-                name="raw_text"
-                required
-                value={formData.raw_text}
-                onChange={handleChange}
-                placeholder="Paste the full job description here..."
-                className="w-full h-64 md:h-96 p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm leading-relaxed"
-              />
-              <div className="absolute right-4 top-4 text-slate-300 pointer-events-none">
-                <FileText size={20} />
-              </div>
-            </div>
-          </div>
-
-        </form>
-
-        {/* 📱 Sticky Footer Action Bar */}
-        <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10 flex items-center justify-between">
-          <div className="text-sm font-medium">
-            {status === 'success' && <span className="text-emerald-600 flex items-center gap-2"><CheckCircle size={16}/> Saved to Drafts</span>}
-            {status === 'error' && <span className="text-red-500 flex items-center gap-2"><AlertCircle size={16}/> {errorMsg || "Save Failed"}</span>}
-          </div>
-
-          <button
-            onClick={handleSubmit}
-            disabled={status === 'loading' || !formData.company || !formData.raw_text}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95"
+        {/* 1️⃣ STATE: FORM INPUT (Idle / Saving) */}
+        {(viewState === 'idle' || viewState === 'saving') && (
+          <motion.div 
+            key="form"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden"
           >
-            {status === 'loading' ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {status === 'loading' ? 'Saving...' : 'Save Application'}
-          </button>
-        </div>
+            {/* Header */}
+            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Briefcase className="text-blue-600" size={24} />
+                New Application
+              </h2>
+              <p className="text-sm text-slate-500 mt-1">
+                Paste a Job Description to initialize the AI analysis pipeline.
+              </p>
+            </div>
 
-      </div>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Company Name</label>
+                  <input type="text" name="company" required value={formData.company} onChange={handleChange} placeholder="e.g. Acme Corp" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Role Title</label>
+                  <input type="text" name="role" required value={formData.role} onChange={handleChange} placeholder="e.g. Senior React Developer" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                </div>
+              </div>
+              <div className="space-y-2 flex-1 flex flex-col">
+                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex justify-between">
+                  <span>Job Description (Raw Text)</span>
+                </label>
+                <div className="relative flex-1">
+                  <textarea name="raw_text" required value={formData.raw_text} onChange={handleChange} placeholder="Paste the full job description here..." className="w-full h-64 md:h-96 p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm leading-relaxed" />
+                  <div className="absolute right-4 top-4 text-slate-300 pointer-events-none"><FileText size={20} /></div>
+                </div>
+              </div>
+            </form>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10 flex items-center justify-between">
+              <div className="text-sm font-medium text-red-500">{errorMsg}</div>
+              <button onClick={handleSubmit} disabled={viewState === 'saving' || !formData.company || !formData.raw_text} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95">
+                {viewState === 'saving' ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                {viewState === 'saving' ? 'Initializing...' : 'Analyze Job'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* 2️⃣ STATE: ANALYZING (Pulsing Brain) */}
+        {viewState === 'analyzing' && (
+          <motion.div 
+            key="loading"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 p-8 text-center"
+          >
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-4xl">🧠</div>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800">Analyzing Vectors...</h3>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto">
+              Comparing your experience against {formData.company}'s requirements.
+            </p>
+          </motion.div>
+        )}
+
+        {/* 3️⃣ STATE: COMPLETE (Dashboard) */}
+        {viewState === 'complete' && analysisResult && (
+          <motion.div 
+            key="results"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex-1 h-full"
+          >
+            <AnalysisDashboard data={analysisResult} onReset={handleReset} />
+          </motion.div>
+        )}
+
+      </AnimatePresence>
     </div>
   );
 };
@@ -2826,145 +3731,280 @@ export default JobTracker;
 ```
 ---
 
-## FILE: src/components/admin/__tests__/JobTracker.test.jsx
+## FILE: src/components/admin/__tests__/AnalysisDashboard.test.jsx
 ```jsx
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import JobTracker from '../JobTracker';
-import * as Firestore from 'firebase/firestore';
+import AnalysisDashboard from '../AnalysisDashboard';
 
 // ==========================================
-// 1. MOCK ENVIRONMENT (The "Codespaces" Fix)
+// 1. ENVIRONMENT MOCKING
 // ==========================================
-vi.stubEnv('VITE_API_KEY', 'test_api_key');
-vi.stubEnv('VITE_AUTH_DOMAIN', 'test_auth_domain');
-vi.stubEnv('VITE_PROJECT_ID', 'test_project_id');
 
-// ==========================================
-// 2. MOCK FIREBASE MODULES
-// ==========================================
-// Correct path to lib/db from components/admin/__tests__
-vi.mock('../../../lib/db', () => ({
-  db: {} 
+// 🎥 Mock Framer Motion
+// We replace animated components with standard HTML elements to avoid 
+// animation delays and JS-based styling issues in JSDOM.
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, layout, initial, animate, exit, ...props }) => (
+      <div {...props}>{children}</div>
+    ),
+    circle: ({ children, initial, animate, transition, ...props }) => (
+      <circle {...props}>{children}</circle>
+    ),
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
-vi.mock('firebase/firestore', () => ({
-  getFirestore: vi.fn(),
-  collection: vi.fn(),
-  addDoc: vi.fn(),
-  serverTimestamp: vi.fn(() => 'MOCK_TIMESTAMP')
-}));
+// 📋 Mock Navigator Clipboard
+const mockWriteText = vi.fn();
+Object.assign(navigator, {
+  clipboard: {
+    writeText: mockWriteText,
+  },
+});
 
-describe('JobTracker Component', () => {
+describe('AnalysisDashboard Component', () => {
+  const mockOnReset = vi.fn();
   
+  const fullMockData = {
+    match_score: 85,
+    keywords_missing: ['TypeScript', 'Docker', 'AWS'],
+    suggested_projects: ['pwc_proj_1'],
+    tailored_summary: 'This is a tailored summary for the candidate.',
+    gap_analysis: 'You need more cloud experience.'
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
+  // --- TEST CASE 1: HAPPY PATH ---
+  it('renders the dashboard with correct data', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
 
-  // --- TEST CASE 1: RENDER & INITIAL STATE ---
-  it('renders the form with empty fields and disabled save button', () => {
-    render(<JobTracker />);
-
-    expect(screen.getByText(/New Application/i)).toBeInTheDocument();
-
-    const companyInput = screen.getByPlaceholderText(/e.g. Acme Corp/i);
-    const roleInput = screen.getByPlaceholderText(/e.g. Senior React Developer/i);
-    // ✅ FIX: Match the actual placeholder text
-    const rawTextInput = screen.getByPlaceholderText(/Paste the full job description/i);
-
-    expect(companyInput).toHaveValue('');
-    expect(roleInput).toHaveValue('');
-    expect(rawTextInput).toHaveValue('');
-
-    const saveBtn = screen.getByRole('button', { name: /Save Application/i });
-    expect(saveBtn).toBeDisabled();
-  });
-
-  // --- TEST CASE 2: INTERACTION & VALIDATION ---
-  it('enables the save button only when required fields are filled', () => {
-    render(<JobTracker />);
-
-    const saveBtn = screen.getByRole('button', { name: /Save Application/i });
+    // Check Score
+    expect(screen.getByText('85%')).toBeDefined();
     
-    // Fill Company only
-    fireEvent.change(screen.getByPlaceholderText(/e.g. Acme Corp/i), { target: { value: 'Google' } });
-    expect(saveBtn).toBeDisabled(); 
-
-    // Fill Raw Text
-    // ✅ FIX: Match the actual placeholder text
-    fireEvent.change(screen.getByPlaceholderText(/Paste the full job description/i), { target: { value: 'Job Description Text' } });
+    // Check Summary
+    expect(screen.getByText(fullMockData.tailored_summary)).toBeDefined();
     
-    expect(saveBtn).not.toBeDisabled();
+    // Check Missing Keywords
+    expect(screen.getByText('TypeScript')).toBeDefined();
+    expect(screen.getByText('Docker')).toBeDefined();
+    expect(screen.getByText('AWS')).toBeDefined();
   });
 
-  // --- TEST CASE 3: HAPPY PATH SUBMISSION ---
-  it('submits data to Firestore and shows success message', async () => {
-    Firestore.addDoc.mockResolvedValue({ id: 'new_doc_id' });
+  // --- TEST CASE 2: VISUAL LOGIC (GAUGE COLOR) ---
+  it('renders correct gauge color based on score thresholds', () => {
+    const { rerender } = render(<AnalysisDashboard data={{ match_score: 85 }} />); // Green (>80)
+    let gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#10b981');
 
-    render(<JobTracker />);
+    rerender(<AnalysisDashboard data={{ match_score: 70 }} />); // Yellow (60-79)
+    gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#f59e0b');
 
-    // Fill Form
-    fireEvent.change(screen.getByPlaceholderText(/e.g. Acme Corp/i), { target: { value: 'Google' } });
-    fireEvent.change(screen.getByPlaceholderText(/e.g. Senior React Developer/i), { target: { value: 'Staff Engineer' } });
-    // ✅ FIX: Match the actual placeholder text
-    fireEvent.change(screen.getByPlaceholderText(/Paste the full job description/i), { target: { value: 'Do cool stuff.' } });
+    rerender(<AnalysisDashboard data={{ match_score: 40 }} />); // Red (<60)
+    gauge = screen.getByTestId('gauge-circle');
+    expect(gauge).toHaveAttribute('stroke', '#ef4444');
+  });
 
-    // Click Save
-    const saveBtn = screen.getByRole('button', { name: /Save Application/i });
-    fireEvent.click(saveBtn);
+  // --- TEST CASE 3: INTERACTION (COPY) ---
+  it('copies summary to clipboard and updates button text temporarily', async () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
 
-    // Verify Loading
-    expect(screen.getByText(/Saving.../i)).toBeInTheDocument();
-    expect(saveBtn).toBeDisabled();
+    const copyBtn = screen.getByRole('button', { name: /Copy Summary/i });
+    
+    // Initial state
+    expect(screen.getByText(/Copy Text/i)).toBeDefined();
 
-    // Verify Firestore Call
-    await waitFor(() => {
-      expect(Firestore.addDoc).toHaveBeenCalledTimes(1);
+    // Click
+    fireEvent.click(copyBtn);
+
+    // Verify Mock Call
+    expect(mockWriteText).toHaveBeenCalledWith(fullMockData.tailored_summary);
+
+    // Verify UI Feedback
+    expect(await screen.findByText(/Copied!/i)).toBeDefined();
+  });
+
+  // --- TEST CASE 4: INTERACTION (EXPAND GAP ANALYSIS) ---
+  it('toggles the Gap Analysis section visibility', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+
+    // 1. Initially hidden
+    expect(screen.queryByText(fullMockData.gap_analysis)).toBeNull();
+
+    // 2. Click Toggle
+    const toggleBtn = screen.getByText(/VIEW STRATEGIC GAP ANALYSIS/i);
+    fireEvent.click(toggleBtn);
+
+    // 3. Now Visible
+    expect(screen.getByText(fullMockData.gap_analysis)).toBeDefined();
+
+    // 4. Click Toggle again
+    fireEvent.click(toggleBtn);
+
+    // 5. Hidden again
+    expect(screen.queryByText(fullMockData.gap_analysis)).toBeNull();
+  });
+
+  // --- TEST CASE 5: DEFENSIVE RENDERING ---
+  it('renders gracefully with empty or missing data', () => {
+    // Pass empty object to simulate fresh/broken DB record
+    render(<AnalysisDashboard data={{}} onReset={mockOnReset} />);
+
+    // Should default to 0%
+    expect(screen.getByText('0%')).toBeDefined();
+    
+    // Should not crash on missing array maps
+    const keywords = screen.queryByText('TypeScript');
+    expect(keywords).toBeNull();
+
+    // Summary might be empty but shouldn't throw error
+    const copyBtn = screen.getByRole('button', { name: /Copy Summary/i });
+    expect(copyBtn).toBeDefined();
+  });
+
+  // --- TEST CASE 6: RESET ACTION ---
+  it('calls onReset when the start over button is clicked', () => {
+    render(<AnalysisDashboard data={fullMockData} onReset={mockOnReset} />);
+    
+    const resetBtn = screen.getByText(/Start New Application/i);
+    fireEvent.click(resetBtn);
+
+    expect(mockOnReset).toHaveBeenCalledTimes(1);
+  });
+});
+
+```
+---
+
+## FILE: src/components/admin/__tests__/JobTracker.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import JobTracker from '../JobTracker';
+import * as firestore from 'firebase/firestore';
+
+// ==========================================
+// 1. MOCKS
+// ==========================================
+
+// Mock Firebase Logic
+vi.mock('firebase/firestore', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    getFirestore: vi.fn(),
+    collection: vi.fn(),
+    addDoc: vi.fn(),
+    doc: vi.fn(),
+    onSnapshot: vi.fn(),
+    serverTimestamp: vi.fn(),
+  };
+});
+
+vi.mock('../../lib/db', () => ({ db: {} }));
+
+// Mock the Child Component (Dashboard)
+// We don't want to test the Dashboard here (it has its own test),
+// we just want to prove that JobTracker renders it when 'complete'.
+vi.mock('../AnalysisDashboard', () => ({
+  default: () => <div data-testid="analysis-dashboard">Dashboard Loaded</div>
+}));
+
+// Mock Framer Motion to avoid animation delays
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, ...props }) => <div {...props}>{children}</div>
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+describe('JobTracker Component', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('submits data, listens for AI updates, and transitions to dashboard', async () => {
+    // 1. Setup API Mocks
+    const mockAddDoc = vi.fn().mockResolvedValue({ id: 'test-doc-123' });
+    vi.spyOn(firestore, 'addDoc').mockImplementation(mockAddDoc);
+
+    // Capture the onSnapshot callback so we can fire it manually
+    let snapshotCallback;
+    const mockUnsubscribe = vi.fn();
+    vi.spyOn(firestore, 'onSnapshot').mockImplementation((docRef, callback) => {
+      snapshotCallback = callback;
+      return mockUnsubscribe;
     });
 
-    const expectedPayload = {
-      company: 'Google',
-      role: 'Staff Engineer',
-      raw_text: 'Do cool stuff.',
-      source_url: '',
-      status: 'draft',
-      ai_status: 'pending',
-      ai_analysis: null,
-      created_at: 'MOCK_TIMESTAMP',
-      updated_at: 'MOCK_TIMESTAMP'
-    };
-    
-    expect(Firestore.addDoc).toHaveBeenCalledWith(undefined, expectedPayload);
+    render(<JobTracker />);
 
-    // Verify Success
-    expect(await screen.findByText(/Saved to Drafts/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/e.g. Acme Corp/i)).toHaveValue(''); 
+    // 2. Fill Out Form
+    fireEvent.change(screen.getByPlaceholderText(/e.g. Acme Corp/i), { target: { value: 'Cyberdyne Systems' } });
+    fireEvent.change(screen.getByPlaceholderText(/e.g. Senior React Developer/i), { target: { value: 'AI Architect' } });
+    fireEvent.change(screen.getByPlaceholderText(/Paste the full job description/i), { target: { value: 'Build Skynet.' } });
+
+    // 3. Click "Analyze Job" (Updated Button Text)
+    const analyzeBtn = screen.getByRole('button', { name: /Analyze Job/i });
+    expect(analyzeBtn).toBeDefined();
+    fireEvent.click(analyzeBtn);
+
+    // 4. Verify Firestore Write
+    expect(mockAddDoc).toHaveBeenCalled();
+    
+    // 5. Wait for Listener to Attach
+    await waitFor(() => expect(snapshotCallback).toBeDefined());
+
+    // --- PHASE A: PROCESSING ---
+    // Simulate Firestore update: ai_status = 'processing'
+    act(() => {
+      snapshotCallback({
+        exists: () => true,
+        data: () => ({ ai_status: 'processing' })
+      });
+    });
+
+    // Check for "Pulsing Brain" UI
+    expect(await screen.findByText(/Analyzing Vectors.../i)).toBeInTheDocument();
+
+    // --- PHASE B: COMPLETE ---
+    // Simulate Firestore update: ai_status = 'complete'
+    act(() => {
+      snapshotCallback({
+        exists: () => true,
+        data: () => ({ 
+          ai_status: 'complete',
+          match_score: 95,
+          tailored_summary: 'Perfect match.'
+        })
+      });
+    });
+
+    // Check that Dashboard is rendered
+    expect(await screen.findByTestId('analysis-dashboard')).toBeInTheDocument();
   });
 
-  // --- TEST CASE 4: ERROR HANDLING ---
-  it('displays an error message if Firestore fails', async () => {
-    const errorMsg = "Permission Denied: Insufficient Privileges";
-    Firestore.addDoc.mockRejectedValue(new Error(errorMsg));
+  it('displays error message if submission fails', async () => {
+    // Force addDoc to fail
+    vi.spyOn(firestore, 'addDoc').mockRejectedValue(new Error('Permission Denied'));
 
     render(<JobTracker />);
 
-    fireEvent.change(screen.getByPlaceholderText(/e.g. Acme Corp/i), { target: { value: 'Google' } });
-    // ✅ FIX: Match the actual placeholder text
-    fireEvent.change(screen.getByPlaceholderText(/Paste the full job description/i), { target: { value: 'JD Text' } });
+    // Fill minimal data
+    fireEvent.change(screen.getByPlaceholderText(/e.g. Acme Corp/i), { target: { value: 'Fail Corp' } });
+    fireEvent.change(screen.getByPlaceholderText(/Paste the full job description/i), { target: { value: 'Test' } });
 
-    fireEvent.click(screen.getByRole('button', { name: /Save Application/i }));
+    // Click Analyze
+    fireEvent.click(screen.getByRole('button', { name: /Analyze Job/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText(errorMsg)).toBeInTheDocument();
-    });
-
-    const saveBtn = screen.getByRole('button', { name: /Save Application/i });
-    expect(saveBtn).not.toBeDisabled();
+    // Verify Error Message
+    expect(await screen.findByText(/Permission Denied/i)).toBeInTheDocument();
   });
 });
 
@@ -3758,8 +4798,10 @@ const TimelineCard = ({ data, index, activeFilter }) => {
       setIsOpen(false);
       return;
     }
-    const hasMatchingProject = data.projects.some(proj => 
-      proj.skills.some(skill => 
+    // Defensive check for data.projects
+    const projects = data.projects || [];
+    const hasMatchingProject = projects.some(proj => 
+      proj.skills?.some(skill => 
         skill.toLowerCase().includes(activeFilter.toLowerCase())
       )
     );
@@ -3775,14 +4817,13 @@ const TimelineCard = ({ data, index, activeFilter }) => {
     }
   };
 
+  // Guard: If no projects, render minimal card
+  const projects = data.projects || [];
+
   return (
-    /* 📱 MOBILE OPTIMIZATION: 
-       Reduced left padding (pl-6) on mobile to reclaim horizontal space.
-       Restored to pl-12 on desktop (md).
-    */
     <div className="relative pl-6 md:pl-12 py-6 group">
       
-      {/* 📏 The Dot (Adjusted position for new padding) */}
+      {/* 📏 The Dot */}
       <motion.div 
         layout
         className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 z-10 group-hover:scale-125 transition-transform"
@@ -3793,22 +4834,19 @@ const TimelineCard = ({ data, index, activeFilter }) => {
         layout
         className="bg-slate-800/50 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg overflow-hidden"
       >
-        {/* 📱 MOBILE OPTIMIZATION: 
-           Reduced card padding (p-4) on mobile.
-        */}
         <div className="p-4 md:p-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
             <div className="max-w-full">
-              <h3 className="text-lg md:text-xl font-bold text-white break-words">{data.role}</h3>
-              <span className="text-blue-400 font-medium text-sm block mt-1 sm:mt-0">{data.company}</span>
+              <h3 className="text-lg md:text-xl font-bold text-white break-words">{data.role || "Role Title"}</h3>
+              <span className="text-blue-400 font-medium text-sm block mt-1 sm:mt-0">{data.company || "Company Name"}</span>
             </div>
             
             <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <span className="text-slate-400 text-xs md:text-sm font-mono whitespace-nowrap">{data.date}</span>
+              <span className="text-slate-400 text-xs md:text-sm font-mono whitespace-nowrap">{data.date || "Present"}</span>
               {isOpen ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
             </div>
           </div>
-          <p className="text-slate-300 text-sm mt-2 leading-relaxed">{data.summary}</p>
+          <p className="text-slate-300 text-sm mt-2 leading-relaxed">{data.summary || "No summary provided."}</p>
         </div>
 
         <AnimatePresence>
@@ -3819,24 +4857,22 @@ const TimelineCard = ({ data, index, activeFilter }) => {
               exit={{ height: 0, opacity: 0 }}
               className="border-t border-slate-700 bg-slate-900/30 p-4 space-y-4 md:space-y-4"
             >
-              {data.projects.map(project => {
-                const isMatch = activeFilter && project.skills.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
+              {projects.length === 0 && <div className="text-slate-500 text-sm italic">No projects listed.</div>}
+              
+              {projects.map(project => {
+                const isMatch = activeFilter && project.skills?.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
                 const hasDiagram = !!project.diagram;
+                
+                // ✅ DEFENSIVE: Fallback for PAR object
+                const par = project.par || { problem: "N/A", action: "N/A", result: "N/A" };
 
                 return (
                   <div 
-                    key={project.id} 
-                    /* 📱 ADAPTIVE DENSITY STRATEGY:
-                       - Mobile: "Flattened". No borders/bg. Items separated by a subtle bottom border.
-                       - Desktop (md): "Card". Boxed look with borders and background.
-                    */
+                    key={project.id || Math.random()} 
                     className={clsx(
                       "transition-all",
-                      // Mobile Styles (Flattened)
                       "pb-6 border-b border-slate-800/50 last:border-0 last:pb-0",
-                      // Desktop Styles (Card)
                       "md:p-4 md:rounded-lg md:border md:pb-4 md:border-b md:mb-0",
-                      // Active State (Only applies styling on Desktop to keep Mobile clean)
                       isMatch 
                         ? "md:bg-blue-900/20 md:border-blue-500/50" 
                         : "md:bg-slate-900 md:border-slate-800"
@@ -3845,7 +4881,7 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     <div className="flex flex-col gap-2 mb-3">
                       <div className="flex justify-between items-start">
                         <h5 className={clsx("font-bold text-sm", isMatch ? "text-blue-300" : "text-slate-200")}>
-                          {project.title}
+                          {project.title || "Untitled Project"}
                         </h5>
                       </div>
                       
@@ -3867,9 +4903,9 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     </div>
 
                     <div className="space-y-2 text-sm text-slate-400 mb-4 leading-relaxed">
-                      <p><strong className="text-blue-400 block text-xs uppercase tracking-wider mb-0.5">Problem:</strong> {project.par.problem}</p>
-                      <p><strong className="text-emerald-400 block text-xs uppercase tracking-wider mb-0.5">Action:</strong> {project.par.action}</p>
-                      <p><strong className="text-purple-400 block text-xs uppercase tracking-wider mb-0.5">Result:</strong> {project.par.result}</p>
+                      <p><strong className="text-blue-400 block text-xs uppercase tracking-wider mb-0.5">Problem:</strong> {par.problem}</p>
+                      <p><strong className="text-emerald-400 block text-xs uppercase tracking-wider mb-0.5">Action:</strong> {par.action}</p>
+                      <p><strong className="text-purple-400 block text-xs uppercase tracking-wider mb-0.5">Result:</strong> {par.result}</p>
                     </div>
 
                     <AnimatePresence>
@@ -3886,7 +4922,7 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     </AnimatePresence>
 
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {project.skills.map(skill => (
+                      {(project.skills || []).map(skill => (
                         <span key={skill} className="px-2 py-1 text-[10px] rounded-md border border-slate-700 bg-slate-800 text-slate-500 whitespace-nowrap">
                           {skill}
                         </span>
@@ -4994,13 +6030,20 @@ const ProjectArchitect = () => {
     setError(null);
     try {
       const response = await architectProject({ rawText });
-      setResult(response.data);
+      
+      console.log("🤖 Raw Cloud Function Response:", response);
+
+      // ✅ FIX: Intelligent Unwrapping (Handle double wrapping)
+      // The function returns { data: ... }, and the SDK puts that in response.data
+      const payload = response.data.data || response.data;
+      
+      console.log("📦 Unwrapped Payload:", payload);
+      setResult(payload);
+
     } catch (err) {
-      // ✅ FIX: Use the actual error message from the backend/mock
-      // This allows "Quota exceeded" or "Auth failed" to be seen by the user.
       const msg = err.message || "AI generation failed. Check your API key or connection.";
       setError(msg);
-      console.error(err);
+      console.error("Architect Error:", err);
     } finally {
       setLoading(false);
     }
@@ -5050,14 +6093,13 @@ const ProjectArchitect = () => {
 
           {result ? (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-               {/* Use the existing TimelineCard UI, mocked into the format it expects */}
                <TimelineCard 
                  data={{
                    role: "Preview Output",
                    company: "AI Generated",
                    date: "Today",
                    summary: "Formatting of your raw notes completed successfully.",
-                   projects: [result]
+                   projects: [result] // Result is now the properly unwrapped project object
                  }}
                  index={0}
                  activeFilter={null}
@@ -5490,171 +6532,121 @@ import datetime
 import re
 
 # ==========================================
-# 📝 DOCUMENTATION PRESERVATION PROTOCOL
+# 📝 SPRINT 17.3: DOCUMENTATION AUDIT
 # ==========================================
 
 def read_file(path):
-    """Safely reads a file, returns content or empty string if missing."""
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
             return f.read()
-    print(f"⚠️ Warning: File not found: {path}")
     return ""
 
 def write_file(path, content):
-    """Writes content to file with UTF-8 encoding."""
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
     print(f"✅ Updated: {path}")
-
-# ==========================================
-# PHASE 1: STATUS & LOGS
-# ==========================================
 
 # 1. Update PROJECT_STATUS.md
 # ------------------------------------------
 status_path = 'docs/PROJECT_STATUS.md'
 status_content = read_file(status_path)
 
-if status_content:
-    # 1. Update Phase Name if needed
-    status_content = status_content.replace(
-        "Phase 17 - The Application Manager (Job Matcher)",
-        "Phase 17 - Application Manager"
+# Mark Phase 17 as Complete (Update Header)
+if "Phase 17 - Application Manager" in status_content:
+    status_content = re.sub(
+        r"Phase 17 - Application Manager.*", 
+        "Phase 17 - Application Manager (Complete)", 
+        status_content
     )
-    
-    # 2. Mark Sprint 17.1 as Complete
-    # Using simple replace for robustness
-    if "[ ] Sprint 17.1: The Job Input Interface" in status_content:
+
+# Add Phase 18 if missing
+if "Phase 18: Security Hardening" not in status_content:
+    if "## 🎯 Current Objectives" in status_content:
         status_content = status_content.replace(
-            "[ ] Sprint 17.1: The Job Input Interface (Admin UI).",
-            "[x] Sprint 17.1: The Job Input Interface (Admin UI)."
-        )
-    
-    # 3. Update Overall Status Line
-    if "**Status:** 🛠️ Active Development" in status_content:
-        status_content = status_content.replace(
-            "**Status:** 🛠️ Active Development",
-            "**Status:** 🟢 Phase 17.1 Complete (Ready for AI)"
+            "## 🎯 Current Objectives",
+            "## 🎯 Current Objectives\n* [ ] Phase 18: Security Hardening & Deployment."
         )
 
-    write_file(status_path, status_content)
+# Update Roadmap
+if "## ✅ Completed Roadmap" in status_content:
+    if "Sprint 17.3" not in status_content:
+        new_roadmap_item = """* **Phase 17:** [x] Application Manager Complete.
+    * Sprint 17.1: Input Interface.
+    * Sprint 17.2: Vector Engine.
+    * Sprint 17.3: Analysis Dashboard (Real-time UI)."""
+        status_content = status_content.replace(
+            "## ✅ Completed Roadmap",
+            "## ✅ Completed Roadmap\n" + new_roadmap_item
+        )
+
+write_file(status_path, status_content)
 
 # 2. Update CHANGELOG.md
 # ------------------------------------------
 changelog_path = 'docs/CHANGELOG.md'
 changelog_content = read_file(changelog_path)
-today_str = datetime.date.today().strftime("%Y-%m-%d")
+today = datetime.date.today().strftime("%Y-%m-%d")
 
-if changelog_content:
-    new_entry = f"""## [v2.3.0-beta] - {today_str}
+new_entry = f"""## [v2.5.0-beta] - {today}
 ### Added
-- **Admin:** New `JobTracker` module for inputting raw job descriptions.
-- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
-- **Security:** Restricted `applications` to Admin-Write/Read only.
-- **Testing:** Added environment-mocked unit tests for Admin components.
+- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
+- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
+- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
 
 """
-    # Insert new entry after the main header or first known version
-    # Strategy: Find the first "## [" line and insert before it
-    match = re.search(r'## \[v', changelog_content)
-    if match:
-        insert_pos = match.start()
-        new_changelog = changelog_content[:insert_pos] + new_entry + changelog_content[insert_pos:]
-        write_file(changelog_path, new_changelog)
-    else:
-        # Fallback if file is empty or formatted differently
-        new_changelog = "# 📜 Changelog\n\n" + new_entry + changelog_content
-        write_file(changelog_path, new_changelog)
 
+if "## [v" in changelog_content:
+    parts = changelog_content.split("## [v", 1)
+    new_changelog = parts[0] + new_entry + "## [v" + parts[1]
+else:
+    new_changelog = "# 📜 Changelog\n\n" + new_entry + changelog_content
 
-# ==========================================
-# PHASE 2: TECHNICAL CONTEXT
-# ==========================================
+write_file(changelog_path, new_changelog)
 
-# 3. Update CONTEXT_DUMP.md
+# 3. Update CONTEXT_DUMP.md (Async Pattern)
 # ------------------------------------------
 context_path = 'docs/CONTEXT_DUMP.md'
 context_content = read_file(context_path)
 
-if context_content and "JobTracker.jsx" not in context_content:
-    # Locate the admin component line
-    target_line = "* `src/components/admin` -> CMS specific UI."
-    replacement = "* `src/components/admin` -> CMS specific UI.\n    * `JobTracker.jsx`: Input for AI Analysis (Async Trigger Pattern)."
-    
-    if target_line in context_content:
-        context_content = context_content.replace(target_line, replacement)
-        write_file(context_path, context_content)
-
-# 4. Update SECURITY_MODEL.md
-# ------------------------------------------
-security_path = 'docs/SECURITY_MODEL.md'
-security_content = read_file(security_path)
-
-if security_content and "`applications`" not in security_content:
-    # Find the table rows and append
-    # Looking for the last row usually projects
-    target_row = "| `projects` | 🌍 Public | 🔐 Auth Only |"
-    new_row = "\n| `applications` | ⛔ None | 🔐 Admin Only |"
-    
-    if target_row in security_content:
-        security_content = security_content.replace(target_row, target_row + new_row)
-        write_file(security_path, security_content)
-
-
-# ==========================================
-# PHASE 3: CONTINUOUS IMPROVEMENT (PROCESS)
-# ==========================================
-
-# 5. Update PROMPT_TESTING.md
-# ------------------------------------------
-testing_prompt_path = 'docs/PROMPT_TESTING.md'
-testing_content = read_file(testing_prompt_path)
-
-if testing_content:
-    # We want to add new constraints to item 1 (Environment Mocking) or create a new item.
-    # Let's append to the Constraints section generally.
-    
-    new_constraints = """    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
-    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
+if "5. Async UI Patterns" not in context_content:
+    new_section = """
+### 5. Async UI Patterns
+* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
+* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
+    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
+    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
 """
-    
-    # Hook into the existing list. Looking for "Constraints & Best Practices:"
-    # We will append these as sub-bullets under rule #1 or just add them to the list logic.
-    # A safe place is to replace the "Constraints & Best Practices:" block or append to the end of Rule 1.
-    
-    # Searching for Rule 1's end
-    rule_1_marker = "* *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls."
-    
-    if rule_1_marker in testing_content and "Path Verification" not in testing_content:
-        testing_content = testing_content.replace(rule_1_marker, rule_1_marker + "\n" + new_constraints)
-        write_file(testing_prompt_path, testing_content)
+    # Append to the end of "Coding Standards" section (before Directory Structure)
+    if "## Directory Structure" in context_content:
+        context_content = context_content.replace(
+            "## Directory Structure", 
+            new_section + "\n## Directory Structure"
+        )
+    else:
+        context_content += new_section
 
+write_file(context_path, context_content)
 
-# 6. Update PROMPT_APPROVAL.md
+# 4. Update PROMPT_TESTING.md (Accessibility Constraint)
 # ------------------------------------------
-approval_prompt_path = 'docs/PROMPT_APPROVAL.md'
-approval_content = read_file(approval_prompt_path)
+testing_path = 'docs/PROMPT_TESTING.md'
+testing_content = read_file(testing_path)
 
-if approval_content:
-    # Add constraint to "Strict Technical Constraints"
-    # We'll look for the last item in that list (usually item 3 Environment Awareness)
-    
-    new_constraint = """4.  **UI Resilience:**
-    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
+if "Accessibility & Selectors" not in testing_content:
+    new_constraint = """
+    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
 """
-    
-    # Find the end of item 3
-    # Matches: * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
-    item_3_marker = "* **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`)."
-    
-    if item_3_marker in approval_content and "UI Resilience" not in approval_content:
-        approval_content = approval_content.replace(item_3_marker, item_3_marker + "\n" + new_constraint)
-        write_file(approval_prompt_path, approval_content)
+    # Look for "Constraints & Best Practices" list items
+    # We append it before the "Output Requirements" section to keep it in the list
+    if "3.  **Imports:**" in testing_content:
+         testing_content = testing_content.replace(
+            "3.  **Imports:**", 
+            new_constraint + "3.  **Imports:**"
+        )
 
-print("\n🎉 Documentation Audit Complete. All files synchronized for Sprint 17.2.")
+write_file(testing_path, testing_content)
+
+print("\n🎉 Sprint 17.3 Documentation Audit Complete.")
 ```
 ---
 

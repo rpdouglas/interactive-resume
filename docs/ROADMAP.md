@@ -1,24 +1,4 @@
-import os
-
-# ==========================================
-# 🗺️ STRATEGIC ROADMAP GENERATOR
-# ==========================================
-
-def read_file(path):
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return f.read()
-    return ""
-
-def write_file(path, content):
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print(f"✅ Updated: {path}")
-
-# 1. Create docs/ROADMAP.md
-# ------------------------------------------
-roadmap_path = 'docs/ROADMAP.md'
-roadmap_content = """# 🗺️ Product Strategy & Roadmap
+# 🗺️ Product Strategy & Roadmap
 
 **Vision:** Transform the platform from a static portfolio into an AI-powered Career Management System (CMS).
 **Status:** Living Document
@@ -69,25 +49,3 @@ roadmap_content = """# 🗺️ Product Strategy & Roadmap
     * **Feature:** AI acts as the interviewer, asking technical questions based on the JD.
     * **Tech:** Text-to-Speech API + Speech-to-Text.
 
-"""
-
-# Only write if it doesn't exist or if you want to overwrite. 
-# Since this is a new file, we write it fresh.
-write_file(roadmap_path, roadmap_content)
-
-# 2. Update PROJECT_STATUS.md to link to Roadmap
-# ------------------------------------------
-status_path = 'docs/PROJECT_STATUS.md'
-status_content = read_file(status_path)
-
-# Add reference if missing
-if "docs/ROADMAP.md" not in status_content:
-    # Insert the link right after the title
-    header_marker = "# 🟢 Project Status: Platform Expansion"
-    new_link = "\n\n> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision (Phases 18-20)."
-    
-    if header_marker in status_content:
-        status_content = status_content.replace(header_marker, header_marker + new_link)
-        write_file(status_path, status_content)
-
-print("\n🎉 Roadmap Created. Strategic vision defined.")

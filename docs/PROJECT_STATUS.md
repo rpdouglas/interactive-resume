@@ -1,5 +1,7 @@
 # 🟢 Project Status: Platform Expansion
 
+> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision (Phases 18-20).
+
 **Current Phase:** Phase 17 - Application Manager (Complete)
 **Version:** v2.2.0-beta
 **Status:** 🟢 Phase 17.1 Complete
