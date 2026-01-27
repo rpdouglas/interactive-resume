@@ -21,6 +21,13 @@
 ### 4. AI Isolation
 * **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
 
+
+### 5. Async UI Patterns
+* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
+* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
+    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
+    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
+
 ## Directory Structure
 * `src/components/admin` -> CMS specific UI.
     * `JobTracker.jsx`: Input for AI Analysis.

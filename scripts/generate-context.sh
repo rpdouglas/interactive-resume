@@ -1,59 +1,72 @@
 #!/bin/bash
 
 # ==========================================
-# 🚀 FRESH NEST: DEEP CONTEXT GENERATOR
+# 🚀 FRESH NEST: UNIVERSAL CONTEXT GENERATOR
 # ==========================================
 
 OUTPUT_FILE="docs/FULL_CODEBASE_CONTEXT.md"
 
-echo "🔄 Generating Context Dump..."
+echo "🔄 Generating Universal Context Dump..."
 echo "# FRESH NEST: CODEBASE DUMP" > "$OUTPUT_FILE"
 echo "**Date:** $(date)" >> "$OUTPUT_FILE"
 echo "**Description:** Complete codebase context." >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
 
+# Define the ingest function
 ingest_file() {
     local filepath="$1"
     
-    # SECURITY CHECK: Skip if file matches sensitive patterns
-    if [[ "$filepath" == *".env"* ]] || [[ "$filepath" == *"service-account"* ]] || [[ "$filepath" == *".DS_Store"* ]]; then
-        return
-    fi
+    # 1. Skip if file does not exist (safety check)
+    if [ ! -f "$filepath" ]; then return; fi
 
-    if [ -f "$filepath" ]; then
-        echo "Processing: $filepath"
-        
-        # Markdown Header for the file
-        echo "## FILE: $filepath" >> "$OUTPUT_FILE"
-        echo "\`\`\`${filepath##*.}" >> "$OUTPUT_FILE" # Use extension for syntax highlighting
-        
-        # Cat the content
-        cat "$filepath" >> "$OUTPUT_FILE"
-        
-        echo "" >> "$OUTPUT_FILE"
-        echo "\`\`\`" >> "$OUTPUT_FILE"
-        echo "---" >> "$OUTPUT_FILE"
-        echo "" >> "$OUTPUT_FILE"
-    fi
+    # 2. Skip the Output File itself (prevent recursion loop)
+    if [[ "$filepath" == "$OUTPUT_FILE" ]]; then return; fi
+
+    echo "Processing: $filepath"
+    
+    # Markdown Header for the file
+    echo "## FILE: $filepath" >> "$OUTPUT_FILE"
+    
+    # Determine syntax highlighting based on extension
+    local ext="${filepath##*.}"
+    echo "\`\`\`$ext" >> "$OUTPUT_FILE"
+    
+    # Cat the content
+    cat "$filepath" >> "$OUTPUT_FILE"
+    
+    echo "" >> "$OUTPUT_FILE"
+    echo "\`\`\`" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
 }
 
-# Root Configs
-ingest_file "package.json"
-ingest_file "vite.config.js"
-ingest_file "tailwind.config.js"
-ingest_file "firebase.json"
-ingest_file ".firebaserc"
+# ==========================================
+# 🔍 THE UNIVERSAL SCANNER
+# ==========================================
+# Finds ALL files (.)
+# -type f: Only files
+# -not -path: Exclude .git folder
+# -not -path: Exclude node_modules (root and sub-project)
+# -not -path: Exclude .env files (Security)
+# -not -path: Exclude .DS_Store (Mac junk)
+# -not -path: Exclude dist/build folders
+# -not -path: Exclude package-lock.json (Too noisy)
+# sort: Alphabetical order for consistency
 
-# Source Code
-find src -type f -not -path "*/.*" | sort | while read file; do ingest_file "$file"; done
-
-# Documentation
-find docs -type f -name "*.md" -not -name "FULL_CODEBASE_CONTEXT.md" | sort | while read file; do ingest_file "$file"; done
-
-# Scripts
-find scripts -type f \( -name "*.js" -o -name "*.cjs" -o -name "*.sh" \) | sort | while read file; do ingest_file "$file"; done
-
-# CI/CD Workflows
-find .github/workflows -type f -name "*.yml" | sort | while read file; do ingest_file "$file"; done
+find . -type f \
+    -not -path '*/.git/*' \
+    -not -path '*/node_modules/*' \
+    -not -path '*/dist/*' \
+    -not -path '*/.firebase/*' \
+    -not -name '.DS_Store' \
+    -not -name 'package-lock.json' \
+    -not -name '*.lock' \
+    -not -name '.env*' \
+    -not -name 'service-account*' \
+    | sort | while read file; do
+        # Strip leading ./ for cleaner headers
+        clean_path="${file#./}"
+        ingest_file "$clean_path"
+    done
 
 echo "✅ Context Generated at: $OUTPUT_FILE"

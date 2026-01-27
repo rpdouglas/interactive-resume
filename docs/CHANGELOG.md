@@ -2,6 +2,12 @@
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
+## [v2.5.0-beta] - 2026-01-27
+### Added
+- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
+- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
+- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
+
 ## [v2.3.0-beta] - 2026-01-26
 ### Added
 - **Admin:** New `JobTracker` module for inputting raw job descriptions.
