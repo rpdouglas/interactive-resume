@@ -3,7 +3,7 @@ import datetime
 import re
 
 # ==========================================
-# 📝 SPRINT 17.2: DOCUMENTATION AUDIT
+# 📝 SPRINT 17.3: DOCUMENTATION AUDIT
 # ==========================================
 
 def read_file(path):
@@ -22,15 +22,33 @@ def write_file(path, content):
 status_path = 'docs/PROJECT_STATUS.md'
 status_content = read_file(status_path)
 
-if "[ ] Sprint 17.2: Vector Matching Logic" in status_content:
-    status_content = status_content.replace(
-        "[ ] Sprint 17.2: Vector Matching Logic (Gemini).",
-        "[x] Sprint 17.2: Vector Matching Engine (Gemini 2.5 Flash)."
+# Mark Phase 17 as Complete (Update Header)
+if "Phase 17 - Application Manager" in status_content:
+    status_content = re.sub(
+        r"Phase 17 - Application Manager.*", 
+        "Phase 17 - Application Manager (Complete)", 
+        status_content
     )
-    status_content = status_content.replace(
-        "Phase 17 - Application Manager",
-        "Phase 17 - Application Manager (Backend Complete)"
-    )
+
+# Add Phase 18 if missing
+if "Phase 18: Security Hardening" not in status_content:
+    if "## 🎯 Current Objectives" in status_content:
+        status_content = status_content.replace(
+            "## 🎯 Current Objectives",
+            "## 🎯 Current Objectives\n* [ ] Phase 18: Security Hardening & Deployment."
+        )
+
+# Update Roadmap
+if "## ✅ Completed Roadmap" in status_content:
+    if "Sprint 17.3" not in status_content:
+        new_roadmap_item = """* **Phase 17:** [x] Application Manager Complete.
+    * Sprint 17.1: Input Interface.
+    * Sprint 17.2: Vector Engine.
+    * Sprint 17.3: Analysis Dashboard (Real-time UI)."""
+        status_content = status_content.replace(
+            "## ✅ Completed Roadmap",
+            "## ✅ Completed Roadmap\n" + new_roadmap_item
+        )
 
 write_file(status_path, status_content)
 
@@ -40,16 +58,11 @@ changelog_path = 'docs/CHANGELOG.md'
 changelog_content = read_file(changelog_path)
 today = datetime.date.today().strftime("%Y-%m-%d")
 
-new_entry = f"""## [v2.4.0-beta] - {today}
+new_entry = f"""## [v2.5.0-beta] - {today}
 ### Added
-- **Backend:** `analyzeApplication` Firestore Trigger (Gemini 2.5 Flash) for resume-to-JD analysis.
-- **Backend:** Restored and hardened `architectProject` (Gemini 3.0 Preview) for Resume Building.
-- **Security:** Migrated API Keys to Google Secret Manager.
-- **UI:** Hardened `TimelineCard` to handle undefined data structures gracefully.
-
-### Fixed
-- **Functions:** Fixed "Service Identity" error for Eventarc triggers.
-- **UI:** Resolved "Double Wrapper" issue where Cloud Function responses were nested `data.data`.
+- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
+- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
+- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
 
 """
 
@@ -61,56 +74,47 @@ else:
 
 write_file(changelog_path, new_changelog)
 
-# 3. Update CONTEXT_DUMP.md (Architecture Update)
+# 3. Update CONTEXT_DUMP.md (Async Pattern)
 # ------------------------------------------
 context_path = 'docs/CONTEXT_DUMP.md'
 context_content = read_file(context_path)
 
-if "analyzeApplication" not in context_content:
-    # Update AI Isolation section
-    ai_section = "### 4. AI Isolation"
-    new_ai_note = """### 4. AI Isolation
-* **Server-Side AI:** Gemini logic resides in `functions/index.js`.
-    * `architectProject`: Callable (Gemini 3.0) for UI generation.
-    * `analyzeApplication`: Trigger (Gemini 2.5) for background processing.
-* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY` injected by Secret Manager."""
-    
-    if ai_section in context_content:
-        # Regex to replace the old section until the next header
-        context_content = re.sub(r'### 4\. AI Isolation.*?(?=## Directory)', new_ai_note + "\n\n", context_content, flags=re.DOTALL)
-        write_file(context_path, context_content)
-
-# 4. Update DEPLOYMENT.md (Critical Gcloud Step)
-# ------------------------------------------
-deploy_path = 'docs/DEPLOYMENT.md'
-deploy_content = read_file(deploy_path)
-
-if "Eventarc" not in deploy_content:
-    new_deploy_step = """
-## 5. Cloud Functions (Gen 2) Setup
-When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
-```bash
-gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
-```
-*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
+if "5. Async UI Patterns" not in context_content:
+    new_section = """
+### 5. Async UI Patterns
+* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
+* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
+    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
+    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
 """
-    deploy_content = deploy_content + new_deploy_step
-    write_file(deploy_path, deploy_content)
+    # Append to the end of "Coding Standards" section (before Directory Structure)
+    if "## Directory Structure" in context_content:
+        context_content = context_content.replace(
+            "## Directory Structure", 
+            new_section + "\n## Directory Structure"
+        )
+    else:
+        context_content += new_section
 
-# 5. Update PROMPT_TESTING.md (Process Constraints)
+write_file(context_path, context_content)
+
+# 4. Update PROMPT_TESTING.md (Accessibility Constraint)
 # ------------------------------------------
 testing_path = 'docs/PROMPT_TESTING.md'
 testing_content = read_file(testing_path)
 
-if "Double Wrapping" not in testing_content:
-    new_constraints = """
-    * **Defensive Rendering:** UI components consuming Cloud Function data MUST use optional chaining (`?.`) or default values. The data structure returned by the SDK often wraps the result in `data`, leading to `response.data.data`.
-    * **Secret Binding:** When testing Cloud Functions, ensure `secrets` are whitelisted in the function definition object (`{ secrets: ["KEY_NAME"] }`).
+if "Accessibility & Selectors" not in testing_content:
+    new_constraint = """
+    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
 """
-    # Append to Rule 1
-    marker = "* **Stubbing:** Use `vi.stubEnv` for ALL environment variables"
-    if marker in testing_content:
-        testing_content = testing_content.replace(marker, marker + new_constraints)
-        write_file(testing_path, testing_content)
+    # Look for "Constraints & Best Practices" list items
+    # We append it before the "Output Requirements" section to keep it in the list
+    if "3.  **Imports:**" in testing_content:
+         testing_content = testing_content.replace(
+            "3.  **Imports:**", 
+            new_constraint + "3.  **Imports:**"
+        )
 
-print("\n🎉 Documentation Audit Complete. Ready for Commit.")
+write_file(testing_path, testing_content)
+
+print("\n🎉 Sprint 17.3 Documentation Audit Complete.")

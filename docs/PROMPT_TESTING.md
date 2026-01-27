@@ -29,6 +29,8 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
     * **Happy Path:** Does it render data correctly?
     * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
     * **Error State:** Does it degrade gracefully to the Fallback JSON?
+
+    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
 3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
 
 **Output Requirements:**

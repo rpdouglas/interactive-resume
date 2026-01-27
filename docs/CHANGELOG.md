@@ -2,16 +2,11 @@
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
-## [v2.4.0-beta] - 2026-01-27
+## [v2.5.0-beta] - 2026-01-27
 ### Added
-- **Backend:** `analyzeApplication` Firestore Trigger (Gemini 2.5 Flash) for resume-to-JD analysis.
-- **Backend:** Restored and hardened `architectProject` (Gemini 3.0 Preview) for Resume Building.
-- **Security:** Migrated API Keys to Google Secret Manager.
-- **UI:** Hardened `TimelineCard` to handle undefined data structures gracefully.
-
-### Fixed
-- **Functions:** Fixed "Service Identity" error for Eventarc triggers.
-- **UI:** Resolved "Double Wrapper" issue where Cloud Function responses were nested `data.data`.
+- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
+- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
+- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
 
 ## [v2.3.0-beta] - 2026-01-26
 ### Added

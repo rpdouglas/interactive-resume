@@ -1,6 +1,1236 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Mon Jan 26 16:45:28 UTC 2026
+**Date:** Tue Jan 27 15:47:34 UTC 2026
 **Description:** Complete codebase context.
+
+## FILE: .firebaserc
+```firebaserc
+{
+  "projects": {
+    "default": "ryandouglas-resume"
+  }
+}
+
+```
+---
+
+## FILE: .github/workflows/deploy-preview.yml
+```yml
+name: Deploy to Preview Channel
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# âœ… FIX: Grant permissions to write checks and PR comments
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  build_and_preview:
+    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Dependencies
+        run: npm ci
+
+      # âœ… FIX: Inject VITE_ vars during build
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
+          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
+          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
+          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
+          # We don't need the Admin Email for public preview builds usually, 
+          # but if you have logic relying on it, you can add it here.
+
+      - name: Deploy to Firebase Preview
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+
+```
+---
+
+## FILE: .github/workflows/deploy-prod.yml
+```yml
+name: Deploy to Live Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      # âœ… FIX: Inject VITE_ vars during build
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
+          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
+          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
+          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
+          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
+          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
+          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
+
+      - name: Deploy to Live
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
+          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
+          channelId: live
+
+```
+---
+
+## FILE: .gitignore
+```gitignore
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Testing
+coverage
+
+# Production
+dist
+build
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+.DS_Store
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+firebase-debug.log*
+
+# Firebase
+.firebase
+update_docs.py
+
+
+```
+---
+
+## FILE: README.md
+```md
+# Ryan Douglas: Interactive Resume Platform
+
+A high-performance management consultant portfolio transformed into a self-curating platform.
+
+## ğŸ›¡ï¸ Platform Security
+This application implements a **Hard Perimeter** for its CMS features.
+- **Public View:** Optimized for speed and keyword matching for recruiters.
+- **Admin Portal (`/admin`):** Protected via Firebase Google Identity. Access is strictly limited to the whitelisted administrator email.
+
+## ğŸš€ Tech Stack
+- **Frontend:** React 19, Tailwind CSS v4, Framer Motion
+- **Routing:** React Router v7
+- **Backend:** Firebase Auth, Hosting, and Google Analytics
+- **Intelligence:** (Upcoming) Gemini 1.5 Pro integration for content architecture
+```
+---
+
+## FILE: docs/AI_WORKFLOW.md
+```md
+# ğŸ¤– AI Development Framework
+
+**Version:** 2.1
+**Purpose:** Standard Operating Procedure for AI-Assisted Development.
+
+---
+
+## 1. The Product Manager ("The Vision")
+* **Trigger:** User has a raw idea or vague requirement.
+* **Goal:** Clarify the "What" and "Why". Map requirements to User Personas (The Skimmer, The Candidate).
+* **Action:** Analyze the `PROMPT_FEATURE_REQUEST.md` input.
+* **Output:** A structured Feature Request with clear constraints.
+
+## 2. The Architect ("The Strategy")
+* **Trigger:** A defined Feature Request.
+* **Goal:** Determine the "How". Analyze Security, Performance, and Data Integrity.
+* **Action:** Propose **3 Distinct Implementation Options** (e.g., Client-Heavy vs. Server-Secure).
+* **Output:** A decision table recommending the best path. **Wait for user approval.**
+
+## 3. The Builder ("The Execution")
+* **Trigger:** User uses `PROMPT_APPROVAL.md` (Decision Made).
+* **Goal:** Implement the approved option with zero regressions.
+* **Action:** Generate "One-Shot" installation scripts (Bash/Python) to create files and install dependencies.
+* **Constraint:** strictly adhere to `docs/CONTEXT_DUMP.md` (Stack rules, React 19 patterns).
+* **Output:** `install_feature.sh` or specific file writes.
+
+## 4. The QA Engineer ("The Skeptic")
+* **Trigger:** Code is written but not verified.
+* **Goal:** Prove it works (Happy Path) and prove it fails gracefully (Edge Cases).
+* **Action:** Use `docs/PROMPT_TESTING.md` to generate Vitest specifications.
+* **Constraint:** **Environment Mocking** is mandatory. Never hit live Firebase in tests.
+* **Output:** `src/__tests__/FeatureName.test.jsx`.
+
+## 5. The Maintainer ("The Scribe")
+* **Trigger:** Feature passed tests and is live.
+* **Goal:** Ensure documentation reflects reality.
+* **Action:** Use `docs/PROMPT_POST_FEATURE.md` to audit the repo.
+* **Output:** Updates to `PROJECT_STATUS`, `CHANGELOG`, `DEPLOYMENT`, and `CONTEXT_DUMP`.
+
+## 6. The Security Auditor ("The Gatekeeper")
+* **Trigger:** Any changes to `/admin`, Authentication logic, or Environment Variables.
+* **Goal:** Ensure "Least Privilege" and prevent leakage.
+* **Action:** Review `firestore.rules`, `firebase.json` headers, and `.env` handling.
+* **Output:** Security patches (e.g., `unsafe-none` for Google Auth) and Rule updates.
+
+---
+
+## ğŸ”„ The Feedback Loop
+1.  **Product** defines.
+2.  **Architect** plans.
+3.  **Builder** codes.
+4.  **QA** breaks it.
+5.  **Security** locks it.
+6.  **Maintainer** records it.
+
+```
+---
+
+## FILE: docs/CHANGELOG.md
+```md
+# ğŸ“œ Changelog
+
+All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
+
+## [v2.3.0-beta] - 2026-01-26
+### Added
+- **Admin:** New `JobTracker` module for inputting raw job descriptions.
+- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
+- **Security:** Restricted `applications` to Admin-Write/Read only.
+- **Testing:** Added environment-mocked unit tests for Admin components.
+
+## [v2.3.0-beta] - 2026-01-26
+### Added
+- **Admin:** New `JobTracker` module for inputting raw job descriptions.
+- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
+- **Security:** Locked down `applications` collection (Strict Admin Write / No Public Read).
+- **Testing:** Added environment-mocked unit tests for Admin components.
+
+## [v2.2.0-beta] - 2026-01-25
+### Added
+- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook for global state management.
+- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable (or quotas exceeded), the app seamlessly loads local JSON.
+- **UX:** Added `LoadingSkeleton` to prevent layout shifts during asynchronous data fetching.
+- **Testing:** Added "Indestructible" integration tests verifying the database fallback logic.
+
+## [v2.1.0-beta] - 2026-01-25
+### Added
+- **Database:** Initialized Cloud Firestore architecture with `profile`, `experience`, `skills`, and `sectors` collections.
+- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
+- **CMS:** Added `DataSeeder` utility to migrate local JSON data to the cloud.
+- **Backend:** configured `firebase.json` for Cloud Functions and Hosting headers.
+### Fixed
+- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a singleton React chunk.
+- **Auth:** Relaxed COOP/COEP headers to allow Google OAuth popups to function in production.
+
+## [v2.0.0-alpha] - 2026-01-23
+### Added
+- **Routing:** Implemented `react-router-dom` to bifurcate the app into Public (`/`) and Admin (`/admin`) zones.
+- **Security Perimeter:** Integrated Firebase Authentication with strict Email Whitelisting.
+- **Admin UI:** Created the `AdminDashboard` shell and `ProtectedRoute` components.
+- **Analytics:** Integrated Firebase Analytics for tracking interactions.
+
+## [v1.5.0] - 2026-01-20
+### Changed
+- **Visualization:** Stabilized `Recharts` implementation for the Skill Radar.
+- **Performance:** Optimized `framer-motion` animations for mobile devices.
+- **Print Styles:** Added "White Paper" CSS overrides for clean PDF export (`print:hidden`, high-contrast text).
+
+## [v1.0.0] - 2026-01-15 (Gold Master)
+### Released
+- **Core Platform:** Initial release of the Static Interactive Resume.
+- **Tech Stack:** React 19, Vite, Tailwind CSS v4.
+- **Features:**
+    - Interactive "PAR" Timeline.
+    - Skill Radar Chart.
+    - Sector Impact Grid.
+    - Responsive "Mobile-First" Design.
+
+```
+---
+
+## FILE: docs/CONTEXT_DUMP.md
+```md
+# Interactive Resume: Platform Context
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
+**Environment:** GitHub Codespaces
+**Version:** v2.2.0-beta
+
+## ğŸ§  Coding Standards (The Brain)
+
+### 1. Data & State (SSOT)
+* **Public View:** `ResumeContext` is the Single Source of Truth.
+* **Hybrid Strategy:** Firestore (Primary) -> JSON (Fallback).
+* **Deep Fetch:** We strictly use Recursive Fetching for nested sub-collections (`projects`).
+
+### 2. React 19 Patterns
+* **Hooks:** Hooks must strictly follow the rules.
+* **Bundling:** We manually chunk `react`, `recharts`, and `react-dom` together in `vite.config.js` to prevent `forwardRef` errors.
+
+### 3. Security & Headers
+* **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
+* **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
+
+### 4. AI Isolation
+* **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
+
+## Directory Structure
+* `src/components/admin` -> CMS specific UI.
+    * `JobTracker.jsx`: Input for AI Analysis.
+* `src/context` -> Data Providers (`ResumeContext`).
+* `src/hooks` -> Logic Consumers (`useResumeData`).
+* `src/data` -> **Indestructible Fallback** (Do not delete).
+* `src/lib` -> Firebase services.
+
+```
+---
+
+## FILE: docs/DEPLOYMENT.md
+```md
+# â˜ï¸ Deployment & Infrastructure Manual
+
+**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
+**Stack:** Vite + React 19 + Tailwind v4
+
+## 1. Secrets Management (The 2-File System)
+Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
+
+### A. Development (`.env.local`)
+* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
+* **Status:** Ignored by Git.
+* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
+
+### B. Testing (`.env.test`)
+* **Purpose:** Runs `npm run test`. Used by Vitest.
+* **Status:** Committed to Git.
+* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
+
+## 2. CLI Authentication (Headless Mode)
+In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
+
+```bash
+# 1. Request login link
+firebase login --no-localhost
+
+# 2. Open the URL provided in a separate tab.
+# 3. Authenticate with Google.
+# 4. Copy the Authorization Code.
+# 5. Paste code back into the terminal.
+```
+
+## 3. Database Security
+Rules: Defined in firestore.rules.
+
+Deploy: firebase deploy --only firestore:rules
+
+## 4. Header Policy (Critical)
+To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
+
+Cross-Origin-Opener-Policy: unsafe-none
+
+Cross-Origin-Embedder-Policy: unsafe-none
+
+Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
+
+```
+---
+
+## FILE: docs/PERSONAS.md
+```md
+# ğŸ‘¥ Persona-Based Development Model
+
+Our development strategy is guided by specific user archetypes. Features must pass the "Persona Check" before implementation.
+
+---
+
+## ğŸŒ External Audiences (The Public View)
+*Goal: Conversion (Booking an Interview)*
+
+### 1. "The Skimmer" (Technical Recruiter)
+* **Goal:** Match keywords to a Job Description in < 10 seconds.
+* **Behavior:** Opens link, scans for "Power BI", "React", "15 Years", then leaves.
+* **UX Constraint:** **The "Above the Fold" Dashboard.**
+    * *Rule:* Key metrics must be visible immediately without scrolling.
+    * *Rule:* Zero layout shift. No spinners for critical text.
+
+### 2. "The Narrator" (Hiring Manager / Director)
+* **Goal:** Understand the *context* of your career. "Why did he move from Dev to Consulting?"
+* **Behavior:** Scrolls down. Reads the bullet points. Looks for business impact.
+* **UX Constraint:** **The PAR Timeline.**
+    * *Rule:* Experience must be framed as Problem/Action/Result.
+    * *Rule:* "Click to expand" interaction to keep the initial view clean.
+
+### 3. "The Skeptic" (Lead Developer / CTO)
+* **Goal:** Verify technical competence. "Is this a template or did he build it?"
+* **Behavior:** Inspects Element. Looks at the source code. Tests the interactivity.
+* **UX Constraint:** **The "Live" Matrix.**
+    * *Rule:* Clicking "React" should filter the entire timeline. This proves state management expertise.
+    * *Rule:* Code must be clean, typed, and commented (in case they check the repo).
+
+---
+
+## ğŸ” Internal Actors (The Admin View)
+*Goal: Productivity & Strategy*
+
+### 4. "The Candidate" (The Super Admin - You)
+* **Goal:** Manage the job hunt campaign with high velocity and high quality.
+* **Pain Point:** Repetitive data entry. rewriting cover letters. losing track of applications.
+* **Behavior:** Pastes a JD into the system, expects an instant analysis and tailored assets.
+* **UX Constraint:** **Zero Friction Input.**
+    * *Rule:* If it takes more than 2 clicks to generate a Cover Letter, the feature has failed.
+    * *Rule:* Data Seeding must be idempotent (running it twice shouldn't break things).
+
+### 5. "The Staff Engineer" (The AI Agent)
+* **Role:** Gemini 3.0 Integration.
+* **Goal:** Act as a strategic career coach and copywriter.
+* **Behavior:** Analyzes the gap between *Stored Experience* (Firestore) and *Target Job* (Input).
+* **Constraint:** **Hallucination Control.**
+    * *Rule:* The AI must strictly cite actual projects from the database. It cannot invent experience.
+
+---
+
+## ğŸ“± Hardware Contexts
+
+### 6. "The Mobile User" (LinkedIn Traffic)
+* **Context:** 60% of traffic will come from the LinkedIn mobile app browser.
+* **Constraint:** **Thumb-Friendly UI.**
+    * *Rule:* Charts must be readable vertically (Adaptive Density).
+    * *Rule:* No hover-only tooltips (must be click/tap accessible).
+
+```
+---
+
+## FILE: docs/PROJECT_STATUS.md
+```md
+# ğŸŸ¢ Project Status: Platform Expansion
+
+**Current Phase:** Phase 17 - Application Manager
+**Version:** v2.2.0-beta
+**Status:** ğŸŸ¢ Phase 17.1 Complete
+
+## ğŸ¯ Current Objectives
+* [x] Sprint 17.1: The Job Input Interface (Admin UI).
+* [ ] Sprint 17.2: Vector Matching Logic (Gemini).
+
+## âœ… Completed Roadmap
+* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
+    * Sprint 16.1: Schema & Seeding.
+    * Sprint 16.2: Data Hook Layer & Offline Fallback.
+* **Phase 15:** [x] Chart Stabilization & Visual Polish.
+* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding.
+* **v1.0.0:** [x] Gold Master Release.
+
+```
+---
+
+## FILE: docs/PROMPT_APPROVAL.md
+```md
+# âœ… AI Approval & Execution Prompt (Builder Mode v2.1)
+
+**Instructions:**
+Use this prompt **after** the AI has presented the 3 Architectural Options.
+
+---
+
+### **Prompt Template**
+
+**Decision:** I approve **Option [INSERT OPTION NUMBER]: [INSERT OPTION NAME]**. Proceed with implementation.
+
+**Strict Technical Constraints (The "Builder" Standard):**
+1.  **Execution First:** Output a single **Bash Script** (`install_feature.sh`) that:
+    * Creates/Updates all necessary files.
+    * Installs dependencies.
+    * Uses `cat << 'EOF'` patterns.
+2.  **Data Strategy (The "Backbone" Check):**
+    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections, you MUST explicitly fetch the sub-collection and merge it.
+    * **Failover Logic:** Wrap all critical fetches in `try/catch`. If the DB fails, return Local JSON.
+3.  **Environment Awareness:**
+    * **Secrets:** Never hardcode keys. Use `import.meta.env.VITE_VAR`.
+    * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
+4.  **UI Resilience:**
+    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
+
+
+**Persona Validation:**
+* **The Skimmer:** Is data visible immediately? (Use Skeletons).
+* **The Mobile User:** Will this overflow on 320px?
+
+**Output Requirements:**
+1.  **The "One-Shot" Installer:** A single bash script block.
+2.  **Manual Verification Steps:** Specific steps to verify the feature (e.g., "Disconnect Internet to test fallback").
+
+*Please generate the installation script now.*
+
+```
+---
+
+## FILE: docs/PROMPT_FEATURE_REQUEST.md
+```md
+# ğŸ“ AI Feature Request Prompt (Architect Mode v2.0)
+
+**Instructions:**
+1.  Copy your current codebase context.
+2.  Fill in the feature details in the bracketed sections `[ ... ]`.
+3.  Send the *entire* text below to the AI.
+
+---
+
+### **Prompt Template**
+
+**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume (React 19 + Firebase).
+**Task:** Analyze the requirements for a new feature and propose architectural solutions.
+
+**Feature Request:** [INSERT FEATURE NAME]
+
+**Context:**
+I need to add a module that [DESCRIBE FUNCTION].
+*Current State:* [Briefly describe relevant existing code.]
+
+**Core Requirements:**
+
+1.  **ğŸ‘¥ The Persona Check (Select Relevant):**
+    * **The Candidate (Admin):** Maximize velocity. Is input zero-friction? Is the UI dense and data-rich?
+    * **The Staff Engineer (AI):** Is the prompt engineering robust? Are we hallucinating data?
+    * **The Mobile User (Public):** Touch targets 44px+? No horizontal scrolling on 320px?
+    * **The Skimmer (Public):** Value delivered in < 5 seconds?
+
+2.  **Constraints & Tech Strategy:**
+    * **Data Source:** **Firestore is the SSOT.**
+        * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
+        * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.
+    * **Security:** Does this require a change to `firestore.rules`?
+    * **State:** Prefer React 19 `Suspense` and URL-based state over complex `useEffect` chains.
+    * **Styling:** Tailwind v4 (Mobile-First).
+
+**ğŸ›‘ STOP & THINK: Architectural Options**
+Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approaches**:
+
+1.  **The "Client-Heavy" Approach:** fast UI, relies on client-side SDK. Good for real-time interactivity.
+2.  **The "Server-Secure" Approach:** Offloads logic to Cloud Functions. Mandatory for AI/LLM operations and sensitive data writes.
+3.  **The "Balanced/Hybrid" Approach:** Optimistic UI updates with background server validation.
+
+**Your Output Deliverable:**
+1.  **Analysis:** A brief breakdown of the UX and Security challenges.
+2.  **The Options Table:** Compare approaches based on:
+    * *Security Risk*
+    * *Latency/Performance*
+    * *Maintenance Cost*
+3.  **Recommendation:** Select one approach and explain *why* it fits our "Secure Productivity" philosophy.
+4.  **Wait:** End your response by asking for approval to proceed.
+
+---
+
+**Codebase Context:**
+[PASTE_CODEBASE_HERE]
+
+```
+---
+
+## FILE: docs/PROMPT_INITIALIZATION.md
+```md
+# ğŸ¤– AI Session Initialization Prompt (v2.0)
+
+**Role:** Senior Fullstack Architect & AI Integration Engineer.
+
+**Core Context:**
+* We are building a Resume CMS with Gemini AI integration.
+* **Security:** Firebase Auth is the entry point for `/admin`.
+* **Data:** Transitioning to Firestore. Components must handle 'Loading' and 'Empty' database states.
+
+**Critical Rules:**
+1. **Never Hardcode Keys:** Use `import.meta.env.VITE_*` and check for existence.
+2. **Complete Files Only:** Maintain the existing pattern of full-file delivery.
+3. **Modular AI:** Prompts sent to Gemini should be versioned and kept in `src/lib/ai/prompts.js`.
+
+**Reply 'Platform Architecture Loaded. Ready for Phase 14.'**
+```
+---
+
+## FILE: docs/PROMPT_POST_FEATURE.md
+```md
+# ğŸ“ AI Documentation Audit Prompt (The Maintainer v2.3)
+
+**Instructions:**
+Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified.
+
+---
+
+### **Prompt Template**
+
+**Role:** You are the Lead Technical Writer and Open Source Maintainer.
+**Task:** Perform a comprehensive documentation audit, synchronization, and process retrospective.
+
+**Trigger:** We have just completed: **[INSERT FEATURE NAME]**.
+
+**The "Preservation Protocol" (CRITICAL RULES):**
+1.  **Never Truncate History:** When updating logs or status files, preserve all previous entries. Use `read()` + `append/insert` logic.
+2.  **No Placeholders:** Output full, compilable files only.
+3.  **Holistic Scan:** You must evaluate **ALL** files in `/docs`, not just the status trackers.
+
+**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following updates:
+
+### Phase 1: Status & Logs
+1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version. **Keep** the "Completed Roadmap".
+2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top. **Keep** all older versions.
+
+### Phase 2: Technical Context
+3.  **`docs/CONTEXT_DUMP.md`**: Update stack details, new libraries, or architectural decisions.
+4.  **`docs/DEPLOYMENT.md`**: Did we add new Secrets or Config? Update the instructions.
+5.  **`docs/SECURITY_MODEL.md`**: Did we change headers or rules? Update the policy.
+
+### Phase 3: The "Continuous Improvement" Loop (CRITICAL)
+*Did we encounter recurring errors or discover new best practices during this sprint?*
+6.  **`docs/PROMPT_FEATURE_REQUEST.md`**: If a new requirement type emerged (e.g., "Mobile-First"), add it to the "Persona Check".
+7.  **`docs/PROMPT_APPROVAL.md`**: If we fixed a deployment bug (e.g., "Missing Headers"), add a **Strict Technical Constraint** to the Builder's list to prevent recurrence.
+8.  **`docs/PROMPT_TESTING.md`**: If a test crashed (e.g., "Env vars missing"), add a constraint to the QA Engineer's list.
+
+**Output Requirement:**
+* Provide a single, robust **Python Script**.
+* The script must handle UTF-8 encoding.
+* The script must explicitly reconstruct file content to ensure no data loss.
+
+**Wait:** Ask me for the feature name and **"Were there any specific errors we fixed that should be added to the process constraints?"**
+
+```
+---
+
+## FILE: docs/PROMPT_TESTING.md
+```md
+# ğŸ§ª AI Testing Prompt (The QA Engineer)
+
+**Instructions:**
+Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Done".
+
+---
+
+### **Prompt Template**
+
+**Role:** You are the Senior SDET (Software Development Engineer in Test).
+**Task:** Write a robust Unit Test for the provided component using Vitest.
+
+**Input:**
+* Component Code: [PASTE CODE]
+* Data Context: [PASTE JSON SNIPPET]
+
+**Constraints & Best Practices:**
+1.  **Environment Mocking (CRITICAL):**
+    * The Firebase SDK will crash instantly if `VITE_API_KEY` is undefined.
+    * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
+    * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
+    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
+    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
+
+2.  **Testing Strategy:**
+    * **Happy Path:** Does it render data correctly?
+    * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
+    * **Error State:** Does it degrade gracefully to the Fallback JSON?
+3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
+
+**Output Requirements:**
+* A complete `.test.jsx` file.
+* **Do not** reference real database paths. Use mocks.
+
+**Wait:** Ask me to paste the Component Code to begin.
+
+```
+---
+
+## FILE: docs/SCHEMA_ARCHITECTURE.md
+```md
+# ğŸ—„ï¸ Schema Architecture & Data Graph
+
+**Storage Engine:** Cloud Firestore (NoSQL)
+**Pattern:** Collection-Centric with Sub-Collections.
+
+## 1. High-Level Topology
+```mermaid
+graph TD
+    root[ğŸ”¥ Firestore Root]
+    
+    %% Top Level Collections
+    root --> profile[ğŸ“‚ profile]
+    root --> skills[ğŸ“‚ skills]
+    root --> sectors[ğŸ“‚ sectors]
+    root --> experience[ğŸ“‚ experience]
+    
+    %% Relationships
+    experience --> job[ğŸ“„ Job Document]
+    job --> projects[ğŸ“‚ projects (Sub-Collection)]
+    projects --> project[ğŸ“„ Project Document]
+```
+
+## 2. The "Deep Fetch" Strategy (CRITICAL)
+**Firestore queries are shallow.** Fetching a Job document **DOES NOT** automatically fetch its `projects` sub-collection.
+
+### The Client-Side Join Pattern
+Any component displaying Experience (e.g., `ResumeContext`) **MUST** implement this recursive logic:
+1.  Fetch all `experience` documents.
+2.  Map over the results.
+3.  For *each* job, perform a second `getDocs` call to its `projects` sub-collection.
+4.  Merge the `projects` array into the parent job object.
+5.  Return the hydrated tree.
+
+**âŒ BAD (Will Result in Empty Projects):**
+```javascript
+const jobs = await getDocs(collection(db, 'experience'));
+return jobs.docs.map(d => d.data());
+```
+
+**âœ… GOOD (Hydrated):**
+```javascript
+const jobs = await Promise.all(snapshot.docs.map(async (doc) => {
+  const projects = await getDocs(collection(doc.ref, 'projects'));
+  return { ...doc.data(), projects: projects.docs.map(p => p.data()) };
+}));
+```
+
+## 3. The "Indestructible" Fallback
+We implement a **Hybrid Data Strategy**:
+1.  **Attempt:** Fetch from Firestore.
+2.  **Catch:** If *any* error occurs (Quota, Offline, Rules), swallow the error and return `src/data/*.json`.
+3.  **Result:** The app never crashes, even if the database is down.
+
+```
+---
+
+## FILE: docs/SECURITY_MODEL.md
+```md
+# ğŸ›¡ï¸ Security Model & Access Control
+
+**Auth Provider:** Firebase Authentication (Google OAuth)
+**Strategy:** Zero Trust Client / Strict Server-Side Rules
+
+## 1. Authentication Layer
+### The Whitelist Gate
+* **Location:** Client-Side (`src/context/AuthContext.jsx`) & Server-Side (`firestore.rules`).
+* **Mechanism:**
+  1. User signs in via Google.
+  2. App checks `user.email` against `import.meta.env.VITE_ADMIN_EMAIL`.
+  3. If no match, the user is signed out immediately or redirected to Public View.
+
+## 2. Authorization (Firestore Rules)
+We utilize a **"Public Read / Admin Write"** policy.
+
+| Collection | Read Permission | Write Permission |
+| :--- | :--- | :--- |
+| `profile` | ğŸŒ Public | ğŸ” Auth Only |
+| `skills` | ğŸŒ Public | ğŸ” Auth Only |
+| `experience` | ğŸŒ Public | ğŸ” Auth Only |
+| `projects` | ğŸŒ Public | ğŸ” Auth Only |
+| `applications` | â›” None | ğŸ” Admin Only |
+
+**Current Rule Implementation:**
+```javascript
+allow read: if true;
+allow write: if request.auth != null; // Relies on UI Whitelisting for now
+```
+> âš ï¸ **Note:** In Phase 17, we will upgrade the Write rule to strictly check `request.auth.token.email == 'YOUR_EMAIL'` for backend-level enforcement.
+
+## 3. API Key Exposure Strategy
+It is standard practice to expose the `VITE_API_KEY` in the frontend bundle. This key **does not** grant administrative access. It simply identifies the Firebase project.
+
+**Defense in Depth:**
+1. **Security Rules:** Prevent unauthorized writes even if someone steals the API Key.
+2. **App Check:** (Planned Phase 18) Verify traffic comes from your specific domain.
+3. **Cloud Functions:** Sensitive AI logic (Gemini) runs on the server, keeping the LLM API Key strictly hidden from the browser.
+
+## 4. Header Security (COOP/COEP)
+To support high-performance `SharedArrayBuffer` (potential future use) and Google Identity Services, we enforce:
+* `Cross-Origin-Opener-Policy: same-origin-allow-popups`
+* `Cross-Origin-Embedder-Policy: unsafe-none`
+
+```
+---
+
+## FILE: eslint.config.js
+```js
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+
+```
+---
+
+## FILE: firebase.json
+```json
+{
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "unsafe-none"
+          },
+          {
+            "key": "Cross-Origin-Embedder-Policy",
+            "value": "unsafe-none"
+          }
+        ]
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
+
+```
+---
+
+## FILE: firestore.indexes.json
+```json
+{}
+
+```
+---
+
+## FILE: firestore.rules
+```rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ğŸŒ Public Read, Admin Write
+    match /profile/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /skills/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /sectors/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    match /experience/{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // ğŸ” PRIVATE: Admin Only (No Public Read)
+    match /applications/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+
+```
+---
+
+## FILE: fix_tailwind_v4.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# ğŸ”§ Fix: Migrate to Tailwind CSS v4
+# ==========================================
+
+echo "Step 1: Installing Tailwind v4 Vite Plugin..."
+npm install @tailwindcss/vite
+
+echo "Step 2: updating vite.config.js..."
+cat << 'EOF' > vite.config.js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
+})
+EOF
+
+echo "Step 3: Migrating CSS to v4 Syntax (CSS-First Config)..."
+# In v4, we use @import "tailwindcss" and define theme variables directly in CSS
+cat << 'EOF' > src/index.css
+@import "tailwindcss";
+
+@theme {
+  /* Migrate custom colors from tailwind.config.js */
+  --color-brand-dark: #0f172a;  /* Slate 900 */
+  --color-brand-accent: #3b82f6; /* Blue 500 */
+  --color-brand-light: #f8fafc; /* Slate 50 */
+  
+  /* Migrate font family */
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+/* Apply base styles using the new variables.
+   Note: In v4, we use the variables we just defined in the theme.
+*/
+body {
+  background-color: var(--color-brand-light);
+  color: var(--color-brand-dark);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+EOF
+
+echo "Step 4: Cleaning up legacy config..."
+rm tailwind.config.js
+# If a postcss config was auto-generated, remove it too
+if [ -f postcss.config.js ]; then
+    rm postcss.config.js
+fi
+
+echo "=========================================="
+echo "âœ… Tailwind v4 Configuration Fixed!"
+echo "ğŸ‘‰ Restart your server: 'npm run dev'"
+echo "=========================================="
+```
+---
+
+## FILE: fix_workflows.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# ğŸš‘ Fix: GitHub Action Repository Name
+# ==========================================
+# Description: Corrects the capitalization of 'FirebaseExtended' in workflow files.
+
+echo "Patching .github/workflows/deploy-preview.yml..."
+# Use sed to replace lowercase 'firebase-extended' with 'FirebaseExtended'
+# We use a backup extension (.bak) just in case, then remove it for cleanliness
+sed -i.bak 's/firebase-extended\/action-hosting-deploy/FirebaseExtended\/action-hosting-deploy/g' .github/workflows/deploy-preview.yml
+rm .github/workflows/deploy-preview.yml.bak
+
+echo "Patching .github/workflows/deploy-prod.yml..."
+sed -i.bak 's/firebase-extended\/action-hosting-deploy/FirebaseExtended\/action-hosting-deploy/g' .github/workflows/deploy-prod.yml
+rm .github/workflows/deploy-prod.yml.bak
+
+echo "=========================================="
+echo "âœ… Workflows Patched!"
+echo "=========================================="
+echo "ğŸ‘‰ Now run these commands to retry the build:"
+echo ""
+echo "   git add .github/workflows"
+echo "   git commit -m 'fix: Correct casing for Firebase GitHub Action'"
+echo "   git push"
+```
+---
+
+## FILE: functions/.eslintrc.json
+```json
+{
+  "root": true,
+  "env": {
+    "es2022": true,
+    "node": true,
+    "commonjs": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2022
+  },
+  "rules": {
+    "no-console": "off",
+    "no-unused-vars": ["warn"]
+  }
+}
+
+```
+---
+
+## FILE: functions/check_models.js
+```js
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+async function listModels() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    console.error("âŒ Error: GEMINI_API_KEY environment variable is missing.");
+    process.exit(1);
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(key);
+    // Note: The SDK doesn't always expose listModels directly on the client 
+    // depending on version, so we fallback to the raw REST endpoint if needed,
+    // but let's try a direct fetch which is 100% reliable for debugging.
+    
+    console.log("ğŸ“¡ Querying Google AI API for available models...");
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    console.log("\nâœ… AVAILABLE MODELS FOR YOUR KEY:");
+    console.log("===================================");
+    
+    const models = data.models || [];
+    const generateModels = models.filter(m => m.supportedGenerationMethods.includes("generateContent"));
+    
+    generateModels.forEach(m => {
+      console.log(`ğŸ”¹ ${m.name.replace('models/', '')}`);
+      // console.log(`   Description: ${m.description.substring(0, 60)}...`);
+    });
+    
+    console.log("===================================");
+
+  } catch (error) {
+    console.error("ğŸ”¥ Failed to list models:", error.message);
+  }
+}
+
+listModels();
+
+```
+---
+
+## FILE: functions/index.js
+```js
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+const SYSTEM_PROMPT = `
+  You are a Management Consultant & Resume Architect. 
+  Convert raw project notes into a high-impact, professional JSON object.
+  
+  SCHEMA RULES:
+  - id: string (unique slug, lowercase, snake_case)
+  - title: string (concise & punchy, no "Project" prefix)
+  - skills: string[] (top 3-5 technical/business skills found in text)
+  - par: { 
+      problem: string (The challenge faced), 
+      action: string (What was done, using active verbs), 
+      result: string (The outcome, quantified with metrics if possible) 
+    }
+  - diagram: string (A valid Mermaid.js flowchart source code representing the logic/flow. DO NOT wrap in markdown blocks.)
+  
+  TONE: Professional, results-oriented, active verbs.
+  
+  RESPONSE FORMAT: Return raw JSON matching the schema only. No markdown formatting.
+`;
+
+exports.architectProject = onCall({ 
+  cors: true, 
+  secrets: ["GEMINI_API_KEY"],
+  timeoutSeconds: 60,
+  maxInstances: 10
+}, async (request) => {
+
+  console.log("ğŸš€ Architect Function Triggered (v2026)");
+
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in.");
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new HttpsError("internal", "Server misconfiguration: API Key missing.");
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // âœ… FIX: Updated to valid 2026 Model
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-3-flash-preview", 
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    console.log("ğŸ¤– Calling Gemini 3.0 API...");
+    const { rawText } = request.data;
+    const result = await model.generateContent([SYSTEM_PROMPT, rawText]);
+    const responseText = result.response.text();
+    
+    console.log("âœ… Gemini 3.0 Success.");
+    return JSON.parse(responseText);
+
+  } catch (error) {
+    console.error("ğŸ”¥ AI GENERATION FAILED:", error);
+    throw new HttpsError("internal", error.message);
+  }
+});
+
+```
+---
+
+## FILE: functions/package.json
+```json
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase serve --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0",
+    "@google/generative-ai": "^0.21.0"
+  },
+  "private": true
+}
+
+```
+---
+
+## FILE: index.html
+```html
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <title>Ryan Douglas | Management Consultant & Power BI Developer</title>
+    <meta name="description" content="Interactive resume of Ryan Douglas. 15 years experience in Business Transformation, Power BI, and React Development. View my project portfolio and skills matrix." />
+    <meta name="keywords" content="Management Consultant, Power BI Developer, React, Data Visualization, Business Transformation, Resume" />
+    <meta name="author" content="Ryan Douglas" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://ryandouglas-resume.web.app/" />
+    <meta property="og:title" content="Ryan Douglas | Interactive Resume" />
+    <meta property="og:description" content="Bridging the gap between Business Strategy and Technical Execution. Click to explore my interactive skills matrix and timeline." />
+    <meta property="og:image" content="https://ryandouglas-resume.web.app/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://ryandouglas-resume.web.app/" />
+    <meta property="twitter:title" content="Ryan Douglas | Interactive Resume" />
+    <meta property="twitter:description" content="Bridging the gap between Business Strategy and Technical Execution." />
+    <meta property="twitter:image" content="https://ryandouglas-resume.web.app/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    </head>
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+```
+---
 
 ## FILE: package.json
 ```json
@@ -54,158 +1284,891 @@
 ```
 ---
 
-## FILE: vite.config.js
-```js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import packageJson from './package.json'
+## FILE: public/og-image.png
+```png
+‰PNG
+
+   IHDR  ä  v   Ö„Hí   sRGBÙÉ,   gAMA  ±üa    cHRM  z&  €„  ú   €è  u0  ê`  :˜  pœºQ<   bKGD ÿ ÿ ÿ ½§“   	pHYs  Ã  ÃÇo¨d   tIMEêÁÇ‚    IDATxÚìİw|×}ïıÏ™™í‹Eï :‰F€ ;)VQ½:¶+,Åqâ<)ß$7¹¹¯[ronâ¼n?¾Qb;»dI¶z¡
+EŠ½“ 	’ *Ièm±‹í3Ï‚ ;²ü{K|½$`fvÎ™³ËısæŒ
+GãB!„B!„ø¹Ò¤
+„B!„B	äB!„B!„r!„B!„BH B!„B!$!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!~Yjo¥P×ı¥…e½¿}¬ywø„ûPõ¡Pê}Ô½B!„Bˆ_ü@ˆ³ÿ©áöÉyr¢AÖÂM<öØz²fFk‚ıÏş·NõµfåGPÙÜşåÇY_äÃ¦~9*ßŒ…é~÷ßøö®´YeÖğä/á³O<ÈB>ÿÎ±ıGã_nG×Õ¬ºÏ¬ÚÂo~~©JIB!„BˆOZ ×5'‹¦ñ—ó`¨Ù¼i³Å’-k¹½@'™½æÀIŞÛöß}£ñ<î°ôOÿ‘?ğ9fçŸÈMB§øûÙƒÇ5»à‚“„Ròù“Ï¯Ä§ÏS)–Il¬ƒø»ŸâÉq>î~|KÛB!„Bˆµ~¹n'¥î>¾x:‘èœùÑVœÖ®6é&>5J«”IïÙÓœ½Ğƒßš½m$o_º1>¯ƒ_Ê1İy
+ìíà¥çŸâÅı—‰[êÖwB!„Bñ	ä(îÖÜÿnsE˜›É=—i=İLW
+ääéNºº&™¹ix@cËã°fAn].È4Ëäüşƒ¼üÂ+ì	ğ-„B!„È§#¹ÍEöâ;ø_)!˜ÈUt§OĞÚM1Ùs–³§ióÏ–fŒÄ²<ºi1¹é.¹sèFWü<Ï½²ƒãQä–p!„B!„@>½»'½€e<ÈF#HdF&WJqüD­­­øU„îövZŸ#0cõ²ğ°Á½÷o`ie^ãzË‚+”ÒĞ´ùÿ¨¤Ôï7sÃëo7}ºJİôX³^ï#	Ï
+ÙÃ“?~‘7ö´1²>Ô8¹ºAnT—·V
+uÍïçY~ŞsP·T®ëŸ¿’ùB!„Bˆ_8Æ‡>‚=…‹VóÙÏóŞ‡qx®F#£«•ÃgÛ¸§#•ÎÓoQèWÂ-“Äªõ<¸z	¥ÙN°ÌyD'úèl=KûÅ!Æ'BÄ-”†nsâÍÎ¥²ºEùéØuf=êK© ÇpøØyÂ3Ó±e¡g-bíªe”gÛ°,‹øù=üdw'Ñ¸yM ^°æÓ¬/·ê=ÂëÛÎ™“ü4»›ªõ¿Âòœ0=çräôÆ'ãä¯z˜S±ØiøºGËv¾ş"
+‹~—»ërqêïï™fJ)Ñ »éîíc°o„`$B4n
+ÍaÃ•’Cù¢ZªËsqk\½­@).7ocÏ©&ãÌªGÓYÄÆ;WR’é…±9zœŞq¢qÍæ %¯’eM‹)Lµ£(+ ›'Ïp©ÏO8a¢Ù]d—ÔĞ°¤×y\›‚D„sœ:ÛÉÀĞ‘„	JÃîñ•_EmmEiLyŞ›B!„â—&[:)…4İõ)î~ñÿ°İtM?¶Ìî
+ğö™Ú£i;Áit<S»Åâ.Ú¸’Æú
+¼ºyM‹G9½÷5^{ïmmí´´÷ÑÚå'1Á¦£gøXXQ@Cu‹*kY{ÿƒl(OÅĞÉQõ(ƒ]GùŞ—ÿm6÷ÕÇTşÁ_ñÅM”g˜Ã-üë?<É¾ÓÙ'aÓùŸ¯<ÀºRÈèY¾óÛÿƒ¶ÙUV¶º‰?.Y¹ë{|ÿõ}ì9ÔÆÙAşâµ»XW‘
+Á}ñ†ÛCÏ¶øFÅ"*ÿãCTgxnñ°
+•¦y÷6ŞÚq’ŞËœ¿ÜËÅÎ~zÇ‚˜É@^à¦$¯ˆ%µÕÔ7-åûïgUqÊ•#à?„§¾ñ¯¼Ş<cBE,[¾Â®µU˜­oòÊÖİìŞŒ½§ú± ÇCuu-×¬çW¿ôVd›tì~†gß8Èág8Ù2DßxrÓX±¤wİÏgåA–æë³Û‚'Ğ×Ì+?}ƒCg:9ÕÒÎÙsÃøã`è¤—dP]QCıâjÖßû[–-"Ã!¡\!„BñËÈ±PF•Ywo>ï¼4Šm*‘+]gâØiŞr_"4zÃ~uxÙY×È¦5kYœ›¥¾*Ap´7Ÿ|’{ûÇÚÆ¡Ğè;éDââÙ.œiÇğîaç¡£œûâñ›`7’qU)7Îçt€MLš8æÎ'W
+›İ'Ã9ëÇš¦Í˜Ó¯0lNlöÛèÚw?Å[Ï?ÃÖ1lš†æp¸)Ô
+<>–?ÄäTÕ8Ü&ÿÿTRÈ_?±†¬[¼r* ¿ó?üë—éÎ¶¡©©µÙ•OæÔF‘çÏóÖùóìÚs„saÔoı:+‹lÓõcØœx2fò¸"èsü¥ïĞ¼o¯ïíc,J³ãÉJé‹§›ùQG7=ãq>·|ˆŸ|÷-vŸõF¡tO†±0-‡ÒŞ9„rùÈztÅN+9BoÆiy‰ÿçëÏ²uw+í~Ğ5PÆÔ¾@tt‚æC8vô(» íş#_ŞRC–[“w·B!„â“ÈÁ²é•Õ¬\'¶?ÃĞÔ=½JÃ3ŞÂÛÛ4LKá¸’Š—.cÕŠ…8”5kD4:ÑËÖ¯ÿ%ùÔYz&Íä}ÃÓ¯caZW2b2¤+¥HÇ9ºsCã!”ö|iSÉ¬Ğü³Ôß7Âsß}š€?†í#Ê€v—ƒı*™Û_â{§Ç’	Jañæ·Ÿdqm¿½"õ–;L,Ó"a)2s³©,)¤ Ã‹Ó®A"ÎxÿENíáR0yzØ?ÄóÏ¼LEU>»BÛõZ÷‰×ùÇ¶#BqP×ÜË­°"~v½ü}Îmsy(JÜbêºÍê <ĞÆOwfóÊFÔe‚e2y~;_ÿßßå©ñ'ÀĞ aÙ¨nª¡® #<È±Cçè˜0ÑÍ8İ-Gø§ÿşm*ËÿŒ‡kòpH&B!„B|Ò9XXF>MK—±jí{œØ6@xúw	&#‰Y!-­¨ŒÕ›7Ó˜¥f…qËŠpéİïğOÏŸãÒ¤9;Üé>n`3M¬È]§öòÒ®!,‡šÚ×äüÉc¼ñÒ,©ş}n+úùT iZŒùÃÄãq"8$€øjÒ´ÍEvå}üv½IÇùïh$'(gùÁß}ƒŠ¯ı>u·ø*š#ƒÛÿàQ*ëiZºœúò\Rİ6T,DÏ™|ï›ÿÊw_jgxªÆµvkãŞµ«),u\÷¸*`¢p)Ÿÿtéö(]{Şâ'§&¯iT‰hˆ yÜ÷ÈgÅ¹Ôv’íÛ[¹djÓ×XÓ]{Û9ÿXÅY¤DúyûÙ—xã`2ŒX‰ZõF~ïÏ¿Â§W”aoá©¿ı¯üé³]˜(¥íyƒ¯?s'ÿìr<vYìM!„BñIä€e‘ZÙÄšå¼{ä-ZÆ®³ncQımlY³ğšû ­Éó¼õö1.Çg‡Şx„å|‰¯şßŸfmY*VxŒ–?Eı;~pÖ†gz>z˜÷ä®£,_ıs«Ä„ÍÅŠM¹wİbrİ–e’_äBÿÀ#´
+›ÃKé†Gø½/œáÔŞÇx¦mj¦€Iç™]|ÿ_
+øÂ“|»bŒë/—oé^Ê–=ÄßSNq¶“Dt’‰	?½#"Ñ81WJJÉ5Î1OV¤aÓÙÛŞÃèè0fYÁu;a‚ù<ñ×¿ÍvyöIN>åÈ¾ÆyCÍ>‡‡%w>ÂŸü‡'Xš§sï+ƒ_ãŸ%®^;¥ c‰ !S¡·`÷ñVºƒWŠrÏƒ°¹®ŸÓ†eÔrßü§çºˆNõMhv/¼ÃÑßÛÀ]n;º$r!„B!Ä'>ca9
+X¹aõoæÜ±bólåNÉaõ½÷P“vmMôœæp÷8‰ÙÇ–sßgïaY±……r¥Qİ´‘ûo™ìï€Ì«ñ/rúíİôFs~>ÏíÖ]¬Øü0_ùêçÙ¸¨”t×Ô¨¿eNO¯ÿ ¡Üé*`İÃ_äÏ»úø£o_Às¥œ‘	ìøÃÃ‹Èğ%ùõ¯I6‹ª½ô_ìäÀ>†úéî¾Ì¥îsœ¿|‰“Íİtúè†íjcĞú™‡ˆ^oŒÙŒAı*î[_M¶Û@³Ü”®^ÇêØ«´
+÷Ì<AíšMÔØHà ¨´‚ú%Åp \3?ÎèD”h$Fg{.öŸÙmãt£œçĞ}t¹LHÄ	´Ï©gsò$ç/™X9 CäB!„Bˆ_‚@¡éUë¹sÍìn¡gòÚM
+×<Ä§×cŸ'-‡‡˜•ÇI€¹Ê64}:gâ°¤gçA¼™ãÃ!&&C„Â?Ÿ,æÎÎaõİ²¥¡i‘H|t+|[šÔâeÜûk_¢µó¿ñäağLİÓíäÀ¶£vı“WâôÑ¼ôüË<ıâÎ\ˆ¶äìCÃnh×Ö•i&;?®wèD
+RI³M½¾åñ‘iY×L¤·Ûl¤øRÑ,@YØl·›d’õ@øä?jœ1Fzg¿º+Uñú?ı-¯üm`újC:\cN7Ä(“ayšB!„â—'8rÙ¸a)Ù/Ÿ¦g2<'*6=p/•©ú¼A/‹ašsŸnvl†šgëº9ôç52š–BåÂJ<¦ÅGŸÿ,,ÃEQãZ>õØ£œ9ûö…S‹ÙÙoòseMĞÙò.ßúÛÿ—oíByÜxrg^dZÖGtîÖu¯È5?¿qX‰D‰M snaw¦z Õs“Q20.„B!„ø%ä(<†¡Í›“3ÓRĞ¯3—Üíõa·ÙĞŒŸj@/Ã£qÌ\¦Ã	“hhIñJaÓúÔ£ÍÔ<¿·10sÂá‹¤º®a·ÛøYÆê®\Öny€Ç:ÎsñÉıôİbÜrrÛ3|ãÍaÜÙWj$¥°„û~˜6­¤¢ÄM÷›OóÏ_Š]CÆÇ¦a*”ãÚoOI¥8ËƒÓP7ØWÇ®+™®.„B!„øeä7	Z×I¼¤ºq¨q"Ó	WÇæ9Æî£ƒÜWš‰Ã­ƒcph€“ÇöAêìœ™Y9äæä’æ6˜tºH©21G™^ÜK7tN_ 0áÇ´Ü(+ÎÈğ(Ñhâc|™öìî~ğ!ZÛºùşö~æÍö0	Æè8~ |éW³©7›»?ó;üç?¼“\İ@×Grj˜ÑKY-,RÉÍN'#_AïÕßDFÇXñå¿äkm¢2×®_jo™&ñxŒ„¥c·6ÇGö:!„B!„øYøXE-¯ÍKÉ°ÏNív¯Îëßø{Ù×Jo_Îçı=ıºÛ9»8ë+©«^HvÜjöèµÍï½ÇËûÓr¾½<õüz†¢ëe¡ÈnØÌg?}k‹è·°GÂŒ‹3kc»#5…İ†¡[„{;9{ög?FMÁòPRYFqi3ƒîÈHãà·¾ÆûÖOÙ{æƒcãøı~ÆGÇ¸ÜÕÆŞ­?àÉ­gÄì†!„B!>ŞŒÓÉ(-“Õ÷İÇíÛ›ùæÉØÕGb¡\:ÄøÕOóG“*Å†Û9{12Í›É¦·³zq¦¥ÈÍÉ¥dQœQR…ÇÖÏÿ÷_şŒ'¿MÇğÙpüBŒ¦zh¸ûS<ÑÙIÇÿÙEGøFÃä
+]³ãM·%Ÿ~¥ü£C´ì~“­Ù4¦ŒsôŸòİïï¥ÏîÄşqÉã–EFõJn_]Ï®æ]tNZÓÓíav~ïyóÉ¿cÆ4
+°idãÿ~‘/ÊbnB!„Bˆ_ ¯ª¾º;ùÒş_X"è7gŒn+\n,'4;î˜¶ÌÁÁ¿ş[<şÀZ8-,Ó"½¸‚†úeÔ¹ã×ÜãmØ<NÜ>E|,ş!Qös¬"G)›ùu~ãl‚7Èã:^_‹VmB‹1½©åğ[Ïó…¨oºƒ'¿Lñ’§~Ì*ÀUÂ†O}ßz Œˆ?NlÆéiº'eª-\ù“jÇ¦ìòB!„BH ÿÀ'¤ûX|Ç#|õ}ÿñX1“ı£ÇãDâ³W·L‹H8F°„ÉÜZşüş†¿øY^ê^¤Íô±öşOñ™-Ø1Â‰«Ç0	‚ıãL¬â¯ş|i¿8aÎ^°”‡ÿ¯ßáw+ã­ëGrGj›åÉ$Ô%:•ÊuÃ@sù`ÑƒüåWçS÷­¤Ğó1»‡Ş²H-_Å#¿û_ùñÿº›:sœ`”`ìÚç»›	“p(JÌ`2a"äB!„Bˆ_?£)ëñXŒàXdNÚV·4­ÛÓ¨^}/yåKØòh+Gvïàí#§9qà<çÇbàuRXZÊ²e¬ß¸™õåíµÏc–Nfù
+øÏÅÂÏóÜOŞâ=#3¼”/]Îg?õİÖ@ÑÈV^ziççœ¯M¿:²ŒE"!6–`æÚî‘xâÃ=ïÚ2a<B0|uÄ?è¸ñˆ½R6òk6ó¥?yŒ#~›ƒÊvuEñ”	+ùü1Ks‘Wµ¯ü÷4ª›^äéßáÖŞÒ">ıøƒ|î¾{X·4‹¶­­˜¡Á±©N‰DŠÌ«å²’eÍè¿‰„ nÎ*»……9¨Npfóæ©#+Á˜6½7Ä0gm¨‘YÙÈ]åQ½ésœ=¼·waï¡NŸL®˜á¦º©‚úª6­^ÃŠ¥õdxtyg!„B!>öT8ÿÈ­°Ÿá@k¤jódêÒo°Úúl‰X„p(D$ÀœıT(¥Ğt»Ó…ÛiG»áñ„ƒ&Ã1¦•Ü_Ó°9İxİ´ÈÄMÎW#`Ì¹fôU)GJ)°ˆ˜e	ŒáÏV®TÒ¼¶ë?¹Ë²ˆG&Ÿˆ`ÎÙW³¹HKóL¯å¦ÌÁ`P$¼J¡ÛœxÜœvMø	†¢³£t\/·X`Œ‰PìÚNe#%5‡MGa‘H„ğ‰_Ûƒ€ÍFš{ªÿ'f"$3¯-·Óƒ×ëÂ¦æ7N44I(#nZ3®•Bi
+M·áp:q9nÖ„B!„âÈ…B!„Bqcò¤f!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„â—3«ŸÑ¶âçCÍùóñ'˜`4Å´~±ê÷£ºFÒæn|¬G%úıŒ"ò#„B!®ËøP{[	"ÁQz‡#4²Ó½8ôùS’2CŒ*Rr²ÉtÈàüG›p
+ëCªâÑIFÇü#	Lsê‡š;%ÜTçÇ2ÆiÚß}—]Ú
+şô®2\vmªø
+ŞGù?X+°,nå%”eô34$’ ¥xRÓÉI±¿¯Pça4˜ì|°¦ÎA·;IK÷‘â0~áº59JÏHˆ¸™¼VJÒm¤¦§“ê¶MõZÄ£“L`KM%#Å5oÏ¡2#ŒŒŒ1>Çš®Pšİå&=Õ‹Û¦ıLÛÄõMpàÕ×Øçiâ?=Tƒ¦¤+R!„B|ÔÜŒ2Ò½¿ù·VœKoã«,§4İ6Ï7gĞ`¯>¿“İ—<ò{¿ÎİùšŒ–dI1ÆøÀ ıQey>lººiGJpô2'NcÿéN.…läe8Nâ·êVmâ7×•bYÏ!h¥ÚŒ"Zñ(Ãı©ägù°ÿ,N;2Á…¾Q´Ì
+¼7Â&“^í<ÄË1r2‡Ç±
+êxh}e©Æ-–3Dëşüèğ0e™¸,“ñ‘QF•¥ËØ²´‚\ãê}d]>Æ“Ïœ&––OYŠIÀ?Î… Î’ÆeÜ³®†B“ ÿ/ş`7ù÷ŞÁ=M%8¯i‹
+áä¾wøÁq“š^ìzœñá	Æ¢&´<V5,¢©¦”|Ÿ]ı{µSù”B!„?«@¥áqÛ½ĞEÛp%ùi98Ôì/ÏÊš ³ı—Æ-ìvcV˜úk?Jéh9Ì›ÕüÁ^lº~ƒDdnãÍ·p2šÉºu[¸Ïç$Åk›Œ›èt°¬_˜H„œÛ¿‡Î’<•ŠøÜ•B_ä½mÍ¤Şñ)ò<Æ^<ÂpÇ	¶]vrÇ–õÔçØwñÊÇy;»/¯ÊºnpãQ}…Ò4ÜEÜ{Ï
+òtğdá‹]¼»/ÛÜé|jI>ã©¹j8\nª×lä¾RE,f¸§wöb[N.Öçà4Tr&€¡ß4Ğ*¥H+¯åáÍeøœ™
+Gèaï¡]œ¹4Áçî^Â¯]ÌB!„Ÿ´@>uL%v“'{XšŸ†Ãc›fâÃtvâËu3:¨®ûÅz*1ÎP’’gn{ı s³cM÷%0û83_ãÚãYWş›Õ®î?ÏyİÊTêîkÁµÓ¦	Â±(13y¬™çtMVŒqxÇaNÅóøÔk©Éô`¿&©\{¾·T§s·½ÎôîérÜB™o¥CÂ²,b¡ñ+áynıÌx½[m[³ÏK¡QÂ‘8>nÜV’=	â££è¹5”d“î²°<zOĞ61	(Â£ı?v{íbç¥q£‰ìJw–A¶Ã@‘Í‚<'Aÿe^9×Ï½ÕÙxã–®Ó¼íBš¯]3_[¿Áû`VŞ¸?Gi:._Ù™: (ğÅ8ßÑÁşËuÙï»èN™éé¤»ÈLşÌ,-dAªçŞnfëéXZ€ÓP·Të^Ûy~q³¶uÓ÷ÈõÚä5Ÿ+Üğv‰[mã3%„B!>Üw.õœ\jo¥Å_Á·ÛÔ?e¹ØÓÍ©p.›
+ıøGƒ³ö†9uòG;ÇÇ-tg*u+—³®45.µî>FK¢‚ûF9pè,]#1,{
+KV,aYE®©‘ÆXhãûÓ|)@8º'ƒµ·-¥6Ï7}>$Â^hc×Ñ.zq4‡—Š%¤_8H›¾€Ûïl$ê‹ox¨“‡ÏĞ9%¡id—s[c|Éj9½—×Î˜,½³‚ñ}Ç9Ş7‰åÎbİú&j²í‡°·c”°¥“¿°†MÉv\­·Xh˜ãûr¬'@ÔÒpe²qM-et,ÂÁ^¶¿ušôª…©Av6÷01qd²yÓr*Rƒ—Ù·k;;ÛÇ6ğ­áSx}™¬¾k>5û¼e¿ØÂ{—tšîZI]Vòunôå<1ÙÏÑ#§8qÁO8Ê°QTYÍª%•äNİfnšÙúbfe+}—Ù~ ›Á…-5ŸÍ›©Hs¡ÄCôu·°ãHÃaK³‘]ÛÄg!àÌŞİœÏ®eÃ’R|–Eò^âav½q˜xY#w/ÉŸÓô{ñã×ÚéîÜÇğ©fœ9UüÆíU8“¾ìh¾ÄèdKÙÈ¯käúB<vˆ1ÔßÂÖı1V4ºÔÊ‘qÂ–NVÉ"îX[E–m’öÓ'xoûYZC´¿öç=òËª¸gCŞù*Ïf`/Ì&ñV/ı£Ù¹|â§ƒN–Tå'ÓQ,Do['ª¤’š›%XËÂÂš¾…@³Ûpz\D.…°,39ë!ØÏ±}Íœì›$š ÍádAm#wÔæá2Œõ6óü+Ö.¥¡Èƒe;Ïë/b2o®_ˆ…bC;ÑÂ"]³ ‡‘À?ØÅ®}çè‹‚æ ga5w,-!Ín ©½OñöqÅÒr—»ºéöÛi¼k3Ë3o0µßºZKˆ+ò²|hš˜ïóh*TÏ¨Ce¸È­ª`I×^9ÙÅxCÃ†"ÎøÀEh¡c$JB³‘Y\Ék‘¥Gé=wˆÏ:¸k]•9®©Ëb
+\ä­×Ï¶¸‘Ûêò1AÚO4³ÿL?ãQİí£nÉbV,ÌÅyƒAıÈØeo¡¥'@,Êî¤¬ªšÕe¤SL—òôşÊ×­&§÷(;NŒY8ÓrY³¶‘ª,Ó}f˜¾óçØ}¤›ş`ÍæaA]·×âÖJMp¶ù8sØP0Áá–^&ŒVm¹º\.„Bñïë#™Å™°lTTPSgÏ©A"±«_¨şq.»ˆ·¦‚ŒŒTfN¦V±q:Ï`k³ŸôÒ46â	^à7w²ûR4¹@q&Æ‡im=ÌS¯Ÿa2sKj
+H‹^äÇ[Ñ~y0M“Ó;v°­3Dzy)ËªrpwóÃĞá%¿â›Qú/ç/¡ÓôPUWN}‘FÇîwyşèEºD“ß‰	÷¶ğâë{8Ôo£lq)õ•iŒŸ<È3ïæüDr¤)£µí;w¤Ë–MÃÂl£í<ıæaŞ}uï^²XTSLUúÌX5    IDATÉÑíûÙyæ<S%îãİŞdkG¬ÊR–Ueb:Ãw^8ÀÅñ0&f"Ê`Ooî=Â;gÇÉ®(¥¡ØIë)~úÆúM‡ÇMy]	•9.¼™y4Ö—ÓXSH®óÚ/Û–=—ˆz²)¯ğaÜäëxt¸‹·^ßÆË'†pÓT_BEfœ»wñüîzCW¦ÿBàåıƒ¤VTÒP–Bàâ)¾óz3şpÌƒİøÎË­ÓrXÒXÊ¢Lèò'ƒ”™ 04@_0LbæıáVŒáŞA±kOP)l)¹4ÔQ–j'{A>K+Yº(CƒHÿQ}§ +‹ú¦RJÒb4¿û?9=B4a&ñX€óçZxaÛaNM¸YX[NEjˆÃ²õ@q¤gÒT•C¦ÛFAe	KÊ¨.Î˜ç¾æ+ï*Ùù‹¹³x”ç~ò_ûçgùæŞ1V>p
+œSå²Àî$E7ĞßG,²,“ø¨Ÿ±Ş1Ró2Ñuğx+Ï=ıov…H/)aEÃò“İö&ßİ{pB¡;ÒQ—»è!t¥^ºÀÑZÚ{¸›šY12Bwçe´hş~ôì>Z#.ª/¤®Ğàâ‘]üÛ¶"q3Ù± ûÔ1^>1DAÓZ>ÿ+iL¿~·,‹x,J$%8~™}‡OqÊªà¾E)8>²é÷Ê–Ã‚œR‡z¹hšXV‚ñşv^ùé{Ÿ´SQWNc±¾SùŞkÍŒaÃáË€Î6Î3i©+=N„.ãğˆ‰35›éçäŞ]ütWÑœ<Sbá­­»Ù{¶—ØuJìí`ë«ï°õÌÙ¥Å4Ö—RìppÇ.^Şw†¡øÔv4@×ùK´4ïdkk¼…,©Ì Ñ¾°—.xêó,Ì¥#üğåf†œ,®¯daF˜ãïíàÙ½I P*Ád`Œö“yñl‚[nçÑ{V°È+a\!„âãà£ùúkY¨”"jË{9²ç4ç–Ò˜áD·b^âĞP·¯É c¤kÎ—@On=’OQ†°XVîä›ß<FWç%Ö-('9©}6?q/ë\šIMaÑg¶qd ’¼tR”"¥¸†Ç7Õ’çÔPJQ“é"ôêaö¯¢<Å‰99Ê¡m'ÑªWò¹Í8“gÅÂ|óû™H¦<Tl€£'ÎpÆ¨â÷n$ÛY«-Ìà™Ns¾6ŸB_
+0µ0ÎÜ-üÚŠ”f²(ÃÅ³¯îck´¯şÚjŠ<v¬`¡y©{œ••àó&¸täûÆ}Üÿ¹ûX®ŠååYüä•}¼ÓÑÄãK¦&1‡"˜ù…¬Û¼ŒŠTË¬§H{‘=ŞMKïJ¶¦RY]Eßù^º'‹Y¶¸‚§~unêã1œ2o²Ø·JŒÓÚzŠ÷zÓyìsë¨Êò&ï›6k©¯<Æw_<Å¹’²æ$;YL+æbÍÃ[¨õ)PÕ8vğÔ6úÙè3>×M°`!ëÖ¬fQŠÂªodSÂÂfhÄ?ĞÓ¡4ìŞBjLv¶£•”°tI%i–…Â"âÈ`İ=µ,-MIÎ¶¨ÍÅÙÁ»';‰Õ¦cŸê
+‡)¿­û–•‘n·ˆ×•â
+<Çî‹t.¯`QN15Ã97BÖ¢ZV.pc¨ë=^ËÂŒOÒ{é§ûL2Ó]ØãÂQ“X,F,aâ4,&B.á£Îáäfë®[‰(~ÿc6h`c‡°ëR÷.—#LóÖ£´«|>ûÈ,NMÎŠXÑÔ@ã¾wùáşƒì­)`½'ƒš"“ıC~Æ£à²%èlï#’—AêÄ{ãT—êúéú¸­Ğ	?GßifrÁb½o)Àbê3·ó¯;Npheë³’ç89ngıÒ*ÊÒqİ¬/2Éş×~B»Ë"‹1éÈâşÍ¤»mñu©.–E<2IÛ¾C\Î_ÌçîZN±Ë«%…;ùÆë­ìëiàîŒlJ#lïcyq..·"‘ˆpöd”Ùïlá@ó Uw?À=åi8t0kË)Üó/Ÿ`á‚|xg½› 2Â¹3‡Ù.áË,§<Ó,k}K[÷ñä¶V:‹òÈ,Ï ,‰0ùüögHŸZ°`UY&?zù /«å×çsp{Y+ÖñĞªJÒ5Ë¬¥Úû
+ß>sš–Æš|Év:1æâ¾_¯¥0İƒ!ï	!„B|l|DëYX—Qîbç‰b¦E" ÷l+””“—™†6'[¶Š“ãŠ32:B_ÿıc^#A $0ãë¹½´ŠUÙvlºB)ƒ4—²|ƒ‘@‚x”¦Q^WG†ddx„¾şA&#Qt#Áà¸…ešÄBİœğ§ÓPQÂw2´kš‘¹˜¦"#9"¯ >4FßÅRs}ø‡G¹Ô;@Oïş	E†6ÁùÀ$“SE±ÛSXT•¦%Ï+'=…ÜTƒÂªrvt¥°9m¤¤19$‰ƒœlÃt§’¤§w€Ş~â	4›Æ…ALÓœ®£†â<Š3lÉóÕ5
+K2qY	‚ÁäšRÉ»á“çõÿçOÚ °n|	€ÁÎ~òšê(JóaÓ’+Fkº“œ¬2Vçû9ÚÀÚE·‘_VÉâTmêìçøHwÇ	$¯/'‹x/mè b‚İ¦È¶—<¯dù§ş;ùì+™‹hZ`Ã?>Fÿà —‡b`é¨q?#WÚ¢eAVM…™d:Ji†›ª’B‘(ÁÓuÌÜ×˜ï`&èï<Ìß<OŞšÍüîãğ•Çà³Miœ|ã5~ÚÜÇDh’±ÁNâY…x}ÔM†*ccyöÙ×ù—§_å»¯¥+’ËC¯§)/[ø<ÍcTÕQŸ¦MŸŸ¦œ”5, Ïätë6‡¼ŠlFzÆ˜A¬s—MªWRí	3p¹—8“ô1‘SJ™İ†
+urô’…×í¡©v:@Ğ¦£t^%ëÏ² ;“2÷-$jİf§nÕm|îu|öÜ¹ĞÅÑ·ßåÙƒİŒÇÌğãÍ"‰±4teKôr¸-F–Ë@ïO–§o›g4BoïFŠüEeÄ:»±°HÚ8Öç¤¬¼”|-@ÏP?,?ƒÉ:éõr{˜è!Ïz) èÑ}ÎÏâ¥eäfxÑ¯\'››´üÅ,³rvdÿÔ¨¼n³S±¸šLC›ºÂBÊs}Œ\è!’ˆhçØˆ‹4M#4,Ï¥¾A"'Ñ ŸËƒq®Ü=®äQé°KB!„ø˜ùè¾ŸYVz1Ë+³ù~ËI.,Ë"gâ2ûÏÔßM–ÛÂ?'x˜Ñ0=œh½@Ç°Ÿ`Â†“(=“&Å³máMKíjÿ¡k¸œ04I$ÀJøéîèá\G;gûÂ [8âQ:GMŸ9á'êòàIIeî„Í™«fGâ	B1‹Á¶c¼ÚcL÷Z(¤dSaØ 1µŸî!İ7£‡CÍPhvcÖ(µRˆÅ±LÇñ{xùíşC­
+]K¡Ğ{õG–İ×éÄi]½³V¹ìØÌ“¡ ş¾.“Ï­£oR‘ë¾~ŒÆMa9™Æœ!\»¡‘š¢Hˆzr¡.wŠoV­:†g,`á £fŸæğ±ì9âcMS5µ•å”¥ÙgD—®=.pº£‹Ó]ƒ'À®cıc„Y³6ux<èvÇŒ ¥p¹l„£1Bá©¶nñeã±qîî ½v5ë‹ñabéi,Y³4Ï~ß¹ƒWCµØÎGY¸,›ÆÍln¤ğÀäÚt4ÃIzj:)Ó²0Ca&Qä¥g^Fñzñêç'&°ŒlR²JÉ8Ípp‚ÂĞeº£iÜ^…cØà•Aı£ƒ£d–5bØmXşX˜¡ö“üôòŒEÛĞğåe‘®…ä|‡×ƒn»µg¬+İFzA)UeÉÎ˜%u5,L}l?ÂÙºBVfØ?’& 2< èM'W)0'	£t·µèkŸ®w…†­0‹LGKyÈË,¡ÆØEóH˜™.üg:òårWy–5F4!aÛîƒ8f
+ò]Øõk;¦ÅdÜI¶×œ™1ã’ÛÔè
+ÆˆÆ¦¥9É˜õI°ã²há–…}2L(2Nó‰£\h½Z¥ŠÒñî.õ¤¦ t]şÆB!„øÄrÀ²”Ö—Pxòïµô³&x‚¡ìRîZ‰ıšûmãøG:xíõ£ØÖ²vU5^‡6Ê»Ïí&Àµùbş%CÜÄ…“üäÕv2V¬dó:7)^¾‰ó¼ôÎ‘©©è€ÒˆÇâD£QÀ1³k€¸Éô|M)4tÊ›Vqwy*Nmæk*n«_wo1­]Íç:†®“Q¼ˆ_½½}nµ{°Ú•Ìÿ¾"È2­RW•½ù2mç¨iÊÁv“7t…ËçÒ„™İÆÕ×ˆ',&'!½@C¿å¤áôæ±ô¶tÊª¸ØÓÃ¾ı{h¾â‹-!¹¶v‚PÄ$¥%¯¯e…˜ˆÌ¾Z7«,H$†8¸í=vÇŠ¸gÅRÒRÜxİ	ÎìÚËÛ—nõz©k®nØi`aZtdÕ¦¡Y$¦{Q/^Ê½ãüÓÛû©\¾‚GK²qİ4ƒfs“Ÿ_@‘=y_¶eY˜W®›Ã†‹``…söÊğá0aËÂãõ :©Şª3'97:‚66L"¿”R§A¼²kû('4ä9pÚÀ4t‡›šÆ•Ü[åÅœ³t½Íå½ZWê}}XL/Âfá 3Õ‹ÏŞCÀÂJÿğŸEJA`°‡³íƒäÔİN–a`%tt§›ú%Üµ8Ëœ½ƒáLIvşe§Q^æåÍ³ÜYæğ¹ …•k(óXÉ°¬4Tz÷ßÑ@–×>«Ø–n'ÕëÄ":û*…]‹2N$?kfì7-&Ãæ2°M½ŸL+ÎdxNÛ³ÂLF¢’BŠRD#%‹Õ«W±¬È9ûúh:.·kêÓOSòĞ7!„BˆO| -­‚MU­|ëÀAü¶Õ«JXàgÙ*3F`ô"gÍ¯¯aI‘,“ÈÀ%†&­©q·[7ĞÕ‹ß–É+kit)P&CgÎœŒNáÖS²Éœ<BwïeK+ğ)3ŞFÛiéK`M-âíHu‘eãÜåIRKÉpêsò^2L|ğE‘²)Î±s|`¿c95)jÎ#£¬äêÙïSpr2y?¿Ró?"Ii¸ó¸½¤‹—ö  mËÊ²qÌS›×IF‘—îæNeáKw%û+¬£ã—9Úë¢®Ñ×·Ús Lté¹Ådääáó=çè×“§+¼N‹Ş¡ ¡ ‰òiX–E¤§›ÖI“%7=xœ@(A<®Pº…ì¡¹×¢x]-«êP¨É‹4‡£D?ğ¬èşÉ©p¤æïˆÑT&…)aº¹.!ß1µ€º²0#“øƒqñQ ¡´[z,Ş•ğjÍ³‘r±0ı({ÚÏĞÕC¹gª£JÅém½L_ØÆÒòŒd?OŠ‹œ’4··áP´%‡aGK¯ XÛÁ‘–º#Ÿe6 æÉ§Äq†Q=£ŒeÍ%¿²ªùœÕ0ó6 ‚ôŒ3õ²Ö§Pïójª#êjJ‚ÀĞEöl?Â	UÊã5¹8X,ŸòÌıt£’CÍ¼¦<–#âÂBÜÛÛ8Ûªs*àeÓâl,<¤{3ÉŒt0 R¨ÎL™^ñ|záó9×ÉÜ;El¼ÜÒÃºÒl¼©äöf”àpÍtÖ§ûHÑ“OHÄCtvô).M~j
+ÿÅË´÷È[V‚C70S
+(233qgfãeîõK–nB!„øe
+ä€rS¼´ŒüC‡Ê-çÎÊ\ì–…5÷[¶Ò±¹3È
+bOó	¢Y>Níe\{ÿ<'ÃƒêgÿÎ#Xå)ÄGi?wó=9ı]é¸RJ¸siÿ¶o?ZtŒÚ|æx/gÚ†™°'¦ñm¡yhª©äô»GøÑ«C,­.$Ín	ŒĞô²¤v%™QINêÖÖrø©#üäåwXQ|fr$8NOOˆÒK©ñŞúñ-œ¤8=Î°ó´b›…£´–E)×&İNãæMLlİÉ‹/½Í©Òæ‘ïƒñqFƒ!<EµÜµ8‡êÚÅ,9ˆç^°´¾‚Bbr¸‡C'.ãX\O}i2ÌßJ¾MDÃtßÍñp:…i8ã~Z:Fˆf—QaWh6;iK1^:Åën“åéXã½œ<3Œç&«„Ùô4ƒÓ§;höÆ±nšJRÈuÆ8{º™í?Ùj’]9ÕÄ|¿­ŞÜNÜ8uø0ÇÈÃÀNeM	^kv44ŒTV­)äĞë'øq<@Se6™íéãÜ…ú£î}h—ç¹W'h,öbd³º<‡ñşG1•Æò;ê9õôqy%Îòª
+<==?y‰ÔU·³67ş,ÃGVV1ƒ{h‰—²1×®)t›—šì8Û^¤qS%nwrÊ¸áÌçöù<¹õ0?NŒÓX–Eªİ$02Â%
+6Õ’ù>A¬DŒá‹í´(ONp©»—–¶>Ò–o¦Êc[(ˆõÓÚiàµ'ë¦odœK½#ŒºóùÌMTd8’#ÔNË6,äÄËGy::ÁÊŠ,|àØ }#–ÜÙD±RX¦NNI.eé¼µg¬¡Ş§Oõ”ÓTŞÍ»¯¿Ã@]9uyn¬DŒ¡Ş!Œ¢
+šÎiº;ƒšú&Zß<ÌÓ¯øYµx™.ñŞ.¤`ÉR§cLİš¢Li;ÀOƒÔ•¥’æÔñ³œsTò;Õ>İÀ›ZÄí«Zùá{{ùûY\ŠSO0>8Ì¨•Ã†µ‹H•¿ã„B!>Ù\iv|.úŒoÑ6_·5tÑ–¶ˆÚTãê½šºÇåH>\ÙÉÎ¯âá;ÆyõÀY^m×ñdä³ö¶F\Û2>½Ø—†ÍîÀ“ĞfŒÅ%¾aw’bÓĞ oíİÅË'Nòò9)¥ÜSW†JD™˜ºA\·û¨Z{O¸ğVó	:N¸S3Y~Ûz
+÷½À~®Œ€äÔ¬à1ÃÎ«ûÎñö»=èØÜnÖ7áõØÍ°áq1ëQn(»Ã…[Ÿ9¹Y¡év|cú6xOf-=bgÛ{'Ø»û2†®£ÛläW,f¹aK†¥át9°és;3<nıÊèª‡ÚúE¬í;Èá=G8›ZÀ]eµWfoÏ½`x²JÙò+©”;É¶ƒÙÛİƒM‡xÌD÷ùh*Ò±ĞñäVóĞƒví9Îá=9„B9\T5®dcCYÓ3t.ÖÜóÔtœ.'†®Ğ4pÙMÚâÌIMW¤Õğ›ëëÈ²ë œ–7ñèí1^;xš×:t<¹…l¹s©o†©°j¡aØíx”~uHÒå£¨aëú²cÇ ®EËi¬¬àş›½y’íÛp¸ShZSÅRñş©úE¡4ËD×Ô¬§t;>§mêe-,ßB6¯d`W'¯oï¥¬n)U5×Ö°ÒíäÖlä÷]gygw+ÛßëFW n*/ã‹õEd8a8×ÅÛÛ³}ŸEÎ²lV”ÎÿşÒmvR\ÉóàXÃ—[Ï¿æcçÎ#ìÙu	Mr¦ÒtûÜ¶0ŸM]‰…ä¤§RíaÈWA‘c*üÚÒKóÈ>1Ê¢üRÉr)ÍAnõz¾d4óÚ®vŞìhÇĞ6w
+‹—–à›ZLOÓ¼NíV†¶5—MãBóo„ib^–n¹›u‹
+ğÙ’Ï!WJÃév`×µ,P¨aØ8†ºÙúnº²ˆÇ-ì©é,Y±–‹ŠÉtÓ×Vi6òË—óÄı.ŞÚÛÎ›ç;Ğ5‡ÛÃ¢†ed\]¹=%—Š¢ÎZÔ.]ˆKÍø;M[ÖãİwŒ÷š›ikV(]'5·ˆÕ)S‰
+Ãá˜zŞ=XJ'µ¸–‡°±sßqöìêÃD¡»|Ô­\Çúº¤Ùµ©™
+İî¥~ã*|­‡y}ë$ñ„FJi-_¾­ÒÔäjôÊîcáòüšıo9Ík§š¡áJÍdÅŠj<É«ˆaØñÚõë.D(„B!şı¨p4ş¡æ4ZfòH]×™™iÌDSi3~h™	&(]ŸZDÍÂ4MLóê‚Dº®°&–ÒĞu…E"ab¡¦şÿÊÁ,L3‰®+fÂÄœšª}eµiË4±4}Æy\ûšXQv?ó4‡u|áWWS0uË4“af°Ö´äŠê3Ê£úÕQ=ËLï<¯™˜[OSÛÎ¾•U»ZNË"0Qš6;0Z&ñ„5ûç–EÂLLİGª®¹ó\¹©òÍÔš,ãìãš3¦áÎ®ƒ©«M<nÂ¬2_9O4C»R_3¦ÕÎ,+×kV"š>uNWÛƒ1£È²Ìäõ¿Ôt5õúÓ‹niSSù-Ğ}jZo‚äág××|ízæù«©×¸ní^i×k;3~m=Ì¨„‰9ã|oğ‚3®ÿ<×qNû4¯ÔÑœòÎ·ÏõŞW¶›~Ü´Íf‚øÍÚÜŒúQÓ×}ş6œH˜×LW(Ô5môÖË3ë3Ì²Pº®®wmf¶ç©k¬®ßN±Ì©÷Óõ^[auíäo_¹ÌÊG?ÃÆL¦·UJC×´9Súç¾g®–ÿÊûÅ4MLKÍ³¯B!„ø÷öŒëØæÉ%š®_3õTi:³gå&;¦ÍİpÖFÉpyí+4İ˜ñjŞ×¼öàúÔˆíTgr´ÖEzS&™ÌXMZÓ04í†e7®-$úµ?œ¿œSÛ^wíc¥0ŒùÊ®a×n«ë·¾òÿÏŞ{7Ùu\	¿¼öyÿ^Y Pğ ‚^j©%ªÕfz&¢#º£gc÷ÃÌLÌ§Ùˆ˜ÖN«$RIQ„!<PŞ×óŞ_“ûÇ+ åQ !‘”ò?ğnİ“îœ“y2ófŠÃóÏarõÈÕ0$öşşâôÒã…ú «KqD¾ö¼§¬Ë#ôúDõµ+?Ç¥-N·#uúÈv:Aû¡sGÙñW¶ƒ#Uåd{Òúy±n¾|yóa'o›£üÖhòE?}¬|GØÌşçª¯S(
+…B¡øãÈ¿KHÏ¥Y)R÷-ÂC¸tÛ]–w—¥`–¸4…-Õ1H
+…B¡P(
+…B¡Pù«Èİ!…‡ŸñÎ9d¢a‚ôÉ—›åï~ú:oNO|…™B¡Pü~•ëyjbP¡P(
+…âO€¯ıùw
+ß£×(³Yíâx£o‰5Ó$’H1–]õ¤P(ßh<Ş.±T˜"P}+
+…B¡P¨€ü«È6RÛÔ
+Å·ÍG)¿¤P(
+…BñGñ§Wd©¶¥+
+å£
+…B¡P(ß8êğ]…B¡P(
+…B¡P(T@®P(
+…B¡P(
+…
+È
+…B¡P(
+…B¡P¨€\¡P(
+…B¡P(
++
+…B¡P(
+…B¡P¹B¡P(
+…B¡P(* ÿÖ ¥Äÿ½^$ñıã¯(åAİa¤øÃèûwAÕ^h;Ï•Õœ¸Bñı_ô]n÷o¢Ş~Oz¶§¬òÅıÄWŸ+¿z#åwÆg*
+…Bä'Â÷}ÇÅı–ôn¢_çÁÛ|¸Ğ¤çı~Òğ+«üË¯îp·zx™}Ïãá§_ğó[t„øÃŠ|¡ãâxşáƒM)q—¡ëÿ',şˆŞ¨Ÿÿó¾Ñºtú}n~|“›K5ÄP×^~ÜâÆÇ7øçÛù£	İ'øŸŸ/Q‚—+‰ãxx{ÚAâ¹î¶òşhô^RİÜâ—¿ü-ÿã£'l÷œoePî‡|ùë/øÕƒ<½oƒ~JŸîæ?ûx•öËêÙ‹ŒqHåÎ]~ş`‹š¦¡7øå/oğÙÖğHïés…`ûñşßO–8ş+“YYYåg¿§Ùs^ef•<ÿê¯÷q}
+…B¡øÆ0^Iß†Oiy…ïæ™úÑ›¼›a~£c.1
+:‡Cz®” ¥C¯ç¡YÆ+JÆ÷èõ‡8¾¥yX›&SGü¡†ÉÒg°=Çÿø¼Jjv†½yŠ¨Ø›ö ×æóo²•<ÃoÎ2T«‘£¨Á¡;ô1‚Ö1AÃ Ó¦²±ÂgıÑŒ–ği÷üè'—9²¾‘m'RJı!Â•Às†ô‰´0¾v 4
+jûC‰m›ºøZ¶iX&C{6±Ñ8h–…eh#;q:“Ï£ù.İ¾C¸Å'¿ksî½ë¼	Ñãş¸SHpx™‘×/Ír:ùİ_Öë<~´Iòòe~<À¯8¸|…iØ†öíÈŸ”HÏ¡;xş«—í;CºÒùUMÇ¶MLı[Ú6¯Ïuétx…=Šçìû•ÛªĞ°,tÕõ)
+…â  ÷;¶54İes±ÃÕxó˜ˆ|´‚÷4ˆ}>(Ş³²·o+á¡ÏÄÁ~_ˆC†<w‹ûe‘ñëïóg§Ÿoe?.Í£óşLìaãÎgO4]çò÷ŞæòNÅhà`~ås‰ÏÅïÿ.}~`@èúÔê
+õ	b)ıùßJ^k•¶ÀïOãˆºD²k@y’öá°r½ø}¹+S{uåy¹O¬+‡Ôãr<}.¢°Î¿Ş®qîo®sÕ6‡Ôï ÙàÖéŒMñ“¿:EFJV@{Gæa™ö–ù¨ú|úš<RvĞİõU~ş¸Ë÷ÿòu¦Æ³—¯·ÃuLŸja•¸üàıóL%ƒiÌÈP    IDAT
+8Lgèp„·ÿì­‘lN½Êï¾X&ùÖ^¡?K[ìËïú.|:ùşı^]ô);!f÷çq<ŸÌì[ü‡+ºÆ±ò^h£â„6À‹mëe|ÏáşOàx>Oã‚iĞ´#·ö–@ˆCò¹KßFZzt¼Èg<uÒ†iríïìÈ‡¼x>'LûÈú~¹I—¯êWö<ß/#;ÉsSûÚıxûßß<d>©^Ç'ñEÇû×ƒíòuwŸ®öÿãeâ×±Ûƒu ‘é1şìGã{ìéEıÜ‹ıúÁg/;ÆP(
+…
+È_!iwº”†Ş¸cnun‚KqóĞ•B)‡·ô½ßa`„É¥ãDE›ÍR›®ã#…N$c2º-6ªmº®¡ŠÄ˜êTkmüH„äÎª¤çµÙ.&2dw÷:Ë&mgH¹¸Å‚"›J÷[¬ï’ŒÒ<râÁR+W©% –îó-ˆ¾K»Ş á¶ª†‚äd
+Q­Ò7C¤ƒ>ÅºO*%ljÆ÷Ûlmïä72¤VkRnñÃ
+15ÇÆ§ÛiSiA@¸´)°!&Çc˜Gôîº)ÀíR(×˜Ig1wF7`ãq™Ù=4´X+vèû„N$%—¡K‡Z©AK†»jC‰:ñDŒL<€&~‹ÕR‡ÁÎ»±x”L"„¾“f¿Zb³åà#°,C3L6ÀÔFõ°¹Ñ¢/aÎ$H†Mğ‡óúúHWº>˜ÁiF©Asà!t“x2K6¼3}Š…‡DE˜ÈE1¥¤ÛlRêJRúbÏÅ“;&—‹A£I±Ô¢í(¬å	…ÂŒM&‰ì©Õ+÷³>Ãº:FèéàJÚœ¹4ól°%=f¹L±?Zzf™±¦®á{•RO3ÑİuG"„Iz*EB­úŠÅQ}¡IeÈ*ÅF,M&<B;Íù¶Oz<±cÈ„G»^c½Ü¢;tX_Ï3G™šˆ£õû”Ê5:Şh`Œf™JèéÑk5¨8]úôºC<!„“œJôZUÖ
+mºµÍ<ƒA’SÙÆÎ„p†T+MÑ(™°!%½J™¢k’–‚^«I¥'È¦Lå&#rÙØ®P:ò%ì¡Ãôxl'Îvh×ËÌ×†øìH†©¤¹+ ~¶x4]›Ù‹¸`nñO÷ú{gâĞs%¦%Ğ´ ç°A±ï3¬Õ(H‹l6J`çõ*…Nn<í9ÔJ*ÃÑÃ@4ËTÒ@à9åb™¦;zïY~…Ï°İ ĞöĞtèu}bãIÒ¢ÏV©CßÙL4%›¢*|ºİ&ùb@hÄÒYÆÂgĞ`}«Bs0d3_DCr*ÆÔ÷Ny6…j‹'B'’Ì1vi5ê{&ãé(![ƒ~“µÊ +–&av)Õ="´û=zD7d§’Ä ¹#7_mÑİ-7ÒÒ¨µè p§“œLà—kx(ã‰ A»Z¥ØêãJĞM›t&MÂ–Ğë’¯ö0¢íú€¡/ÑÍ ©dŠdğ©wÙŞlÒv|$3"“5k½ 1ì°]nÑúÈ§ıL:„”áôÈ—›´†£ôì`˜‰±(æNğÚ©Õ(6{8R`HğŸuè´Ù¬%‰!©•ª8ÂÂô{Ô†#ûOM¥Hê£İÂwiÕëZÎ¨/†	ºü`œÉ¤uhö½z••Æ Ÿ§>4N"l£É›ëM:Ş(è¶BÆRQ‚ºõÅù=İÆèwèø`ãL¤ušå¾‡Ğb‰,¹à(W[!´N›ÖĞC
+X,Æxòğ~ÓsJÅ2-@#’J3Ññ;uÖë±D‚LÔ„a—|¥ÅĞJ3•Ô÷Ìm>‹®›u–Ê®Ã’Í$ˆš’a³I¾™èh÷ïÒi4¨y2É0AÃ¥œ¯Që»;º$“NuÛlWû˜Ù	]Ğ(Uèa”]Ê‰†Ar2EÒÔÑ éºÔËÊÿ¹§LFIº”%;öo…ÓL¥,t1 ¿Y£åê?‰‘K„°Õª¼B¡P(vÇmÿå¿ş·ÿşµâqg@amƒ+ÅåËãˆrÅN¹ Ú![e¥lqó7¸U ë¶m3\
++ËÜ­@À€~¯Î“Å:áX˜„1dãÉ"·+4a0¬°ZÔ¹Ìİ]¦Š‘‹Ğ‘8Î&¿úx?1Å©píí
+­`†3!J§ÁVq€‰’[DŸÒÒ^¹+EóSÑ#‚q‡ÂÂ2_n7ñƒ¯ÎÂV‹JG’;=Í´Õgsş	¿xTEZ&¦fŒX¿q—'ƒ§ƒnÜÚ@K%HEL„”Ô×çøèQ‡Üé$¢³ÉÍÇ-\t4<Vç6hè6é¤M#¿ÁG_¬QèØ&x^‰›÷«Ø‰¹ğş9‰Û*3_…‰É,ıf—h2NÌÔ@J¼ò&7
+.§Ï„è´t&'RÄ,¨.­2ï€á{´[5­4‰'£$‚.¿|Ì'‹M†‰m9TªÛ<ŞöÉ¥c„Mòâ2ó®Àò=š*×Ú$RQbƒ^1Ï—wW(„C„äj=Ï»›”ô8§Ó!,­ÁÜ“mbAŸZ±Æj©M$%¨w¹ı›Ü(ôÑMZ5/•©´ëlµÀÄ§´°ÂÒ0ÄäD[ôÉo­rcÑÅ2®ã°<¿‰
+‘Œ©-¯ğ«;k´:`İn{óU‚É81Fƒ­µ†C !ª›D!ì]Á¬mğÉB—é7.0:|ˆïûl/,sw¥L?Âöû,-©w%ñtm8äŞoos{{ˆ¥k}Àü£¶µ g“A|gÀÂ£V«.Á€Ism›¼b"ØáÆç+t£“L'FÔÎê¿xPel6CHúl­å‰¹0”U¶Û>ñdˆ€a‘ˆ´òE–}Kàæ·¹µåIÅI.••9~~·@ÛÔ15¿µÉo×d²I‚~‡­r“RË'„HE,´§¹×aea;Ó©–èñøwwùpµK|l‚\pÀÚÂŸ¯›ÌŒÁÃß=fÉMp.#¨ëäë=ôHˆ°e“ˆ•·ó=4$ºaĞÛŞæÎúätœØ-Ï:±D‚ñ„ß®ğ¸à’`,¸³ÊØo0¿T¡â¸ôZuŠõÂµ÷›G»¼Ä/÷HeIš€²rçŸ.L†¨/¯òp»	Ñ*s­é ¤[.òh½‹iëxå"w×»X‰8I[ÒÙ\àg7¶éi:–aŒôöö¶I<èÑl6¨t¹\s_zÕm¾x²E¹¥²Gív·4ÀÄ‰Y}Š……z`8H8&±Ñµç»¼n›¥GË¬÷=4]Ã­nqgË'è¹}/Ï '…­GOøt]2=Gv·ùèÓ%¶š–)ğ¥ÏÊ£
+ºE*ÁèìÈxèš†óTn,NB´Y|ô„êhACÂK_ÜcKF97¥]©pûÁ&¾¡#}öÚ&s‹t"B¨Qà³›ó<©÷ĞlC6æÖÉëÆ³A¬~“¥Õe>Ÿé8½>…B+“Åj”;?°HÇÃõ=N³Ì\E0y*GFtØ\ZæË¢m€3lòh¾J0&±hnm3ßê!åèÙƒÇ%ôh”±ˆM»ZåÎjº‰O¿RäQµˆÄ93™$\Üà—76áL´ôyøÛ[ÜØbkÂ²ødƒMis6B“â_<®Ğô-†ÏÖê÷ŸlPÔÒ\ğ9íMî?\eÉ3†lçkx sÀÂÒ27–¿Óak½@Ş‰Øz›[ŸÜçF¾fØˆNÇ‹%Êí[M0…Oy~…Åa‰É0^ûwæøİV‹cĞ=Úw;$b!“F¡ÈjÇàõ™$Bú¬Î­°XèZx¥"
+=ÌhŒ˜×fùş2né‰ ­õU~ó¨A,•&Ñy¾Ù`4Á²’¯1è:h¶3°¹°N™Xws™_Î·9?Ä44„; ¿8ÇgyÉ±$NiOï—…-Ü^Ÿ|¡…‘Î’iåùÍÍ5úÓY²:<ùí-~»ÑÇšé²²°ÉêĞäl:„&}ÊË«Üß¨#ƒ6¢UááZß“Jª+kÜ^­¡‡ˆJ‘…V„É”Mmc‘ßÍµˆÇ,zÕ[A2#d¨Á§B¡P(^á
+ù 7dc»ÇøÅ 1+À¹TûËyòWSLñÅœĞ4BÁ×_;MÌÔ×–¸W4¹öÖiN%Lä M¤rŸ/·ê¤¦‹Û=’o_àZ.„ğ³4šĞEì¬xíŞDşllwzÉ4—mç†ŒMÎğÚPŞâön¹^–FK<ß¾¼+À•Ò§ß/pw¥KêÚk¼}:€!ŒióTë=“ø¾™âÜéN%|×e[ÓĞĞˆ„ƒLF7X¯õ9]–Û„²×:<|R%–9Ç›ç’XšÏ´¨óó'[drqÂBàK˜™ÉrõtM¦Ğò÷˜_­0››|¶š·Í$‹ãT—)Ö»äÂQ4	ùÕ
+ÖØ9ÎÄ·ÿ¹äíx„¨.4«?yÂz¥ÃxrgbEÓ¸reš‰¸ S±ùäóm¶ê’á(Á±iŞIDˆj‚~½ÌgŸ.°Yí’‹˜_Xe;r¿¾&¦IÍ ^y‰ÒN7W7¸Ÿğ—ß?M&"Ö
+|öÅ"ó9Ş?%šN"áÍ+SDdíË‡|¾ç?üpšÓ	f²Ã¿ÜÙb³åœ¬ñp¾Ë…—9?Bó‡l8>[(‘I%š@—‚øùi^ŸÃ E¨ú¥­ÓoLqq"Áƒ¼äÔ¹i®ØæŞ=hh!&GYƒÄ­mñåR•ÔÕ«¼;ÆÆãtp‰½½5åµ°@ ¤bœ¹2C& 9åöùÙ|ül’D¿ÉÊÖÓ×/ğÆé0ƒñ$mİBƒº-º¶³ª¶“>R'–Êpn¼Â|½Ë¹sÓLLğ\H§¸–éÈiW˜/bfæéöä(gÆNsyÌB›°È¼ÄÃüs)Ë¹é6u—s3§˜N{°³Ã$Ò)äjgà!½2ËM“P`@½ÜG{´ZCR§‚˜öÈş5!cÌÊ‘ÏwHšàõ±(ºçÑ|İ"•›áúT9eĞút™Ç[SLÌèÚşI>Éáû’%ROpı­×FgI¸Í•U>®J~ôú$ã‘]«¦šN 3Å™ÅUj¥³gÂĞ©±Öœ{+ƒæ”x¸Ş!óÆ®Ğ‡Yäçw¸³TâB6K çÚµq’•ç™+œb6ºãb0c3\?@´Öøç©×®qmFÇè$Ö¾2xËÒ£ÚÖ4¼5E4 !§’t{—/—£œ{/Ç¹ŸÍB‡3§&¹8Ù³e]ˆ!•ê&ıo¾u†Éˆß‰Óüø>·£üÇ+\¬·¹³^#×îskKpı½SL'•ÂÈf§²¼v.eÀT¼Ã¿ßØ`5‘d¼{¸ÜGQNŸm…÷­—Îœ"ÖqV4!bĞbuaƒÁäïÍÔ$¤äŸo®³‘“Öš&!<Éëç²D4—B¨ÅG+EÊSIbå7ç=Şyë³¹x.İî !Z¬,¬3˜œÜ'wƒTŒä„uÄ§Í‚V¥Ê½mËoœf6mÓ%^½Ç­õ
+É±0f<Íkã6QË@:=ôüm7êœO	6—V(„²üäâ)Kà¶¢è7æx²¿_zö?A áô•3ä‚’ÓrÀÏæólŸM3î:ÌÏçñã³üğµ	B¦¤•Öù¸ÕÁ=´;­óèñ±Küôõ4	Û§;ÕÇÓLªksÜ\üè½YN¥Ïe{a‘_-®s>}`|ôYU<šæú•i¢¢~çŸmüõ§9“4h%»üËí-6ªYM"ı$¯]˜f*ªáõ£Ø¥yîæë$Ò¡][½}•-—‡\yïç£ôÂ4?yÂıµ4g^ÏpéJ›_<.±¼àP[k2qáçÇŒƒ«ã Ä83Í•é:.ÅĞæ¶(¦cä4.ö~B&ÄÓ:°µV¢œäõ“èøtÛ=Jd÷ùxA B`GCœºr†‰àŒæò¿æÙ<ŸbBVx°Ú$qí5Şœ¢;9´/îğåR‘s‰4›«Ûh¹¼si­›fjh0º<\¬ 2—¹v1×ĞJlSmZW(
+Å+È]:N‰²™àDİ—fâ$–6XØLÎqÔ™ĞˆÅFÛÍ¤Rkw¨Ö|q³Ã—º ß§ßt0ã.ıXŠtÚâşİ|8q.%HÆ²Õ=y6wÆërgeDJ %²x°O®è¶Xš_ánÍAİNğıw¦Ğkº±(oL0|‰Ä"`k=ñT˜m´P”ñ‰kÛMúÓqìA‰M'Ä…ËI¼^ƒJ©I¡>G~Ó]ó2èÑ÷Bô†Fbãdc†ø~€¸-pœ!îaÒï”ÙŒ…HNÚÜÛê0“Šëmğ°arú0fKîùÛP<Ìê½û|Xsğ\—ZÇçœ”;k	Bñ4™°@J¡ˆè.ßÃB±Ë_ŞãWÏq¨u}® ñ[-
+mƒ3ß ¥À6C$#å¤ËÛmêŸßüîæh¨ê9ÔšCÒCşhËv0&jŒ¶öÚ!ƒD2K*h"„³ÑİÃ´õZ“Êƒ<Ó@ú8İ.ƒp”¡QfO^3I4{	á‘;×áª»¾KO£g•*`’ïO†°|‰Ft<Ët´B±WBt“\<BÊÖğ%Ä&ºß¥L˜AÎÇ=>»óÇ˜åòXœgÈËéûN<+‹¦0amù1¿Úê!µ!¥®Ë„û4¨Da’aİ—ø¡ !j=°y~ƒÓÁog%1;H _¢æäˆÖÛ")~oñ U£ÖÒ¨u-ÎÅ,Úpw6Gòvåóé÷¬¡HìXÍ—2	Ø’R‹—?+Ê’ÉGm)%ıAãö
+Ë¥ ©hòÙ§ °­0ÓÇMAêÔôïÆüRµz“üİ¬>e£ÓèÓ‹ö Ó2¨­Íó?W;øšC¥1$‘yî‚a›XÔFHÈq*¶Í—OîòQkš¿–%f2¹ãµ)t,Æg&ˆÚß—Œpu<ÂR¾NKfGŸŒÈ§õ¸¯r‡n½ÉVÉ¡ûyKı]³ç“öğõ8§OçØúrÖ¤^ƒÙ„”#«7‚QÆ’,cô^$•&.–iæÄd‹­Òğ \§‘R#™	4ôƒ[İ.­V‹µú€Ÿol !ñÜ!u×Äz¤ÅäL”€>šn²b6ô}œá€J³ƒ‘œf<^×	ÅÂhµ"ÍV›µúÊ>¹sô‡F§C¥VåÖí{Ü7F}Ğ°5DN|C,¢¾°Èo·ô<I§áJÜ^fËçô¥8sôÕ¼“‹<>*Aİ ’	Œì?j›˜~Ÿ&>i¯E©dâ|–9º#”ˆ35ª‡™z£A¾osî{	b–Ä—‚@0ˆVk]BÙ‹ŒÅí‘~èÙL‚Së›Ôİ!#õÔÃDÍÑgvhô	P*´ã_ã6ºÛ§ßl@j¤Ç¤ƒ#ªëarY“¹æ€Öî¯E|‰W®°^íÑùâ÷GQ5æ 3ä …F$=ÆÕä>»U%~f–?ajGœ=ˆr!fô5†A8‘%æ/1è÷u„ƒÙt„{O6ù—Ï»\ÿŞ9¦báCÏŸAÓIÄ¢ä‚:¾„ˆmbK—–/ÉÖk¬5ÚlİÈÆãÑ«İfŸn¸‡¦	&§ÂÜŸ[æCÍçÚùqÒÑ‘üK¹ Ö–ø¥ÑåÚÕiÒ–t*
+…âäŞÀ¡ø8ÏfÚŸ7ùBŒ‚ôvoˆ±´JãÔY‡|H.Ähås4ö–øÒ'<v–?¿š$b‰]ı£©iD¯_å¬[à“Oø6“³—ùóñ5Áİ‡\½Ä`]êa.¿y•sÏäjLÎ^ä‡çÃL_¹Ä˜¿s´‹Øš åH„®¡é{ŸıC;MƒÃµ–B'—“X-Pæp6ëô#)Ît]‰$xëò9f³6»N¹Á´ Ò­*"^î¬v©ÙLeÒ¬kt{q¼­*Nz’ó¶ ÙzÍ->¾½IAKñß›Bö:<¼5Çç*š¦:”¥¾Å‡·7©šşöıI¼v“{·Gùtå(€7÷’vĞ=©ÉY~z-¹çÍ00´Öª~¶Â¤iÏşóôp*øR¢GÇxÿú)R»¶òMÃ²$E	hâ«)½¢6ê”+>çÆ8-Ú4]ŞŒR×Ñ5»–•5!Ğ 	´@„sï¿M6_àÎ£‡üß·‚\ÿñ.˜uîi {úí_~~—Büï¼}´]à×­îÑ§Cw—œ°nB± éà€åò~©Kbú
+‰ìŞ½2÷Œ ;EÄ"8ÙÌ‚bdk¯h1éé¡Mz @Hx´=÷ hÓ$2Ç}Ò£QïÒ®öÉœ9GPÓ¸Édyû{gß3ˆ×î€[ŸİfÅÊòæ›×˜Uøü³E|ŞNFt‹Kï]çô ÎOø¿67¸ta–·Î&÷Mäùø4Mß“WS}~âó‚{+¥Dº:“'x÷lvÏyš®l3 †nŞ'g™»œ–£Ã¨v+„¯¡‰ÑµŠÒÓ˜¼xú¹ÒktYù÷ÃÃA®_åB*üÜ…À0MdetF‡nìoÁQåK‰¦µSÊ¹g¹
+í•kÇî&ñ¥G({†ï_Íßµ+\è:v·ÊİûËÜi„øÛw/4$ë·î2·xJ)°t±ûü¹Ø¥Øcÿ»mMâá£¡iÚ®6—GËó$mŸİÑ	úŞJD£Õäãn0Øãëå~?0êãvŸ½(:²§éÜ8¼sjÍ?a™„Óş£&¾abí8‡°ï0ô‘ÿİ]/’Cúf©<s¿›t)Ü¿ÏGÿşÉÜ8ï½u†œ8º]ä~.„SiŞúşy&ÄŞÅÓÒÉ\xÿœk²ôd‰ŸıÛ*§._ágbÄ_»Êé±zÿ!ÿß?osæÊYŞ9“!¬vS(
+Å^íkqa¥¦Í»o¿ÅÿşWïğ÷?}›¿ÿ‹÷ù?®gİ*+ÿz›¨Âm—G³û‹`ÀÄ644¡¡ù>>:v`ŠŸüøMŞ‹zäË:º@Ã¥:tp|F[äò:ò˜AĞîÜÛ/×%_®ÒÖtLË"°	,‚¶‰&ÂĞèÕ:”¾xõïä§¦jé0é¤ÏZ¾ÌƒÂìø† ÛĞˆŠugtıS0`°u4¡a~Í;´´T’É¤dn{…Ï¶t.¾Ä{J‹bÇà½wOYØ†8Q '´ËMJ]›÷Ş9E88z÷ùèÏÀ=V†<½–Öé¶vfIGLÍ:İÕwÀÀĞ5Líå®’Â¶=lS÷%–=ªGÛm>ÑM]Úè”]ß?\ßE*Ã©¤`m~ƒŞÀİ5˜–8CGJH„0ºMÖÊîHO¸•*…® •ÙhrÊC#>=Í?¾ÀÙH•%ßÓĞ}‡n·9:0Êó¨u†ü£Š2ª?og–`èØ&¸túÓ	S{™ë§ñlûº‰DH§‚ôj›Ì×-ÎÌÚXö89­Ífi@|"@0,¼ÅN`òû¸Ês8Ïö08”˜ec(‹N2’b&Ø£¹¾J¾g2›³Ğ–¡wú4k:àné]×pı<k›3§Ïr6eaéúñÕwñ¤N$œåƒ]çG1—•V›ÚÀ'JÂP«qŸFP®Ã|©‹{Q}™VÒ¤]ppsÇ·ZXš@Óu…å*Ûn–Ÿ\LP["?pŸ{ßcàø£kÁ¤Ï _¤*dO%°í‚{ˆ\íøY	M¶ËvÍG3Ìgbhí…† Ò«mÑíŸ¿;tqí§r½—’+1‰XaüNÏ—ú §Õ§XñxãÍi‰ÁİNY×1Ä€åBŸ3*·ë:[Ã¯¤ÎšĞN‡z½Š7êhp‡MêÃ#="fôX[0ôF¥ñ\Ç³I„mZ•Mz;m*|ŸJ«GŞ3HÆW¾íËuv|àôä‹édˆD=§ìk	¿Û£Ö7îØŒ©	tsÔ¿´kVàÚk3ÄJ¬×Û¸Gî>òèw®‘“íî#A8M$º	ø®C·>`¸3Å1ôÁ
+ØÌ¼sÿô^œöv‹Jù%ÜõİF·O­ºÛş5tcT‹f*Íkß¿ÊÎ(mÖq\Ç„â1^û³7øà²I~µG§£
+…B¡xE¹ô}Ú›šv„\6Œ®iºaè˜3Óœ·¶¶j[-ŞõÍ§²Éç-~ı¸N¾Ü¤\®²º¸ÂbÅA¯¸so›ÕB‹Z³C×7HÅmD$@êTˆú\‰ÍÍÅj[«­ÑIß;ƒ´İ1¥Fœñ GµR Ò0,¸s/?’ÛèĞÙ‘«6˜Ôt¹Y.‡,m,±\kQ®mğE±ÅÀ{¾DØvŞç':K¤ˆ1›ãln²é%¸63ºäÉ
+˜š
+²¾˜ge£F¹Ö¤PYá‹'µgƒØı²|Áõ)rçÚ‰Íx:Œ»Q¡›ãŒ®?Û­÷ô_8%©»l7[”Ê56×VyÒòw®€Ù-k_ú"±qmÈÖÎ»kkÌµüQûFÇ¹<“Å]{Ä½jƒr­Âby›'-ï™â%¦2Œi~w§@¹Ö¢R+ğåÂ&õ¶óôR¼=uº?ÏW$ÁD”™Ü½Ÿg»X§\«±^XåájûÙÕ3 ö     IDAT¶[ïjb’—üj‹J£ËàÀÀ,ÂïŸaš¿ø|õZ“r­I¥^âæÍ%Vû.ZöW’°øh¹Z‹J­Ä­…:"9Á›Ùº—‡O(€¤Ó.sëÎ2›Õf¡"Ô0õçÆ-
+ùæjMÊ+k¬t½çqÎó­ê’H,DT²QoQiz”´5 ^­P©5yò L¾íîù\ªE£-é!;BTëP©Ö©´†{¿!$&QÈ¨†ÌhS×‰‡ÍR‡iavm¯Ú˜$C…F“B­ËĞm½–‡rÛşß²+(ùu>»Wb«Ô¤\ª²=·H#1F&;|ì	Ëš,¯•©E“¤,Óœd6æ±º¾ÈR­E¹ÖdåşUMÄy4jeªµ&ó+lT{V!åó{ç ±Å§_n’/7©6»t0ˆE,Œ}m`šÏ'ilmrs¾L¥Ş¢ôdEB\>?şÌ†òRØÄ£“äœÛlÕš”Êuï-³Ñôiomrg®JêL†é·¦9k·øìËâ³­Ç~¯ÊÍù"+Û-JÕŸ=j’˜È0L’æÈ]ï<]TßçåsÅ—Á0cSIú++,«kM¶óU<Ù¢ùÌNå‘>ml*ÍÅp‹»½M¾Ü ¿]æñÃu
+Z”ñCånÓ<â~ö§º˜JD¹îòÉ“ÚHW*uÖ—–™+	†‚¤‚:åV›RµAau‰{Ugôn,ÊÄÙŞÚ*‹…
+ÅjÂÚ2OZŞ›Ú­»‡é÷(+É;3A67
+Ü_kR©5yt·FmèÚÊBdyãLŠÁê=~·Ö¤R¯ñha•R‡ñ™³f•¹½M±Ú¤´•gm£DtvŠX8p¤öÈ}·çˆáSZ\ä^©J±Rcse‘Ç^Œ™tŒÀ‘J)‘šÀÌ3eöXœ_asÇfŞYesèâ4<ùò	ÍdosvBpï^RÃ=Ü?öêüún|©Áv¾Îƒ{MÒ³qR	g“LºÜzÔ¤X©±VÙàNÍA„èñøŞs…*åF‡F×#4ê“Üã7é¾G;Œ	Î%a}m…Z‹J­ÅÊƒ%æ+Ã¡Ëã[yTkQitè8:Éˆ…F‹Û_<a©Ò ÒèĞêÄÂö×dW(
+Å_ù”uéKÊ•‘l†3cÁ=³í“°æ2Ôu"™¡½/â8’h2Aöé‡“¡“1›a·Æv¥I±ŞÅÅ™9“ àz´;u6«Êõ^bŒ·¯Œ’&q+€M—ÍZ‹jÓ#waœœi“N'H|†cq²QS³HÛ¥V‹j_	†À­±QÉõŸÊ=ª¢L“T&¨×Ø.7)Õ4fÎ¥IØA2™IKâú>F0J.ÀÒ®&¸ãqÆËx>ÄrãÌ&íÑ6mİ"Óúl–k-ê-ƒé³“$mğ\aÈ¥#vzsßuÑ#Qr»·f>[Lpñô ÙtŒ¨	fÔ@`ÏÍñ}Dpt-L,JDw¨ê=\#Îù‰0ÑxœTØÄú#QÆwò+}A$#‘M×”u
+>¾çìx˜X"N"lO§Iˆ¥BB­‡nˆ\zz’Ùlˆ@$Æ©„F£Şd»Ú¤XJåO…14Ç‘Dqr±Ñ7#±1Æ£ÏS=<Ï"‹È&‚N‡J“b­M×qjfŒˆ	ë¢™6ã™(ÆÎJçúh‘ÙXËÒ<ÚÕ®G$; šfj*ƒİ­²ZlRªµ(V{èÉ—Ó!,S'™Kcwkl›«]D|‚¼6†mjH	ïIÄIEG‡L	×ehÚdr1ÂÒ¥Qmì 2$:~·gX¦ #šmJ•&/È…\ŒD<L.# vÉØÈ%<¥&õ¾`b<M6è‘¯4(TšˆtšÉHt:I6¾ç£Âäá+y$ÎP‰'ÈÅLlS4<¶+-jÍx"°ë4ï‘Õ[ ŒML33Ğ50m;”àÌx’˜¥!‘¸$’É¶nkôËMJM—D&B@úø0céÁ `8„p,ÉXL?üĞ'1Ò{WIÇ‰Y£…çÒlWGºÕèÒdxóÊi&£GİCnâu,®59{í4“QĞƒT&‰Ö¬±]µ{;àútË°IE$åjƒíJ?c<%L‹iHÏ3D6%lJğ<:&›•&Åf™ÎñÆù1â.RÖDâŒ…œQ»U›”½ WŞ>ÏùÈhrÇ÷GÛÚ“©‘ÀÁ1ìPˆTÜ¦Wª’¯´(7:ø‰,W3:ÍJ•vb‚×Æ“DŒ cAAgĞÇ³ã„i²VL%Lú­Ûµ!ÁÌï]›$Øá0©˜M¯üTn?‘åõñàèsObGâäb†6
+u\×#”ˆ“‰†ˆ%£ÄM—b±A±Ú¢ÚuHO21F»„A<'nêhH|ÏC$›Š„OÚø½›•&åö€P:Å©L„ä>¹µ®Cj|‚éÈÁ©Vé¹xFl*F$b,ÄïÕØª4)Ö;¬8³³Iv`@£Sª‘¯¶iÈ—¦B„"1²‰ÉD„„åQ.5(Ö:ô´8×NG±Ârñ–ç2ĞRÙ81]Ãs=Â‰8é˜R€ë0Ô-2¹8QÃ O¦ÃFµN±ÖÂÈ¨7p¢Y.8e]L¥ÉéƒÑd@µÃPs*—$‹1•4é·wüIkHèÔ4×Ï¦‰h£ig67bd›–e,icîøW×3Ig$ô.›[uôñV›bµE“0—ÏÏpaÌÆGà9z Äd&‚eÉeƒvì¢Tk!c\JÕ"kZœK§¦X$-áuhˆ$¹è.ßuáçÃ}ÖÊJÍ>Ñ©I®íØŒ´Ã¤,A¯W'_í0ôCœ=—$“Mƒ.ùbƒbµMkââÅYÎ$Ïe(Ù8qCÃs\Bñ8¹¸rtÉ@³Hçâ$,“T6‰ÙÙ±Ö¤eÅyc:Š¡A¿İ ¿ãï½`–w/e	ÛĞouvş¾‹kfyãÂé°Ú®®P(Š}½yè~åŞA³šñôÙawşíï¬`ˆ=*òÙßöûaÏvÏêHgçû°çëGË=®ÌÒÛ)ãaõqXY-ÿ>Ù{Vow~?(÷ˆ<?•³«î¦9Ú>}T[ûä½è]ñtI^¼V•Û7Ğš¾Èû³I‚ÚŞvaßªøş´*Çó²î?yÿøzÜÿÛ²³A²âæ¡—‡=Û¯—ÏÛkoşå!õ~¼şí­+±K·k§£uì ¼ıå9Ö¶ÅóOE$Çµ)ÏÒ—'ÒßCS?xÏø>¿òâvuÉ¯.óë9ÁïŸ!3mwÿy!vù–Ãëö(}‘ï9Ò/ì®›ãvÌá[ŸÊİ_‰K¥°Æ‡·º¼ıŞEÎfŸŸNîb;Gùìù½åzöì°ûâ·ó£ú‹Ãlèh?yP&û|Ç~û9Ş>}¾7ïÇÛÿN;ìò™²³Í¿~´Œ~á:?=|I9^×Nì_:e¾¸1Oiüu~z>öì9yˆ-Ë]‡%î÷Çş¨cØçÄá;+v×ÇØÌ¡öwĞï§g/l—cìÿ¤¿¿hg›B¡P(ş4ùZ‡º7ˆ|égOO[>âïå1²äIÓÙ9io×üòe–/Q®“şv¬lù¢m…_åï÷oÿêå:îİâÊíÄ8³	mØ§´²Á‚“à½T”€şld…Â´_TÙ^\½ìÿí¤¦~2ğ’z)O’ÿ—”+_¦l'Ğ™“ÔÍ‹mîè6•_UßÔ…ãıÊaš×ë’ßª‘:K$lxó8õO\·òDÛï_F×^ àĞ:8 ÷0ÿøt²<¹Ü“ú½£ËuXz'·ó=/Ó./Ğ£ãÓ<èkÌ‡ëĞÈ—i…3œN[@“¹'›´8;ø
+:òbr2ÿºkÒtG'|y’v?"ıCuíÅítœÿò¿bİœÌ//ëeW(
+…â•ä
+Å‹Ù(óÅ|‘G¶†ğún€—f™‡À¬P|#øÂ*?¨C:Ë›ç’õ?eİ¿¯@ñAzô>¾¿E"b€ìSìEøëwgÈ¿ÙöØµp¬P(
+…âUº¾Î–u…â…qÎpHÏ}~ ‘ĞtlËÄPÛ(¾]‘¾ãĞs|4ÓÀ6ş”UÔ÷\CÓ21tıáÔPâ¹}g×!nšNØ6¿ù@Xz.¾n055]£P(
+…
+È
+…B¡P(
+…B¡øî¢Ö)
+…B¡P(
+…B¡P¹B¡P(
+…B¡P(* W(
+…B¡P(
+…B¡r…B¡P(
+…B¡P(T@®P(
+…B¡P(
+…âk ÿ—ÿúßşûw6÷½:ïÏñéÃJ~š©„ömº‹Å÷é->á_çêiÖw N]‡ÚãG|¸> –H5¿%ù’_‚Üõ!^ÉÕ;¢UçáÇ<„ÈÅlLáÑİ^â_·ÄBÕ#2tY|<Ç’c,jò2·@	1`ùÑ<7·`:B?  é_)å³çšÓccş	Ÿ®	Ò‰Aó[¤;í7¾\à‹¹mêZ©¸öÂ«š¤/÷´é¨˜ß²•Ó=Ä®²I|ÿoÇ¿ÿ*õ÷hİó¨6øíƒ‘x„°ı§6ÿ*éw+|öÙ"m-ÈXÂ>¦®†¬Î-pcÍg2À+/ó‹/‹¸Á,ÙÈQï¸TòüúvX"J8`¼ÊÖCt«|ùåµãL'MtíeÚ¾ÏÂı9nç5Ng‚h'è…pÈ¯­òëûré(Kß÷\P^Yå7OjLd£˜/º»Òs¨­Íóáã.¡h‚xà÷İÜ>ıÂŞ¯¢'Ò$-
+…B¡øNğ5Gßõğ„†¡ÿaï%ôXŞ\áq7ÇßÍ‘ŒèßøİÖÒ÷ñ<¡ëÏ/éià;s¹œİÇÜºx_'Ï¾ëù`è_3Àòİ>¥ê:Ÿßª1Ø#z®Åq•+ã¥õNz¦©#àû8ı!=wºÎß«‘¸ğ&ïÖ1ëeV{CúŞNÄør¹§ßíRé»ÈQ¶wĞİÊóñ­U6œ8ùÁEr¦vàıÅ›w¸Y+ï½Éõˆëé<üo‘N	Z<\\eCÌò“÷c„x.º¡º§×lróó»¬º&¶!øÈà8÷ş)‚û‚oÒœÂÿt³Dß0°4p†gŞ>Ç›ãI‚Â§ß_çWŸ´8}õWÇw&O+/Íõ9ş×İ:Ò20µòl^ûñe.ØÖïío‰;Piø¸ŞŸæí–RúôzC†®¿c{òH;ôº”Û‘‘z.ƒã½ æÜù;ÿ÷aŒÒc8ĞsäË»|zß}©w=×¡Ó“øòğ·ÜAŸrÃß™€:ÉøÀ¡=ØéK«ş¯¨ßçáËçãØ§Üô9í£P(
+ÅŸH@î)ß¹Ï§VŞ<MÊ—üÁ†}—~mˆ1	†L,ıp
+Á°Váó[«¤®_æÊX]Ó]¾Æÿv	„ö¬›¯ƒi‘zãMşâ+æY´jOnnş³×y3üÊŠæw;Ìİ¾Ï#;Ë»şS¡ÑÈnãÑ<õH^6Ş¯>¼Ï¿—üõ_\$%@Æ“¼ñçïqM4!qò]ÎdÂÄ6A¦³|ïƒ,Rˆ—Ü!öà‡ĞcĞ÷ªÌrÓö÷ıa¥j‡vÏÂñAZaf®¾Åéöù¶„ã¢;¤Ót±s&€‰‰KãÁ=şmàƒïŸ%wˆo¾OÏ3yãõË\=Ã÷KüöÃEşéÁ?üp†oÍæßÃA®½{«)Aum•o-±ñ£×9³Ò¥×sq¤ëB8Å÷Ş½ÄldTõù9>ùõ-–Ç.ğ7×3Xêã¡ß‹^ÃYşê¯³!v&ÄNòšF`â"?¾ãåQÁ¾Avr–˜ ñÊ·fId8Ã{?È|¿óU'/L&g/òg8ÑŠúÑ-Rç®ògwú¿Wì®„è²4ÿ„ûõşò­1ë÷+•(
+…â8 —RÒ®7)u†tŠÅZ4DDsi´†h–Æ°ç¢Äc&ÃV—vÏE"ĞtƒX*B ÀuhµûHKcØwq=¡„ÂQb6 |º­.­¾ƒ/B×	…BhÍ&µ®KßmS*Ûh¹ÈÿÏŞ{7Ùql	~¿,_u}ßÛŞÃ AhŸy³;£ˆĞJ±±ú2’BŸG!)v¥ÙÑîÎÎèÍğ‘$ßhï»¯7å«RÜ†o‚|ó†oê÷Ğ÷ŞÊ“'OÊ“æ$yEúÔ½øè…¬Q,98º
+R´#‰®JÜ
+ÅJà1HT,0ˆ%BÕ)ä-”È§ëE¤t+O5?T•H#z}~ E3¨TlDĞlõè´:ì©P+;h¾K+V(”L†Û;m/L†ºĞ4ò…9M"“NÏGZ:É  J%¨y'GÁR[¤qL·ç¡k*IáÆ)(*N¡8œ$1nß#Ç	±Ô¨Œä0‘„ı>MÿhùGÑ(—sXª2%îè
+bŞBDìÓèú„‰¡`;åœ”Ãm±½ö€A”ÿ¯XºNÚîÓ"¢f‡ı(¦2’ÇLBÚm—èh»®™+P²Ôg6eDóÎ¾MGùÍ•Œò(À»p†¹û_K½½hø©fÉ©(H¢AŸnª’âECHêı Ï‡ƒÃÒ¶(Û*nß'ul¬Ğ£Ñö	ãˆv«Mİ°(š
+n?@
+šŠ¯Û¥#0ÕÌQÉG;4$‰ïÒè‡¤R )~ôâQ¡aJ6–wğf±(—ê4Í•#›i‚çºx˜£2eL»Õ®àŠáPÎk„5
+QÉå¬„şƒ¾BÑÈô£íâQ@«ïáÇ„@3ljE!$¾ëÑG«]
+V®DÅ†$éµûtü¯ßc¿5¤Ñq#—Ãƒ6zÎ¡`ë¨ÇMŠ(Š@ˆ1Ş[<ä¿Ûa-‚3JL¿? w¤g¡T*9RB×¥—hòÖ0˜õ\ê^‚YÖ%Bzƒ3gcé*Q¿GÓOR"4“b>‡£KdäÓì‡(ú‘¿2MŠEã˜¹¡((Š`´b3jJZ2ååâŠ¢ MÌœ9Ë_Úwù¿®¯scºÂÛã*Ä‹¥t?Z2}Ÿ®+ÉçmL}hÿiêÓnGè¹E+aĞwé¹GşU3©8ÏœĞº]ZÁı¾¯S.:Øº‚”’A·G€NND4ƒÁQ?µï÷SIy´ÛÉ¾#MC:ŸTQ‘QHªç)í\IÌ ? W¬…n2Z4ICš®y>±Íd´l¡Í¸É8¢×àÙ¦a—É‰£à,Ås]ºıhØ&BÁ)Èi1İn€nçÈÛ*‰; å†Ä©EÅ¶s”õ©`8=š.85zÄîG¶ âäò˜xô<(äméÓìG(¶FÜˆ¡™”6¦ö°İšMŸXJPtlU¡R)ÚOgI"z=ŸÔÌQ²ÒÁ€V†.ñÜ)ºU ’{¶w#IA
+Ç¦˜7Ñä#}Æ|‰i›˜JŠJM¤©G³åU\hMªu{t£a{–F¥è¹%C{.İH%_p0#æ Âp¼~D"%ŠfRÈç°õ#yÔ»q*ªŠ®¨H”a?×©d’àz4º!·ÇA]%*Ç‚ßp$B è6µ‚ñ`’!‰cº~
+B(Xù%ëŸv‡_FFFFFÆ§)íÃÛƒOí³¹YG=1‰ïñÛßm!FËŒØ6•Úº««t]•îv™¼|–·&J˜½67¿Xb'oSqôTÒİk¡.^à—Jˆn›o®mj&º¦0h¨œ;ÏT·Íş Æõ;lìŒÑ©³rw“%µÄ¤†K~¼ÊÙ³SÔ„Ä½w›ÿ°–pz¶€¦åX4Mwîğ{*g*ºÒjzXã#XIJœJÔnu}Š¿|wª-Ú–6÷éJ]líÆ¼şÎ)˜½Ã0"¬·P#ÈåM´å»ü¿­¿ùõkÌD>õÖ¿¿Ş§P°ĞIÔî#gOóö\…rØä›/–9(©˜&NÓoôPgOñáÙö» ×å«O¾%¶KŒ•u<Ee°W'š9Åû§Ç¨FÖ®Şä»È`º–CÓ‹ØE›¨¾Çİ{»lêEÆlh¨ÌOpöÔ8#ILûÖmş^å/ŞYd4pÙY]áËC•Š##?.ğş³T’Ãƒ}¾øæ€|5’&ø°ÆféõèÄş~“^„R4‰ÖW¹¾îS©åğëmÒùsü|1ùŒİÉ©×àë½ñ3“GÁø1v˜¤´·¶¹¹Ñ *æ1½»ñ(o½6ËB)¡wçÿq[rjº€¦;”„z/$S¶vê$#UŠiÂíÏî1xó“›?8Ü¯³cUq,Ÿo>ÛÀøàu®”Âı}®ßÙfP*b‡}‡“§9;¡£x-îŞYãf7ÏT\/¦wà‘Œ<¿?ÎÎ’l7¸Ûx³¬+¯Ãj3df®D³ß~1öØ¹s‹o˜åÏ/NQ1lmîrõf›êDáhÉ1Ş¾Xaï»\íÛÌmòE›™IÜ>»ÕB(&–)H›S'¸2?JÍh­¯ñéN„•7PéÑğÇù·?›Ä4ùö»]±‚“3Hû-ô>xm„Q=¤ÑèĞğbüv‹%¦jzìõB‚dÀÖfmnÛÑyÑF¡+(iH0ˆh·6ùv³ƒgç(êPßë3saSÓ¼ı5~»nòáå“Ì–T:+Küßwúœ¼|…_-š||­ÅÅ·Ï0®v¹u}•z.‡“Æô1ùÉS¼µÇîíñÑÇ›$#eªE¹RÁ,9O,ç	†gh%¦İíÑ¥À)U{õA¼(SSÌÜºN«ŞCÔr´v6ørÓG3uTá³ßÖùàÍ9òq“ßÕäì•3œ³©¤¿¿Âß]Kxûıó¨ñ_İèIË€ÆÁ€ÅK'9;é<Ul{oŸ»·Ö8¨T¨’Ğè„ŒVG9fG…{_}ËwA‰·FU:ºAĞlÓ±k¼}~™‚Bš´¹{o›µCƒ‘ÒĞwŒ,NsñD5hñû¼C»Xc&¯’¯M‘w	ÈÓ÷p—oîÖéÚyJzÕV‰÷á,ÁÎ2}Ã¥:U£$S4mÀÊ¾Â;¯/rzªIÄáê·ûà8hn‹=¦yïüÓÅ··ÏÕ¥Cz¾A1¯2Øoc]|‹·
+>şx›©7.peAesm‹7!Q¢^›5Ë//N3’{l¶™à`ÿz=áò‡¯3÷ØÜjã#€€µå:Qyš?¿|£»ÉooÁ/ß?ÉD´Ãß¼ƒ:W¥,4,ße·'_?Ã…)UôÙX_ãë%Éä˜Iè'„Íëb„ÿé×§)<–B ¼ß|¹ŒâMşlÖÄ_¾ÍØH81_ÀHu¢F}m–?ÿ`ŠQãø€2è7¹uK;ş  ‡Êù7O²·PvÖø›oÛLÍp‡ÚDÑ;àËu›¿ú`²ã±¾¾ÆÕ%Éä¸Ià&Äí¾R}0èîìpíŞ.ƒr™>}Ïgk'ääûïòóqI{c‰¿;(ò‹wN3ÛÚå£/w1gòØŠ…„Ô›3o¼Æ¥#è±qo™Ow-¦«‚(Ji¶hkUşê½Œ—´Ç&vúõ{?è°¹áã° !
+lìnĞ’*F·ÅŠ_àçïf®¤‘&1Û+›,ïu±J²Õ¦YœâòÙI&rYP‘‘‘‘ñÈUeîô	¬AŸ>ÎåËóTSIR¡ Æ4ï¿]ÅÂ^Ÿ™¹E^/Ù˜"e÷Ë/øÛ›»,L”˜ (	İt„_›¥jBcı:ÿmi‹ù<ÖŞ!ë‡ÿîç'©Ø*ız7o16:G¯?à9Ã;çGÉ)m¾¾¾Âfñ4şÆ#–Àmoñ¿_åZ¾Æ/§„€H3¨NŸäÒ”E*a®
+æÏŸf±±»|‡ÿøÍ.Ş|÷OVĞ»­ßoqcw‚_°Hu‡¹S'©sh©Çíß}Í×·œüå"ÎÄt:kTÏ,pa¼€ÇôÅpPÛjğÅ7MÆOóÖ‰2º"émmòŸ¯İcÕ~·Ë¡¤øn™7®Ì0®$4V—øÛ•ö'Ë,¨OmûSÒ„n®À»çg©::ƒ=ƒ¿ıb™ù¿ª­`#œ?;O-§…M¾ønƒÆøYşüB²İú*ÿûU¢|Ÿ×‚1ÜnİİßåËm•‹oŸa±¢»m¾ıø6Ww
+¼3ñõ·»äOòáÉ*šLpÛ}v‰±Á$»mòçOğvÑ"qÛ|t·Mõµ×ùù™^³Eóùçşû}úÒäµIë;%QTçæ½:Ö¹sül.ôùúÓk|~Ïfö­2t›‰¹Sœ7I%4Ò.»û—ß<ÅˆˆÖ!BÆòÓ3\V¬wœ9wš7ªÀÁB®¥i‡Û·6ğæÎñë3eÌØãÎµ›|º´Ç\e’Şò*ß¶óüæ½³Lƒö_x-/èOª3ÊkÅ¾^npîÊ&ĞİkÒRÆ¸<òÕ'‚¹£¡£»¿Å§ßõ8õöŞ.‚ïÑì¥ì™(œ{ã4Óy…°Óä‹¯vÑFyÿµQl]ìñ_¾Xâ¦æğëI¥úéül®„–vÙ=€4ğY¿½Î>U~ueK#é7øâ÷·ùüä¯®LròÔ¶Ëáø<ï*bÉ˜épÀaPá­+§OÓgyB …Ômpw£‹(SUøâvëóS8    IDATÌ9~½XÀV%í›ü×¯V ™³åQFVöğİ QJYjøèzJó°ƒX(Ó{VÓX½¾ÂVqß\%OÂáú*wké‘Ó,(ÃDl©>ÅûoÕ°Çnm•{Ë;Û{]Jç˜sLT’Wv¾
+65G°‡øİ˜ïVûŒ:ÃëÓ94é²òûk||§Î¿~£Ätn‡­ÏLÕÆÄgıN³v‚kÀëûhÅ¼¦Š¥¥ìß¸Êß^Û¤T>‹)™Rp›\»¶Bê4¿º8JI¤ô÷·ø‡/6¸Q)ñÖ¸=ô‘
+˜'Nò‹šCØ=àÓÏïru­ÌÄ¹íMVšE~ùŞIª9èm,ñŸ¯®“)sÊH	¥R‰Ë—f)h·¹ˆC[{ì§øóKsTÕ>{šªH"A!?Æ•SerºËü×·øÛï¶©L:8ƒnlºL\:ÇùqÅmóÉï¾ãó‡sÎ`éú&sš_¼3MÑVğ›´-!‡ÛÉ‡›WRŒ±	.—˜ºÀk¬óŸ>Ùe¥>F5'ÙÑ  R©Mp¹6‚Ææ=û1§.-0?;İá÷Äı  ãÊ{£”ƒ·¿»ÍÕ­5¥¹Éç·b.½s5“xĞãÖ5—õÖ³Ã@å¾ìÃnO,5JÕŞšË“¶şş÷Ü:£:e›l2<Joœãì¤Côøî›ë\¿Û¢öú$E!ªD–øùÙ"ˆµÛG+É’şÎ_ÜŠyóı¼v$ïÍk.k-	H’¸Å›[øsçùõù29|vï-Ó:h=lŸØn/D‚Ë¿¼4†“ø¬ÜºÎÕí:ó£ó[[|²!y÷Óœ¨©Äş€[ßõøª):ù#‹±S3\z|ÓáÊÅQŠfÌ`CG
+gš÷_+áôëğé¾İì3/à×÷¸¹;àìåóœ.[Ğİã¿}¼ÄÕõZ‘Eä?¥€|¸p?ù‹<Ê–|´eVÑ©N”1¥$ôBâá×¾^¦I’VH¢§„£3»X!o(@Š]sĞ®»¸=…éœE9=à“««¼şÎ"³£UrR"ƒûÙ™‡2¤İ›Íés£TIšJìò('Æö¹¶7@Nh€ PÌQµHS‰	¨v‘™¤ªŠVÌQ)ÀlÕÆÔ$I)OI•¸ƒ°°KyÂİ]¾¼µL?·‘æb|ÀzDi*ŸHdÑêõqÍqŞ*¢*"°k£\,î³ïö+ÃàèL!BA-ç0£6QÃ1~¥frr¼BÙÖIS‰Y›bÚŞa·ÕQ¤ÆÔLÃVIeJÒm°C‹g«µ”$…|u’“ÕîîUû‘ÁSÈak@«çq÷æ-VT NèöCD³W÷¨#\)£H…ŠU-a#‘ı‡í#%hŠÆ|Qğé½5g–ÓSÆeúç
+Sâø™HÜn°ÒñÈ­¬Òİ/ï´Cºf)K Êå<Åª9ls8Úf<l#©<‘éúAíû²?ş¹ì5XéÈíMş¡±-—Nb¦6#ªÓsŒå%I*±ËyjE›ÿ¦Š`ääÚ·u6Z“œqz¬ôÉÏ `t]¹@c«•IÎM†‰¥‹JM $à”kŒÛ eBßëÑLË\š®bé‚T‚Z©ñfm‹oúm|»L¡l±¶rOıE>8YffBà¶ÛÔ›
+'ÎS²4R)N™³óy¶öz´™Ä’¶·|ĞîR>Ì¤~lÀ»\¿³Ìşôº´­E~uº€Ù^¡WáÂ\Kvå‰yNä®ÑØóqf-ÆµıĞgÎõh†o,,Õ;4‚Aİ§26JAöù®íÓÖöøäÓ}„®GË‡4	AnÛ›,cğ9U•b±ÈhQ0¦l67¹S49_{õ“î†[§‰é¹!{­>­åe[b˜L®â;>®3ÃÄD…ÍƒşT	#<d#°X¼\%t9ÜëÓvÖù¸»ƒ”’ÄuñB‹®£‹lÔÙ—yŞ=Y¥ %©ä«#Ì°ROHj€P©TFX¬Ú$iŠVa²â°ÖìÄûëAÄÕkîğˆJĞ§ã‡4’“(ºÉH©øT0>ôUFµHzw›/nj¼r”éq‡4‰U(0=Q"§¥¤©ÍäDüv›­vÂ\¯ÁF×¥wû{ËÃ~ŞìÇxz‡ tØXÌŸœ h‰#?8Â„Lô•Àfr4âÖõ%vûQìÓMÒ¡ >÷='Pßå«ïö1Ïs²6Ìğ´èŒOW)¤’ÔĞ±Šr= ‰Sš=´Ú'FtÒ4EÍ¨U
+ä:ÉK¾oò¥9ÔD¢–Lr–¤Ù”0É±é*œÊ8‹£RJ4Ó`l¼Äİ%—ÀO€ªÚLÏå‡}ú‰iÏÃÍ>zmÅGå-p:É0 ï6Øy.-”°Ó”“ñ‘<E³ól?'LæNU°]àTMâ›	QĞh0j'˜-Ïûk–Am¬„Ó:voÔÑ»øŞ%Óq«±Ò”Ô±ÉÛ›ı ™8Ä‡ûlv#’[K¬ÉaßÛs#”2G‘gddddüäòç„hGgÂ„ğÙŞÜäËïúÌ_œåbŞ ZöÙ{ô-tı¸…À›â?«qxçŸò-×­—Ş=ÉÌSK)RÑ°ùàœ1ÒÀT5H££¡†@UT'ö??ˆK@QTà(ò£‰µCÍÕU>YOyûµINãWã—ÑIJ*cTİ<ÚBp4€àè*‘”Ãµ6)Ğµûe¾8«·
+š®¢¿ª¢+$÷y
+š~´Ú“AªŠiÉGjo`i*2‰Ÿ†eB®6Ë…Ó,ıa»–Igc4óñ³ªäÓ(F…ËÉ4¹{û6ÿÏÍç¯œäìó¾•ML"ÚM	Eqü ,H±ÊeÎ_œcü¾ÎÎ!TíhÉHÕªÊ’àG)Š™çÔ³Ì>¼Í¢‘3=¢T`ÖÃÀNJ^*5Å1Ş(µX=h3?âÒˆN–Ìç&ü
+S‰ªhÃıˆû¢©ªv$‹$•1¨Š¢=˜u@ÎPI’„Hw8qş5&‚¾øz™¿ÙV9Å¥š$*†2<—¿6†©³éÿ}ª&óÓœ™Ì#ÍÌQÔcš‰j(èÆ£ífakĞLb”œN~Bei7`·×'ÌUY˜S9ÜİåÆJ„ÖQ›Èã$RirâÂ4§-ıÁ$Ù»B%ï˜È.´xBE3¨27bÔ¤õÕmn¯¶9S©½zİÓ>ÍP£X!•›h…qÎœ öÈöiUÓqµR ¸U§’ì´p
+g
+QC"§f™1¨ê²¢b;Ğy4 ‡>Ò1fû—ªŠ¦«¤ñÃ‰(EQÑî·³TÑ™ÄH	““³\Zt”u	áè(ñğLîĞ«DFfùËj“[K»üİG›ä&ùõk¥£r‡~ê¾½¢)(¤D¾„ 
+c#\x}Šù°Ÿ«šIƒTÑQUı¡uÊ'zx»|½´Æ¾qŠNš¤Q·uğğ}ñÜîÙáúÊƒÚY~½PÄxöÌšö0¥ø£+„)hæÑùmq?ü~nIyâıu”ã™¨ªöØûTAEÈäQ^¡ òØh~(¯ñĞ??êË$à÷.á“¬G}ú‰¶ÄDiŠáXÈ"N†|ŸÑ‡"êè‰Ä¤2Tª5Ş<;}ôÁ¥³ êÖ“È.#####ãøá¹}…x~ÜØh­¶0NOsbªJ­”£ø²)…%¤ŠŠs˜»t¿¼R!<l°±}Œ;uÙY¿¿2#i‹ı‹î~øİÆ"/`w³ÇÔÉ	fgªŒ£Uı_yNbW[Ï÷	‚àÁ_ƒ0bµQ4,ù*bWbïïNHâ=¶]…JuìH¡ı0Ñˆ¸ìoßOH%Iƒ~€•Ë?103)¡×#Ÿ³)å)å©lC§di(ƒõ0zÜJ¦éƒ;™y4C± aZŒÏNñáÏN²ëso%& Mâ$}JoB›d¾[ë´Ÿø<MR)UÍ‰ü•ò}ùŠ9ó™m.<~o}ØX2¤ßu¨”–WÊ™Ã¤]$4{Ø FÏÌÀıx}Ê'j¤U~·ÙAŸ®P.O­\=6g‘Ó	:ušIú`Ğœ¦ò˜íá*†–G[¸nÿÁã$f¥é“3-œT¢&¥â¿úğu.Ù!;xšBA	¨ú÷ÇãIB}¿†Eá9}†LGH¡’Ï9Œµ]Ñ 
+ÔªIÜôhÖ¶{’ì±5äry¤âP.Œbû‡ÜŞêS˜¨`YUNv÷ğÌ<¥¢(˜ØfD»iQ*Ë)æ(ç-tíû]­&¶OHUESÒøUïV’$qÌÁÍUÎgg-5‡õ1uõA?):äm]‚Zs)E¬6¹µP›Â U!'"BU!ÿw%‡¢3œ¼x <	,¬¸ÏZıa2:ÙïÓîØÅû[´!M‡;g†öÛdàR¨M ª
+[!ˆŒâı²ró69ıåü«ªhä
+ã¼}éu>˜4iììÓJ‡m,SI*Sä‘İ4úøzùQeÄD$$ùÇúyŞ±Ğ”¶ìÓïµN¬¦)É#‘¡!õv“M¯ÆÏÎ”ÉSÎ¼¤ØìİÛçv?ÏÏ_+P4Å+½?ıVÖıÎ)}ú¡Güá^ğ2Møô]ô‘†¥½Ğÿ)BÒo×i'å>Áıä…ĞsÙß‘Ã6’´âÅé+øV¦šõ]¢#_&eLyø‰xæo„ø\”‚N$ÄJêQ)ç
+FFFFFFÆO3 W´Š…ìz´Á£AÓıè*VN#êÆú!=w›7ûy|p4Lä²µ¾Éİ&½(!M%ªab³’.Ô	.Mšì.]çúA€çû¬ß­³7p¸tÒà¥ÇŞòÙ×5•’¥1ˆ#º~@w¯÷ıu1M’%¨{>]?zìo)¡Z+rªäòÛk{Ô;ƒ^ŸæÒ2ûÅQ&ÆÊ¯"ŠØåë¥=V÷ú<Ÿ;_nÓË•Y˜Wy"ª6Åc‚Õ»·¹]êiåÆ>Í´Ä›'´ƒò¡Ì‚É‘“é!¿½ãÒøz]¶VÖY9(ÎV˜‹øø‹:=—A§ËÎí5–Z r&9GÒÚóéú~“«ß¬qDDÉ0c¯©dšróã/øë/6<Ñ®BÑ8óÎ&ƒC>úr™?Àõ|^Àİ«·¹QOPµ)ælŸ•Í5¶½ ×Ø»µÂÍƒèA»<©ÕrÉA‹|ö½ ?Œla»ê$‹••»¬•W_Ùäæö€(-ğÖ|‰¸±Ãç«Cİn.·ØØw‰_f/,»ÄX:`½¡0U,qÿhëq«N¨œcRëğÑ—[¼ ÷à€;w©»O¯y
+gÇ%_ÜÚa«>`àzôîŞeY/3?;ŠÒnpûÆ›Íˆ(I‘BÅ±TŒ¼ÉôÙw7ÙØnãz>½¾êÌÏÎ+¥â |Z‡~œ|ëÖÈYSœµ;\¿·Îf;ÚöW{DÅæR
+Fò6µ´Ã’«0?ª£«*#•Ãİ=ÜœI>R©1W-Ò[¹Ím×cà´öêÜ¹w@+|$Ğ~‰À&ğ~À`»ÎA/ab¦„ú’wˆ§IŒïmwàµøê³ïø²eòæ{”(çlNä<>»×a¿0x47Vøfİ^½¥”8Q+ln³yãÄ0¡œéLiÜ]:`÷pÀÀóéô6ùüFı)kÕ9ÎÕ4V¯İâëãú}–·êlÅ%Ş0‡ÉeÂşŞ._,µğü€õÛlttNœÔÑt…ÑéAã›+\/ÀõöøìÆ.a”<åmÂ÷9¸µÊõí0NHQ°-õAPå¶Ü^ßd×q÷7øbË£46NMÕ±ÍI&d‹¥İmö½€ë³}ı·›)–ervÎâî½-îîôp½€ëKÜh<´9)ËAK}âĞc0ğØ¾¾Évôt?‘Oüo°»ÅÕ›‡TN¢(É‘
+	ã—œÙ“Ã2NÖ(F¾¼ÙÄõ[u6¶Ú¸¯ò>âñwË3çÃWùİ]—¾ë²{xÀõÉÂ¤CşhRáy_<9J!|\Şõí6®€‚V[ä\!a}ı^ˆçru·A3H?æó2S]Òæµ©*µ`Xòè»õ½>÷î¶ñ•g]i×s¿Càâ…ò…ãc|ŒrĞfy}‡¦ß%ß¬°%Ùi4Ôÿùù_ÿ·WçUÃ!mî±¼İ&)ç©è)=J£5FmšIÎÔñw¹³]gk_²8_@Ñ¦&Ëäã®aÔ*ŒZ:*’$õéõUª£eì´ÇòÊ+Û6b&N¿ÎÛ3‘FÒ*1Y¶†+Eµ#A“Û[¬m²Ù|øÖ"“s¸’ìºô4‡©±"€øı>¡–ca<?¼ƒ:
+qC•ñÑ"ySAÓë˜å
+Sc[§»¹Ã½­:›}“Óã&ÂÊ33>\uZÂáúkÕñ"fàÑUm¦ÆK8ºÅDÅ"î5¸½yÈÚ^‹5Â»W˜4Ä!]7Á¬Œ0×PÄqÈÀƒêh™’ıø¬Blît©ä-ÂÎ·6ëôD·>8Íœ*I‚ëP.17Ñ^×“¯U)¹½uÈÚö!‡ùõåª¶>Ôëş>›J“%ì\¹œ`ÿ`—{ÛuÖö:øN‰……
+ã“6i»ÍíCV÷Ûœ'æ‹X†ƒ!#{û¬z˜ŞÖK[uV·»ÈÒ	>8]ÄÑ%ƒN—Ä.05Vxêª&U³™®a·÷ønåµ:k;u:F…wJ˜¦Nu¬B¼¿Í:k;‡ì‰"WŠè*D®‹kä˜¬\'&Š²Ûa}³I/V-øn„^«0j(¡G;T©W1D]?Á¡fT'FÑ[»ÜY–·¼>W!oièå*óJŸ›Û»¬mÒ3JLòù<35ç‰«"	è¸)¹‘*ã9U¨(J©‰¶
+Rt»’Òh•ª‘ây>±Yd²â`i9fft:[uno²Z÷0'+ÌÔL‚®V‰ÙÚÑÕQšÁH9´¹µqÈÚNƒ=™çò§Y°ÄÍú.·¶XßiĞÖ«üìÊE¡Q(æ)>wWXŞi°ÕS8õÆ.¥—KbúnˆVa¢¨£*
+ŠY@´÷YŞn86•‚õØñ„$¸¥j…Jşñ–WtƒÊHÑÜçöÖ!ë;uúÎ8ÿêò,9u8k$lˆÒÍåìxCÈ¼$¨ÌN2[2‘Šc£ÃË«¬n×ÙèFLN2]6 öi{’R­Ê¨£wj¯bj7ê¬m×YmFL¾qš7'sbx•U·/­2â<-%G½ãÒ¨×ì·ƒ™ç7oÏRÕÊ4Æ‹qg[[‡¬ï68ŒlN]#$ˆ©§ô>FuŠ³cö°MUƒJ9‡ŞoÓ:Ûu˜>5GÍ†0ğñb‰Ñ©R™ÃêpwíµíMYâı‹óŒu¤L9ØØ¡gT™‘‡\]?ä` 8ıÎéáÑ¡`äKLYKû¬ìÔYÛñ(ÏÌ2YÔAFôú1ÅêµÂ1+iŠ×>äÆÖ>ë;uv#‡wŞYdLW‰:uÖû‚JAegy‡•†‡9¶ÈŸAWšiRÉ1ØŞæîfõ:M½Â;óM£P*P¦ÇíõVwê¤9ÎŸ(cÊ˜ş ¡T­0;c¢„=n¯²¶ßÂ+1o+ªjÛ÷‰Õ³5ûtcƒñ²…ß>d/„¨İcóÈÿlÖg„¢àÆ“cElĞò 2Z£f„O -¦ÇòØÅ
+óÅ„Ííîm²ÚŒè
+n¤pf~SWŸğ!]7Æ,0Óş€ê05^ÄA‚ˆèv"ŒB©²úDò´”AÏC-×(÷w¸±Yg§0vó³eŒ£kÏZ‰ÎØÔÈ0Á›øÇÈ»±5”w7´˜*(8&³ãESgdlw¸³^gu+`tÂÄëE8ãSÌ±ïáá0Q+â¤>­*“#TÔá!«0ğñ#›‰Ñ¹j™VÌúŞ.+Û‡ú)v¾@ÀÜt…¼ùÄúĞ(*‚xĞäÎN®ReÜ
+èÅccJp¤i™­Ù˜¦ÃXM§¾¾7|ŸíÔñ‹¼>ê<}í\FFFFFÆ?Âã<1ü`kğÑ¹=!ÄSgøÛ>|›õ3¿t~Lˆ'gÓ}æ‰˜ÄI¸ıPÄ±ßüoBˆÇ~÷d9O×åÑ­ÙË—GçzÅr<ùû§>;FÇe~öº]>ùä£çÎñæbé‰sËÏ~ŞódaÈÎÕk\³¦øõ›ÓØG‡ ŸÕO?ëx]ğÈç—jÇÈËËêô¸6ìûòH´GõtTßçèñymø¸>qôYu{¬†ƒã§t|ÿ;Ï°ÙGƒ@ù½¾Ğş^ª^<£?C.yü:ô³ìó…¶õÂ2Ÿg£/×GÏüı‹ŸqÌïŸaÏÕÿ÷hÓ'ë÷2mœ&	×?úŒµü"ÿöİ©cıÉ‹ìà…º<Î?§	½õ›ü§÷Ş»ÀÉ‚|°Öşüz¾œïT¦c±Û_ñOÖ÷±ß¿÷ìwÙ£}ùq;P”˜Õë·ød/Ï¿ù`–¼¥>¿<³ß¿œ-=­³Çe?Ş÷W™|º!ˆw—ù›¯ëÌ¾û—ªâ	™¿~D°yï.ŸìæøõåyFsÊ|ÄQÎã|÷Ë¾³222222şü(§4<Êç¼ñÿıg¿,}æóƒÇ}vÌß^TŸçÕå©ç½ÄóˆîÕÑ÷ùíÓŒbÙe­#)T‹è¼¸+ß1ºø^¿ÿßyi^ªMŸ®ï²¾¯ì/(ÿ%mJ¾‚¾¿_½~¸íş!>ÿ1üÏËÏ/ÿŒ—ğ¿ª>¾Oı^¶¿=ókÏ±ùbE½Ğ†ä«>ÿ%úúËëI>{Bâ9mû¼¾œšlt5§Š‘ÒmíswwÀôü<º®¾X¦á]òb»|òoÏ¶ƒ4Ihì7Q«cÃƒ.÷ÖêrS,–v~<!ós}]§Áªo3?î *	n¿Îİu—©ù)ŠÖ³³r~_ßı²} #####ã'güñxîÀùû<§À7ËMZa¯<ÃÏf
+èRfçê22ş…ù“ô¬%#üS&¥ÍÕ¯lîä"¡ÕòqjS\œs0ÔŸ ­¤){÷¸¾Ú`Âz]v©ñÎù	
+ê÷MO#Àoñí·¬X("¡ç¹èåIŞ-b©Ù»(####ãO—eËzÆi€—$ôûšeá˜?pn%òiõCb¦åP²Õl ”‘ñ/+Çíõ	U“rÎø§,˜Ä÷è„'gc©ªêè´Â*¹¼c¨ˆŸ¨½øı>½èa2WÍÈQÎi¼Òqì8 İˆÒû[ôUr¶EŞÖ²-åY@‘‘‘‘‘‘‘‘‘‘‘‘‘‘ñã¢d*ÈÈÈÈÈÈÈÈÈÈÈÈÈÈÈòŒŒŒŒŒŒŒŒŒŒŒŒŒŒ, ÏÈÈÈÈÈÈÈÈÈÈÈÈÈÈÈòŒŒŒŒŒŒŒŒŒŒŒŒŒŒ, ÿ£ BˆŸfFÚ?Q„ñjíøÏF)zÿõÇîu?†œßóâŸH7Êú‰·qö>ÉÈÈÈÈÈÈÈòŸ ÉÖ}³Æ^ÖnÿF³¯Åk7ùl% N_~Üİßç÷W×èºÑ+O·ÅÍ«·øzÇ#Jÿ„5öY½u‡¯6úÉI™¬-ó»[4° FˆˆµU>¹QÇ•F>+·îòßí‘¼ê=×i‚»ºÌÇ·vh¿L 'ûË+|ôİ.qò‡½ÄÂëõ¸úå-–êbñcë^ĞŞŞæão6pÿh†ö‡³_¾Ze­õ/c/#######ÈèŠ´ßem¯‹+_5 ¤©üiŞi*%òşı¬?D‡?fıãÆa“İ^úÒÏ@èylîuã1j ¢€ÆA“ıABú'{™Ÿ€$¢İh²Û‹Hä­;’t;¬öñí?–­¥ô»mÖ=’W‰ÇIé6Û¬×İW—EJâv‹µÆ ÿ%mÜítX= _¢P)%é+
+—„!»-:~ÄÂ‚ş€õ½qòÏo†k¨·—7Xù¨=JIâ÷ÙØïÒ²@FFFFFFÆí'¼âÀŞu×ùíï=N¼qsc?¡À\DcO¾İÃ¾r–‹Eû•.M÷ø‡ßî`x›~è’DæGyÿU¤PÑÕïÛ‚?ò’””¤•1Şÿ³RQÑÔ?Õ.+´'àŸíf[I¶øôwk˜‹¯ñŞ	çõ5Á«/ÁKisáİ·8'š*~XüCxª0àğÆ-¾2ÇøàÂ4ùı&İr•
+ö—ï TíáÏşÙšYŸ«ŸÜá°x’ızù+ÜÑmòí7ëxçNñÖhSQqf^ãßMJTõ':I›‘‘‘‘‘‘‘ä 2M	ı€ •€@ÓÒX¢™–2I‚ğh)CÑLr–Š’8
+	R$qLŠ@¨[î`?MCz^L
+EÇ±4TE<Ç÷ı£-ËÍ0±u¢€^ß§ëôú.ı¼@JPt[WR’„^ª`™šiâ&‚œ¥#ÖÓOÖÃ1U†ÅJ’$Â;’	¡bÛº"2Áó"*¤±~î8Ú±£È”À	V¤„ª¡k*Òõèº>ñÀ£§*ä5
+ñãáv$‘¶‰©¦¸ƒˆDµ‡¡cJ1ğ}º®5pé¹†abi)¾Æ)¢ª8¶ñ`ëDExaL"%BTMA¦Ã4ĞI‰ã4•aiOèfõ«„    IDATìx9
+éRR)ŠŠi™
+G¸aŠnux_¿~À°\"ßÇÓa¹ŠŠa˜˜"%Šb„© !Hƒ 7Mƒ(L€¢Y8¦2l7)I¢÷è3¼¥£()%ç?f·÷Û;ğ<‚#;ªmêhÊÓvG!^ğğÙ&	±¢“³º]ãÑQßQ”¡]ÜT†øQ<\İ°9¶kÉ¤÷e2°Mí)™ÙáH¿E@’Æ¤R ä¹?·‘D~x´*/á™k¦qDàÑuƒ¡­4LSGWIàFÉƒv3ãŠqİˆø¾>TÛ~$võ<ÒH hºej(HB? ”ºŒø!ıÈî’$‰ÑÑõalù¤„¢“·5¤Œpİ‡¶;ìOÊKÄ£’4‰pø$ä±­’$pıø(ØV0CëÔôbnßÃ4,M!|ÜhhßË404qLÓK¢(F
+(‚Ğ÷	SdX?EÅ6udD	ªäLõÈF#‚X`ˆ” IHåĞX¶şŒ‰¯Ğ÷õƒÃş&Qˆâ„‚e›(Q€¥ÚÍ6µ:}ÊLCÒ×ºB$$ëb†’àú>=×§§zt¦i`ë!Á‘Ş„P±r&jš†şÓxô=‰	#¡rdã)Á_8ü½aš˜ÚÃÏ¢gÚÙ‘?“án¡`è:–¡f£ŒŒŒŒŒŒŒŒ?\@.Ó”şŞ×–69Ô"5Øß8óş;¼?!pÛunŞÜ¢©à÷iª“üÅÛsŒÚõ{7øû=•Ñ¢¾O*<½ÿúÆJÖ±e&±ÏöÎ
+÷6BDìÓŒ\>?Ï‰qE@sÿë7×ñm\¸:ÍåÓŒ´v¹ºÚ¢$Ü[^Âïtö»(ÓgùÍÙF±óõ×üw„¿¸r–Å²äğîmş¿f‰ÿñƒ¢Vƒ›·×ØÓlÌĞ¥oLóî¹)¦Ê™öY_ßàÚr‚“ƒ^7áÄ…yÎM—AƒüûeÜÂ£ê W	Øo*¼ıŞ9Î×œ£€ş>‚`Ğä³Ï×ğt™Jb,¦ç&`sŸ]?@¿³ï¹ğÖÖú-şó]Ÿ‘Zé,^Z`FîòÑÕ>B“„~Œ(—¸|q‰në+uê~„ºyÏƒgNÌ1jîñå·º¡DQÀŞzç³%ìŞ¹ÇÕv€ª¨("$J$½¸È‡ïc1­óùg«Ä§ŞäWs"ì²¼½Áõ¥ˆ|Q'èpÎ¾Á/œa ıhMÓÃ{kì§?N	¼„©çycÒÁnìñÑ·-Îşì5ær
+1­æwÕä½wN3g¸ùÕm6¤Š!%q¨2sáoë‡|ñù&úû¸R²‰—nò¬Ç,ÎÛøIÔï2È-ò›w&¨š‚Ôm³¼´Îõ–BŞLh4Ş}}Åñ<n³É—WïÑËå0½ná¿¾XÃ:|ıÅ--+
+ğ´1._\`¶ôèÊ¦$ÚÜº³ÁÊnŠSñ¢_ç |‚ÿÁi1ØÜà³õª¡+à¹‚Kïœdºâ`%ÛË›Ü«÷ˆÙ §_çW¯É?Ñ'üN‡¯¾¼MÓq0×˜âı7f™,<*SzL_œà/Şg´ é6wøíçuì|Sõ	…Ç~Çæ¿8ÇbA'‰"Öï¬p»ŞCèjcZçé)¥~ë·v9ğÔ­>k¼~rŠQ#díú]n‡MJ¢ªsgy{ŞÁÂ§Ùİâw_v0ri”è.½5‡.7®uqÕ˜ öˆõ1~ye‘QÓgéúM®¶K,>5Æ|´â?»4KÅğ¸ùÕuîi'øŞ©¡È”ææ××÷éê6¦ô8küûŸÏĞo®òñ Ó‚~; tvwF)¼À¦é€Í5¾¾’/i‘FÁÅ£‰ı¾Z0Mè6}ÆŞ:Åå±"{+ë|×ôi+‡\CNŸŸãTEcëÚ–CAš&¸L/œäÍÅ†úøR®ÛnóÑç+œzóg¦
+¬û5m^Ë¥ôeD×S˜?QCô4Ü9èÑ¯œà¯Ş¤`Äì®/ó»{)§Ğ	A"ñ8÷ŞYN—ì§‚q·^çÖ­UvîûA}Š+ç¦˜)‚{çÿçZÌÂ¤E…´$gÏÏ’;Üg;?òHÍq~qyª¡¹Ö®ßáv¤ Ë”(V;Ë›ó6Voüı:ÑÌF/FÄ=æ_;Ã[µ{÷¶ÙìExÁ6Ÿİè1??ÏÙªÇ»Ûl¶TºˆÓã”–²²²ÍÚ $]Ş$Ş-rşíyª{Küõ]Á•÷^çL)¢×kòõW›!$q”R˜:Ã•E‡œ°ôíu¾éW8¡{ôÕ7ğ1ËÓ|xq†²iÜ¹Ëß¤L‰Ÿ$LŒ-ğá¹Ú+GÈÈÈÈÈÈÈÈò…ãDA‹ë×7ñÎò—¯£Çòµ%¶9¦Ä†ÆÂ…|0šCvùÛ\âÓµ1şÍk*I¿27‚+‹%l¥Åõnóß¾İá¿ÿå	rÇ–2hğ³_LP	ú,]¿ÍÇ×w¨–ÈG®İØ¢|ñu~3]€î!¿ûìŸ¯åşöî;È®ó¼óü÷=éæ¾nçn4b# H‚I‘¦)ÉòH¶eiÊaªl¯wjwÖµ;µå×îl˜)k\»5³+{ìµ¼Î’-¯F²$R`rİèœsß|ÏyßıãÜF7@$àùT5Ñ`ßÛ}qÎ¹o?¿ó&İ±'4ÏÌ³íşİÜßZfàÄY^›šÇlNRÑ9z¦KøVÜR«.`d±H¢¶,qîô Å®m|¦»Ha‘#oŸâµó>¿·ìä '‡b8ĞM[æ.]àÇûˆ¦îg}´_B»;vï¦)•åÌ›g8|zŠõw’\Õ©”ÏĞù!†¬F¾t GûÌNÎ£êiN®c!;Bbï6ö¦ã8~™ù’Ëö<°.‰­K£1vîÛ@WÚ¢47Ë[¯Ÿ¥w¼ú®6i0ÌOë¾Ÿ§7YÅYÇªİÌ'»k‰XıGñÆÑ!mÄëçĞˆaÛc;ÙRãb*S~µ‡ùk…’ `òBG¦’|ì‘ítÖ{ä'§˜´®5RX³ôD¶ğì®V<¥»pšÏôRßÁ¶ğŞÄÕÏGÏ*Å\?§—¢|æÛ¨·¹©YfcS	Ÿ§V]/…²Æuòñê03C¼øæ gfëy4ã0Ù{‰óåf~|™X™ñÓçøşÑAâOmaáÌëºøÌ#ëˆ,Ì1¸äàÙ0qò<—œ&~ú‰Í$Š9&gËXŞ•ÃŒMPfìR?çgR<q`­)‡ìÈ0/©şS–fFyıÜu;¶ñ±ÎÒ?Ê+oõñğ»è¶K¸µlÚD2ª(œáëGzèiŞÇŞÔêŒd?{áh_xb#±\–ñ9Ÿˆ{õĞçw¾Ÿ¹‡÷7ó¹Pà²¨Î.öoo"áÎqèà™¡ã¡óÃƒ«pÿC»ØX……q½İ{ÍÄªmãÑ‡"”¿Hló6>Ö@SbğØENëz´“:[37ÔÏN]$“ÚNg0ÊKÇgéèŞÆ¾5P.13“Åq3@ii–ø¶}<ÖéRÊñÊK#\ÎP¿ÙC¥Ü,5;öñX»"77Ì‹¯O38Ñ@zby°¹2šüô8o™¤áí<Ú™&f¸8PÁÂBùuì¬…¶„bñR/?8:Äps-[cöîJ²06À[ç{÷ïbk&Bqz’7Î…£a (<§‰Ço¢1³gOóİ#ƒt>³“M;·‘¬œàµh+OîYG} Ñ, ›»øTW¶)3Ò{ú&iÏ$é¨µ®1¤]]ñ™e|wìæñtş³gùöÑKì|`7O=Æ™éå›‡†8=™áÑNP
+*¹9r]Ûy¢»ŸŞÓG9|dˆÔ£[ñ®¸ºÈùSıd;·ò™mõDŠK?tŠ×ÏEøü¾zÀPtº6³»Õ¦÷Ä9~ôÖyêvmç§¶g(åÆxùåQzG3ÔmŒ0ÚÓÃiÓÈÓ:¨UšÙ¡KüàÌERÛèö ¦ã|ê©.Z‚CgÏòÊĞëy`Gaî$ãµ›xfo= åù-èŞ™$fi†ßz‹ÓñôVöìÜD9ßK~×iI	|²+/~~cG/±”îä»Z‰Ø†Üø />Ë™È6ömt@)ŠÙ9Òïå±6ÅâÌ/½1ÍPk5Î¯X`7XäósÌ-D0HB!Äí
+äFSYšbÔ®aogq­Ñ$ÙĞVËÉÁåUr\êÒif§§8t|_•Y(kt© $À(R66§‰Ù£Ótw&9qn‰‘lqU9£ˆÄ’lÚÒDZk/Áº¦zNÎ0¡}¢“#‚™qŞœUaªä3?WÀèäå€ÂÅ€\š“q¼áE¦M@}nŠœSÃÖ:˜/(.U˜/:¬ßCçéYğIÍÎpìø4(Ål.`^Ïø5L\œ'ëk†z4`)”Œ-º2 œíMu4&4NĞ’Œ¡¦–Èa®èí4êã.ÎÔÇ.Œ±q[™FŒ1˜ÅğëÆT?ªÇ#‘NQ_“ÂÖá0ËT{+òö@S*2[6DŒÁÜjOÍòósó%&'8Œqâì4Æh*yŸ|¡Èüb3¿„×µö˜‡eXul]—äÒÀ;/‡@èèØØEGC 5‘Æë¸öüL©aßÆ\[µd.õ’[ÊCôÆ—^4é1ó\87Lû†ut¶6‘0Àô;ƒJ¢&EGg-n` >FMÆ&4•Ú}#9
+ñ%úzz¸hÀš/PÎkÆ14¤=rã3œï‹±®-Ãº”!Ğ†x:‚™^àü…1::[ij‹‡‹—­ú©~)`b¨BÇ†FSZâ­í¬ïâ4 ü2‹ósTš[ØÚ– b…ÏoÙ°Ö>f'Ë°¡†ÎÌ"}Cœ)øøA 0”Kpu—m¼6Šß?Ï¹q:;Zhi7ïxMà„ïÅ™•÷âüå÷b¨XšMÍ	Æè:jz–²äËI²Ss$Ú×ÑREÉFv6raæÚ7ëŒ1`V-¼UZ`h>G^E8w¦KA¹P¤PÌS)/26·„_ÓÉ®Î$
+Gc[J™6à¥›ÙÖd£P¸V-­±&ËE*ÕÈ­mak“c±kiñFÉVJø«/¦  49I%ÓÄÖæ¢Z£I±©+œ¾R×RÏÔPoä4Vv¼»I¤ÒÚ0Ù·D²eë<­ñ2MtÖĞ?W½A‰ĞÑŒ^ä¢AÍg)û[~/®\´QÕ²yİ<çÎö‘²‹%*ƒÖ·²§—¬csƒÁX.‘új"liu~¦{‚ìbˆ‚;ÙÈ®Îšê:-šˆÏ³8[!£VÎiäÂB…Dj–cÇg@)æ²şF×ŠT*E¦%A ¡! &pßÆ:P®UK[lér‘J©Èà\¢ãìéêõ_¾
+àR-]md ãÚx™Îh‘JÉÇ$Âë¥À««¥i~†Şã,UA6À|
+Õã|¹í»ÆbƒÙé<s¥{÷4âÚá´ˆX]3;§é+æ( V×Bw“Â‹¨“¦É¯³š8I×09<ÀùrÛZ3$bFzÇ…Bq;9˜|€KPPjV
+L (ê½À±…(™š“yf‡gÈ®š;í¸
+Ë®WˆØØºL© ÄŞùc•eã­ª±=ÛÂAS0SÒ8Ñ8õ5Ä«¯¡©>ƒIàÚ
+ÿª×ï5ÇI÷Lq~$`ÇRhk[ë—86^àb®DÖ®eoÂÆšPÑ(­)/ßv8Q\Ç¢¨-jÒõ4ÕG«ÿöj·ˆ§,À²¶í\¼ÃUˆ®ê6]xª®ÀØ¹>^\˜§£¾­[[¨»æIçtÛ—‡±Îsêø#S%Úw´‘.Øä&¸Ş"Â¾6h7NCm-™dµ°¡.×£ÖÓ‰Œ…íšËwF®__–(c“ŒÆW"Ì¨²"¬,ğ¦ğp­ Üx{%c©–vŒÔ±t©ŸWŞ^¢³1Í¦M´]ëÇØ6n„ËÅ;T=%Ê¸ÔÖ5ÒT_½fëkøäf‡tÄ#Ş½•'ÓŒôñüàë×w²½5IÃúÍ|<™e¶FgØĞŞÌÖujÜUƒÃ¡¤lnÇôêàtb)Ç[>¦
+E’¤§	‚
+Ùé%ÎŸïc,ÚLwc–.rIŞy(EãÆÍ<Ê2Ó?ÀóÃÓlèle[G=ÉU¯)(êíáøB„öë¼mÛFYöê·Hø34hß"«.Şg®üú-)i‚ŠMã†M±åyé5tv¶S_k1<å‰%1«^ÏêÊ×ÅT¯sŸí8Şª¯_çº3S6x—¨F/ÿoMÅŸæè¡I²Æ¦cC#qU¢ß¾µmùŠ¢‘(îòÏ5«_¡¦ŸäÈ¡)üDŒö¶:"Awúzß[‘àØø$ótq»Æ3†Ş]ã¼z5qÛvPÊºüÚÌª–Ç`p—+{Ù]tà_ùmó*£¥#EÓªvp›Ås-
+Wÿìåyß«vÅ0¦:^¡ø])š¢nx=Ô×ĞÙåRWÇ” Ï»²Í¾¥ÊLqâÄ©®Mõ‚ì,r7?Z
+¨íE‰©•5,[‹»Ú\şİáºÆ¨•ß¨ğu%ëÙ÷ Ã\~ŒCGÎ2Ú’¦«£ƒM,'„BˆÛÈ”!¿T`n
+Z3Õ%W¡¨Ã‚´XšçÌ@‰–­Ùµ>…c-2v~˜Ü•5ò×üTKÒš¾^ıUıÕU§–J,9q¶lì”‡‡ÆIfX—Z.˜.Ç¤«
+;±&:jF9>1Á¥¼¦aWõ¶M­?Iÿ„O¢s=QÇFÕEˆè"a]Ó•ßWû>éˆÅ¨e‘im$¶ÜSıo©ğîÂ‹%h%hHEi\äõãS¤3­Ô«ë³œ2Çf8?¸D×ã;ØZÇÍº,3|Ÿq,¢¢µIÚ›’Ø«´*-‚ª09æSÎ@,hƒÎ–)¹FQ›$iWXZ˜Îú+^›ºŞy\‰‹T‚)æu‚æD°~™…å×hô|‰’
+‡''F¦1FCMŒøüo –n¤=®®wtŞñj•J’rYÇ¢³µşò…xùÑ±më46¥ˆöôs¦o†õõ1¢ñ-mqëãDGG8Ò7Es}št³ò\¥0å"ù,EbxáƒÅ’Æ8€káÔZ,”)´C*şd_O2Yth‹*fæGè)d8°£ö´¢RÊrâ@yIZÛ46$ˆq¬oŠ¶ú©ôòkÒ”Jóœ(Ò´u=»Ö×Tß‹#änåpÊ”™˜/“/ç…ay!_†kÌ!¿"é,KºD¢†l©–öõq\ku˜2Ä½¹©)tãòù×¿xnñ<¿#µa%mòSæs¯À1ÚŒÓ³?ÑÍæ¸‡m8{){‹oÚ€Å¥r&U=²e?\ü.Ğ”.1hâ<¾s*sDŞqœÂ÷qá	†ıİ—¡6®‰‘åüÈíÜ›kÕ{QküÙy
+‘‰šäW=¬.‚gòØV†uÍWµ¯ú]îSôˆD5óåZÚ»bxÖê3¨¸¥ıå–šòE¦/NPhï`ßÆVj-(Î¢r·våÄ<§°Àœ_!øå€¹¹‘fg¥Å»ŞefljêëHÕ%HG—¸x¼‡¾H’¶¦&<cŞÓ*ıB!„¸7¼÷}È-/³õj‰Şá!¦|Lsdx–Åru•d'âl*(0{q”ş…òJ4V0?2Ê¹É)‚€òÔ o”¨Í4Ro_»t*f8}tˆ…@ãOÓ34…•i'î¸ØMÔûKô\aÑ¨Cgè-”PØ*IÒ*S(dñƒ6›T¦†éWIÖglbK*XàâLdÆ{ İ6Ú½½ıŒW¿ï\o?§ÆKhMmI'&87¥Tü)¡T~wEªREzÎö3¼T@{É¸‹…ñ˜K4jXœö)—ƒk¯pí¹DmM©à`ü"KcŸ(_>ÉŠµä³‹Tü€H<BSºÂÑsÓÌ/•(û–rÃ=;ƒŠÖĞØÜ‚3z‰KK|Ÿ\i”7ús×¬ImÛ¥{CŠÉÁANæÍ\ß §Æ–W¼¿êò)Ìğâéi–ò
+ù2bSd-Lc‚útÀ…3s”Je–rs¿0OY…=Âc8·˜£d{$â¥ÂaÔïæN”å°¹Ñcdd”³ãá9­ÌpèÜ,Å¢OÏ±´ÁŠx$b.¶1`ıÇz¸X® İ‰˜‡ƒyÇÏx6›ÖÅ˜`h"Ì\¤o©ö–«(©šsCîŸf¡P.U¸xt„ ®­åbÇT¨”}.`æÇÑCßñôV|p=’1®zM–¾ã¯z/–nisêÊà08»@Ñ(Mõóöxé:ùD¡HQÑY|?@«:Zk“,ô^ §X¢ìé½0ÊxÁ¦£½–¦`œNÍR,û³ôf¬ğÛ%ÖÒEfi‚“CcÌšŠ?Á›'Æl›šrÑBûœ›šd(Üôg[–bã†Z
+ÓœíÏšùq.Me)Uo(¨ˆ‹«•¢"ğg8>6ËlQ/ì½T&·hÄA"–Oa!Çè…1¦õí‰sJ)*sÃ¼~1G¶è“/Îqäì<©LM5Ö!ÙvÛèŒ¹técËíàŞã7>põ´¥“Ì÷\àb©LÉÈÏ/Ğ{aŒ©â­ls— 6fSÌg©ø
+×³Ğe‹ ¬)WÆøñàÒÊ>å/ÙŸbñªöÓ­)Ú+üøÈÙ|‰J¹ÄüX?gJ5´×en<‹F)ä­9
+e›h,JÜU(ù‰1^~á(ÇøRo!„âZ¹äı<ÙK$Ù½ÿ>N?ËÁƒc(aËÆ$é¹\ØŠ²cW-oëáRŸÂ«m ½6E1ZˆFQŸ‰Rã…KhcH´oåã;j¯q§@¡¼(-uŞ<?88¥5‘Ì>¾­–˜ĞÀ£kŞ~³ŸïEapj:xZ9Ø(l·=í¼páSóëydkõëêY7”§ÜĞL¤¢¤;ji©8lŠ¸áÖ?^”]ÜGNóÒÁIl@GêyfŸ…ãØ¤:·ğIİË+gOÓ{AQ´tïÀrlŒ±I$cÄu¹¸µ¼µI¸Ö=+ÈqøÍSø€åFÙ´ë>¶6j4¬ïXàğ¥sü`¸†=6’v#¤ãnØÛhÔuòp×"¯œ>Î·°¨KDY·±åXX”ªaÏúZ¾ÓwçrõìÜº…;7Q>=ÄÁO‚'gëÎvŒLWTœ8ËsÚÂs£tlO³4²rS&ˆ8áYµë¶ğ	ÓË+gNsá¼B«û÷+ì«N¦å8¤šÚÈ˜i^úñ(%£ˆ¦Zxd_Ê U=ûÖ73{~˜ï½2„‹Ò°µƒIÇ¥*ô:Íi­P¶Kûæ-ìîŒ¢çlâÉ(e¡¨H”Úxš«Ë]ÅHEÂíõê·íà“\àÅã‡9mÚ£ûÑ­XÂ/ÌsìÅ#Â b½¿Ú¸Ã¼ÎsâÕã7€—d×ÎtÖ»WS'Bë¦n CGOrÌVDê:é®™ãRõ!Ñ†&öŞïsø|?¥,âµ|fw¶²H75³mf€×Ş>²5­Í¬+äÂ­•E$%±° íç8şò1DjØ³k=­µW¾¦h2Êûkyóh—.­¼1«zCÅ¡&Á]µµ–‰’\,\;Öq ÇO£G)·†İ›ê9•÷®Ùˆ8C÷æ:^8ÓÏ·²YŞ¾Î;xÄ?ÅÑŸà¬cEØ²a›b¢m<¹Gsğø ß}¹ƒCkGûâPŠDHÇœË;(¥ˆÄc$¼pN¹’¶W¶ÒR–E4Ãv-”QDbQÒ
+béZö>ÔÍñ“½<?8„…¡¶ó~Ü–Fš9É‡p—u¶VHuj‰‰Öî;ÿ­Ê"Õ±…gL//?CÿEpkÚèÊ4€rQ¶C¢m»¦Ïòö›‡9‚Ç¦–8Í~oÇ#Ùºöñ³¼şZ–î7±íş6:^æ¹WfPn„šX›]û[ëeY$“áÔ0¸Ñµ¶{9ĞÚ®K:i.o‰
+Û#]İöÀğêH-ôóÂ«e|ÉÆÜßFCÁu©M¨pÚaçşİpä$/œ®¶ƒu|r¯kAåòû­ú£šd€SıÙJ)"‰(q×£è¼oûƒS{ı8gh+Â¶M]áõPqH&£Õ-ÇÂ¡á¶ã’N‚c+›67Ò{|‚ï¾¶ÈæM›è^ßÉä™A~ôêeóºZ²‹á´¯¥­½…±‹y~,Éo¡ÕN¶Ÿª–û÷lÄ?4À¯@+ğâ5ì}¨›é°M÷¢QÒ}yÏse[ÄQŒc¡”biìßÔ€M]c;ooÂ™Ã²¬÷qç[!„w;U,ûà7…?ŞÃ·Ì³ñ‘½<Pƒ2Ä/1~á4¯Ì×óÄ´Äd¢İZgŸ™'98•â±‡·Ğ•5„oùØ™Ç_:BrŸ°IˆøèUa°§‡×"|bIGŠB!Ä‡ì}İ¸×AÀüì"9?ìA±Š9úæ(%›Ù~wC,e~İÚSÊå™Y*á›pø¥)}Y    IDAT^˜§g´L}c1	ã×OßÅ¥Eæ³•ğ}¡ægéË¹¬ïÌÈñk/œË!B!„øH¼¯.‘ \fğäYFkZh‹³Óœ+Ö²{G)ëæ%1áVRbèJQœ™æèà"‰ºqKS™˜`$¹':ëñŒòò…¹!÷):ZJ\ê] ¥»‹î&‰>bM]¬h¼—…B!>ªÜõ~†¬›  ;;ËtI‡‹T+ˆ$h­]™ïy£ĞR\Zd¶âQ_› jËÉXk‚Béù,¹êÊ_ÊrH¥hL"[ùÜ¦TÊ29U R=N–¡¥%MTI kç:Íg³Ìå-2õ	"\›B!„wT ¿üMV‡ŒwÙsªŞ™5}\ q9vâ®»Nå›B!ÄGåYÅÇ¼jNêÀµÍH¥.ÇNÜå×©!„BˆŠìÆ"„B!„BH B!„B!$!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„k•óACcÌ^ı¹B¬eJ©+ş¼úóÛÕf^¯ıBˆ5ß^†¹íí¥Ô™Bˆ»±Îüà¹ƒÁC 5Æ„-´1J¼âj(ƒR`)µªàTÕªóƒo3Ãv³Zd*R[
+!îUm°,–eİöòzufõ!Ä\g~ |¥ Ô„5¥Âq,Ka[*l˜…bÍ—– !4•@ãkƒ¥–Ra¡i>˜ŞŸ°7Ç uÄa!ëÚVØf*i5…kŸ®¶c~ ñƒôå`®PXoùr©µ&X®3m…c[X–Â’Sq'Õ™ZSñÃ:SaPÅ²ÿ¾úb.7ZcPxçÚRP
+!îè•  T	0ZcÛÖJ0ÿ 
+Km°l›ˆkãX·£SI!n{›iÂ¶­äTü …Á¶¬0˜¿ÏP~ué:a›)u¦âî¨3õûäW7’QÏÅuä>¥âîhC¡\!4ò÷ÊW‡q_Ç&æ9XJZM!ÄİÌË~@©â ¡üu¦ƒkÛH“)„¸[hmŞÇ*ë†°‘VÂ¸'a\q—±-EÌs±m+œ–£Í{_@h¹İÔ×±‰KBÜE”‚ˆkñTçz›÷¶.†£«óÅ¨çà9Æ…w—pÚÍ{ÎãÕëà:²ƒšâîåQ×e¡«æ»åa{ŞÄ´,‡¨ëÜöÕˆ…â£à96®ã uxÒ¼‡DnÛL­Ás\\Ç–+„¸;Cù{
+ã«†Ù¶-=ãBˆ»?”Ûc£«íß{m7RD\Ë’VSqwR@Ä±±¬÷vsuiÙ+u¦BùU-eu.¤68%C.…÷DéØá\Hın‡aš•Ó²¶-m¦â./0­pÇ@¿÷›˜F›p%u©3…È¯j 	We…[›	!Ä½R`Ú¶…6+má­åñê~ã(Û–­ …÷„ğ&¦õînb®º‰eáØ2%R!üÚ¡Ü”eÉ°K!Ä=C]Şöìİ¿\~|¸Ï¸K!ÄİÏ¶ÊR—Û¿[¹‰¹ü˜°ÎTØRg
+!$_¿À%Ãˆ„÷N ¯†ò÷²ÈzØC´™Bˆ{§ÍT
+Pïi¹1%u¦BùJ!„¸½×UÖ…â
+äï£ı“6S!üæM¥=!Ä½É¥İBˆÛÚöI{)„@.„B!„B	äB!„B!„r!„B!„BH B!„B!$!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!Ä=ÃYë/p¦ oÀ¥1(gÁèµóÚ”'mMğğzh¯‘JñÑ
+ŒáLn‚#³,äçĞAyM½>ËvIÆÒ<P×Åı©\eËIB|d*K0æû ¸ÆêLxQ¨iƒú]m–ó%„òYÏ|åxcN çfm5”¶»¢ğp3üò8°Q.*!ÄGTXê€¯½É÷'Nr¸¼È€.¯±êÀ¢ÍöØ;~ŒŸhÜÁÕu€˜íÉÉB|èr#Ğ÷·0wüiĞ…5VgÊƒ‰:ˆwÃúÏCãCrŞ„@ş!0ú&á·¿/ŒBÁ\‚×’ €c98}	Î,Àï}
+İö!Ä‡¥¬}şcßKüñÄQ.øÅU5åZkŒ£A‰Ñ Ä‰‘·˜)eù×İŸ’P.„ø0›!rãpæ`ñ8Us¹ÆšLãCe
+fàÂ¿	Íû¥Îân²ææ`r	~÷øÎÈUa|«xuş§áìxxSA!>1üíÈşdâç¯ãkÛ .ó—ÓgøÃ×©˜@N¤âCQZ€ÿ‡W…ñµNCáôæÏRg
+!üvñx±şæâx4<??º Ù²\\BˆGO~šƒSg9ççï¸×>¨Ëœ:Ë‰¥q9‘BˆÛÎ0{f^¾3ëÌ¥0ùT²r.…@~›¾yîÎ>¢sòE¹¸„ŞÅq/Î°ö†§ßšÃ•,'çåD
+!n ×0ùê\^ãV3¹s¯†!$ß†Ò@ÿÄ|D¼>ZF_
+!>$ÅR–áJş}ı£A™laAN¤âö×™ÀÒ wîoò!ğå\
+!ü6¶”•Ò~TËÈÜ!Ä‡GwnwOøÀh©.…àÅäd­"!î&‚;Gvğ$ßûŞAÎLä‰e¶òé_ø»Ò×(mËEúşúã	¬ë`5øu;ùòçæş)9¸Bˆ»!;9ÈÁ¿ûŞœ²°8ğë¿öÍQwÕ ÿ2=¯=Ïs/eÆ¿ş°Ë‰ğĞÏüs>½5rƒ¶Uq4òú1hßga¤—·âÜ…IæËEcM6Ğµõ=ğ ê,YÑ]	ä÷ò/ƒ‚ü,g^ûùµç8xzœ±œb×cqûòõ§ÉàßıÕİë´¢A…‰‡Ò|öÒ+%„¸KUrLyÿüŸ¾Ëë¸¸dßÈ/ë««YMnz„û;\p¯[|¦jëiö¿–ã*„¸ó›Ç¹ó|ëO¿Îyë—Æg˜˜-4ñ"4Ô¿À¶æŸşü/òìƒM¸Ê…@~ïeqŸìäçŞü!ÿä¥ssŒfKT€{ÃçZ3>ÒCÔR(ÇÆ³¯š ºS×€Bˆ›4¢šÜÜ/üÕ×xA»¤mÀ\¯ÁË±”]`qÒBEÁ¶]Î;óœ58ÏK!Şu‘ÉÌÛ?ä¿õ2Ç'K`ÙÔ¦´Xš\6Ïb¹ÄØø(ãßf¤äOş2OoOIÉ(„ò÷! ´¹öØjÍÍ¦÷KÓ|ëßüÿÃK‹`4¾…ºÅa’†  C±TÇ§¿ğ»»‰\1áÈÔt‘©‘{2BˆĞ&ÜşÀ¶¸SÆjk‰şW¾ÆW^.Pcßì5k´Öp<6ìı¿øhÓ;ŠOe»l©µ¤(B\§İ1árÕrKY`­ÑÎT(h½à±]­4e2$-ÍÒì oÿèeïY  }Ş~î%^zj;6?J«+çX	äïEÉ@Ö„^kåsˆ*H)ÖÖxƒ1š\©Ä¢ªãã›Sä²3\š©Ü´]7¦HvÁ`+Í¼×Í§¿øe>·{Ñ÷óKf~˜3ÃóxÔ5u°®).ï!îö ^®@¾…êJ›1/üğœ0œ¯Y†ÙKoğgøƒXÆ n4	²R¢PÌ±¤À‰¥xèÙ/ñ›_Ş ×€âæEƒ_ÒTæ4Á’AW@Ù`Çn½…U8ñµÕf*¯g~å·øØ#óğ&¼ËMdÇ;m†ÿÃw96S!npºoŠù9Ck“ÜBù»˜×37^ £h PĞ`¯©rc§ùä³OğÌO<Â6g”ç¾ù·œŸš'bİ,È—É.†E(í5ÔØöû=”/òÏã+¼äíã~÷_òëŸ”@.Ä]ÄeÈ—Âr°²œo®qâ‘0œ¯Á`næúøşŸÿ_hJÕLBÿØâõ›÷J…R©H^)\Ç¦.Äd!#!ÄMÚK(ç5Å±€òXÀ;–§˜ƒâH€Sgë°‰ÔØ¨µPy+EÍ§ù•GÖÑ–¸ú‹qºÜÅ¦ºƒœ˜YÀ²`b¾@¹T<9çBH —ÊÕ€´‚Ø5Ê±’Ey	ñµQÙnOÿ‹Ã/Mcs#îàú…o‘›£f‘ù1ƒ…tŒ¸ë½ÿ­l’©$1×Ã–å……¸K¹Rº‹e¨a"MDÂ¥ W„|
+ác£$<HD×N0×³şşßóçÏSN´óô“O°Ù{ñ7´\¯–,)ä²L+ˆÙ©dTÂ¸â&Å”òı>ş‚AYŠh‹…[gaEÀà/hÊN“Ë‚õ†x“ƒ²?ú—o]ÇõºVü¥‹• Kgc’h\Æ«!ü½LØ³£€´uí!é1Y(¯@nÙQÚ7o¹ü÷¼1·¸Ë…ÁP ?m°,‡ôØşúOK¼Ö,bÉº¶=ÀCî¢]v;B²Åğ£ìƒ¯ÃyâÉÔÄ!â€m‡íhÜ{Ìa8ÏÃŞôÅ$£ŒóQsÍÈ[/óWßx•sK>µŸòsOSşÑëa=¾O¹\d\)Zçxéë_¡øc¥,¼hŠMğÈûh¯bË#„ ü‚!?à/œ‹øF7n¡l…²ÂÀ®S‘&Ca8 4P°]E4³†[=Çá—Ñ;Ç`Èz[Ø³±•†Z¹K)„ò›çĞ°·{uÑUbåï%¨.QşÎç™UÏÏ¯zŒ"koÁ·›Šr%Â9“±…aşáÛCáˆS¥ˆÇâ´6ÿ]?Å/~ùó<¶½N
+L!îÉj2€¥UAÜ˜p¢TjbqÁ²®\ŒÈ±Ã¨å8,æ![‚¢¥ìJ0OEÁığ½ûŞæ[ßø&ÿxn‘dÇVùü8Ğ/ëßÎ4_ò± ¿\âç¿ÍëÕ63êEhizMßy€Ÿù_ås;3Dl)L…¸—ißPœòñç4NR‘ÜêàÆ®j/U¸ ›å(ì
+£å	Mq2À‰[8ñµ×˜`ßù:ÿÏ7ßf0¯1Æâ¡§äÁíİd¤XBù«0s:Ô×
+Û SÁõW¹\íy…«V~sZwHffq‘/Îúf»:ÛGSÈæ™É—)óô\b`hˆ‘J„ó_`_WlÕ¡1è B!_B_ş¿†J®ˆ¯VP¡XÈ‘ËeÑzå—I“M*…¸3”*0µiwšHD!l»ÙxmË‚¨‘¨­ö˜g‹á0÷Ù\øy&Î3ÿp>ôB?/şğ;üõ?ö²d×ò™O}‰ŸşX;nväæ¿BŠ%
+…
+;[ê‰9
+0øÅ“KE
+•C#C10™#şïÿ%ÏnH 3w„¸·yy<,‚"NÔºáJê–£ˆ·;TfÊø³†J“Æ‰¯¡„«5•Ü8o~ï|åÿ¯L”©`Ó´i?ÿÙ§Ø×”“.„òÃxÁ„+¦¯®’ôª•ÕuÃ‹ae´Õÿ¿Ìa‘zGLŸQØñ6ş¥_à“Íib TX˜chä?~ñ0‡¦Jh]áûù=~ê6´ßGÃå+Ágvìu~ÿÿ3ß¨ñV–ïğ+ÌRê¿ÿ¯‹ÿÛ³.ßëˆ&kø­ßÿ~moLŠT!Ö|%iÂ ]¨„íe*
+µ‰°Gûİ¾•
+ÛÆL*óùğ{—üğOÏ	{ÔosŠ3>ø=şä+ÏsÎ³ÿéŸä×~á	Ú"~öÊÇ®´”«Šåx-›|ßy4NÔU`4¥…)zû/qúäqš¥bùô_|‹¿şÆ1ûí¤¥—\ˆ{“	WUŠ'iá%«CÔoVpÇ-¼z›Òd€_Ğ˜À^sÉMPfağ,ÏÿıWù½?;Ì°Qh£Ø´çq~åŸ~‘ŸûÌNÒ–œv!$ßHÑ„CÑPg…CÌ—å,è°ËX×z>„Á=aAÍªçWÌèğkyÍÑ")‹hÓn¾üë»¯q¬Æy¹í?ñßÿá«•45œäĞùY~ö!h¨[}" x~ŠŞÆU¥Å¢4Åm,£™[\d »2’ Ú¬ğµ¼™„¸cªÉå›¶f½¼ŞÆ{™Æ„‹Â9VøáÜâ¢ïÿşB¥@ßÛÏóÕ?ø3+xÔtÜÏ~úÓlòŠ,Ì©,dÉ—GH)t¥ÈâÂ"ó~”h<IÔHk7ÏşL÷;ÿY¥N<ÿu‚ßÿ3¾7aã•KL;ÁÅÒ£ì‹K âlAèB¸®T¨[½9§ÀI*J“`J`|sëÏ½]í§ŸcäÄÛüüøíœ#5Ìú)¾ø¥ÏósŸıIÙßATÂ¸Èo*XÕ»\º+Aİpã¹àjÕÑˆª•B2¢`¾øƒ»àlGšÙÿ²åÏß`°TÆ¶mÆòøÕ¥`¯ÙÄÏ=÷<£ÔåCã_z…ÿíÿ}‹v¿ú¹Ïòì¦º’²lZÛ¤<â ¬pw¡ödO/Wû÷ Z;~KÕœ	‡¿çKáªë¥
+˜j¯yòÃYy½¼´Èéï}…?ÒÑ˜D”Ù£?àk§m ss\85G«@A~ø(ßüºOsCò§Øİ|ƒCI³iÛ^Ùù|m4KÆ1”üy²€ìü(Ä=šÈÁ,wBØïò>fµGÜèíån,øŒûòïş/ş—ã9šİ
+S{øßÿÙOñÌ'ŸdwGBê:!$ßjqyıó†çŸw×ı"YY­]ë€º¸‡}EÑl“H¯ç±O¯¿ò¾Ç©YşèŞâ¤ÛÂı?Å³O·Ê»Gˆ;µÍŒyĞT†è«ç~Ç¼•}Æ¯¨µBu‹´B9\ÂŞöd4Ü&-ê}(y \Îƒe¡.¼ÌÿxüGèå½Ó-‹š¨G¼ÚU9Äÿúo°çÀ“´ï¿q ›Lsùæ#(+I<*—‘÷rjya{¢‹f%œß]¬~ÔG<Ç¯<r„¿û£¯òœÎÓbW°»?ÁŸüæùÌ“÷Ñ”t%Œ!\¼çâTkfN½AÍNötÕ\9%¾0ÄKÏ½ÆùœÂ°˜ßÈÍµ$R7ïÅÒ«V)6FÆ§qg”*Ş7œC¯n]Vö¡R{¼#Å0X¯îé^Ş«<[‚b%šàZŠ…wOrcÀ×T¬°Z®‹ºWü[¯ª,ÒQ×^^„Ég¼·É M÷Æf¢«~+êÜç½ÊÁ£YÒ¶Czs7d¸º÷nóiWX
+‚yCàì[‰¯ÆP™ë';¦°>Âu‰ŒYàğw¿Éß%®4ãu{ùƒö³|îã÷“‘1êBH ï;‘“ë{™ß{î[léZÇ¦êb6Åì½OóÊÁ“Œ—5F¶şÔOğÔ–.<9lBÜS´ {´#n¢“Ñpoñå`«†îÅB¸'¹² [÷!×Õñ–®n‘–Œ†ßËªNù©áçB0¦3|öwÀôï\«r†ÊÌ/ÿå¿åK1LKÄP÷Ğ¯ò×ÿö³t&bÄ’ †ìd_ÿêsZ6³yã:cA%ÇÈù¼yøoÌ*\j6ğÙò² ›÷4ËU¸‹ò”¦4àt)¬ì4c&üœÆN(Ü:ôÎ÷òê¡~&J”¢¾<É[?üÙ³±¯*ª5ÑõóùO`c£+'_	äâÖ2y‰So½Áo¢6!bCP)3Ÿ/SÊrhíŞÏóóŸb÷Özä^¨÷XŸY
+{¹aÏ¶¥À²Ã•ÒS±•`^òÃyá%¿º‡YYY}9ˆÛÖÊĞtcÂŞõÉÅpÈ{C*\äí6R¶C¢¶Äu¾^19jbNøÚ +’ ®¾ú¸·Ò§e|æÎ½Éß½~–L2JÌQ˜  —+°ä´eSßÔÎÏşÖË—w¥n¸i‡âîg»ŠH›MeÖPG
+%º,G½c*¥ÑP÷É„s›,Üš¶ò2S£ô.æÈ …Wœâµ—_âÍk¼,])Ñõù.>ş1#'^	ä÷|Ì£Yªh,­Ã!ä×j¸5Íìïnçtÿ,VÂUï’‰ºÚ¹ï¾|âÙŸäÓOv“ºÅß	*ÖÀ£{‚ª‘¦¹C*ÄŞœà0“{¼SÕnÛ
+·~¬‰C2ö’/ÂocÂÇ¤¢ï\°Mkğu8}±~nkeQc4”
+6øæ¦KÒºu[NÏ29¿È¸oĞ(b‘(mlëŞÄşg¾È/}¼›dDna
+qÏSàÅ-"¥Á€âh€Ÿ3Ä»œÄÊ‚¸AÙP(OnÆ"ÖàÜÒ6i·Sn~‰|¾H¾²²bqÿšõKEšµAâ¸Èïyv2Ã}O~ÿ¸³‚RÑôµ‡š+Ë¦å±/ò;©]œìíc6W¢äkn´†–®nöìİIgí»;õÎ–Oñ¯~÷Sr"„¸ãIA/”¡âÃ\neXz2º²wøòåÉ(øşÊõÕµ:Ş-ÂR1ü;|¨«¬ßôŸëÅh}àÓüŸÿ*mUÛEüŠ×åĞ±m?¿øßÕ°ûÔ%¦ÉUS»íÅijïfÏŞûX×Ç–«GQeyŠX£C5T¦5ş¼fq¾Œ³°<0y}yÑ7QÄ[ÂÀş‘Kuğ©/ü”n¾&1¯µ‹Ú˜ÜŒBù=.Ò¶•g¾´•gn^~bÇèŞÿİû“'„¸º‰€Xš­0HçKa¨/„¡:D4ÜşÌµÃÇ»Wıªğƒp~y¾ºÀ›¯ÃÇEœp±¸dõùê£/<T†İŸùEvß¨°%Y¿ã!ÖïxH®!Ä­7§—·2³S
+* š Pm[\…•PèœF)Pk¤êNm‚_Úş„œ@!$!„øèB¹èd4ì-ÏÃ½É‹áPõåíÏ–WN_â¹R¸*{¡¼ÄcîJ_ŞÇÜÈ G!ÄİMW¦¾ãVD¡µ¹¼Ü†²€@‘½TÁ~ŞàÖÈqBH Bˆ{—!\¨­\	{Ê£nÌ‘°×{©î\)İÙRøXYàmyhzÜ‹ºá0u¥Â¯-åÃŞõ5ÒK.„·%û]0([á¦-lïíÑ`EAÎ”äF¥B¹BÜã\Ãb¾ºÊ:ánË+§»NØ+^òÃÇ,÷„+ÕçV»}â^¸"{Ô½j•uÂÇO/…qSá|t!„¸ÛTï?êŠÁN¨ë.Ô¦,°=E e-ÇM!\!îù*r¹’œÉ†:÷#·Tuµu;²^¬„Á¼PÃv´Äc^õÛTƒ¸6áqÕ èê×¤w\qw2èê¢hNB­Ü—\•¹—›Áås]1˜ŠA¹Ò6
+!î¦@¾Ü¦ d`õp¡Õ7"µ¹~qhV=&Xõÿ}S}ÈfİBˆ»#«pñŠö„gKáğôå^ïå`nU{Âcî;Ÿ¿Ün.¯²¾¿ÇrzÌWh·¥áBÜ¥Ü7è|ø¹°À@P2F|*+ªˆµÙ¸);¦ÀS
+ãH BÜUÜSà*(˜ÂÏ—ƒºoÂPn€©
+ªÉ™pOŞåì^1àWRTO!ÄİÈ	‡š·Ô†!:[¼2˜Ç¼p{ÔÇzçpÁÊ|ó\¹ºG¹·²}š„q!Ä]Lû;m,OQ^Ôäú‚¥j½¹ş¬&¶ÙÁv(0åj OÊñBÜm<m…c„Ê
+×Y0£piTª!|uáê*H+	äBˆ»‹m…=åÉh¸}Y¾ºˆ[¾ú»Æ‚me?âÙä+awíğ±ñH¸0œ%A\qr:ÖŒåù€ÊŒÁø+¡p3AÎàOkrç*xÍ6`CP6a})ë»	!îš@PaïLÉ|°Ür IBÜ¥,†òD$ä…åÖ+áGÔ‡®Cø÷bu>¹g‡û•ÇªÃÚ%ˆ!î!Æ€.‡Ÿ—'Â^q7cëpğAÙPˆù”FÊ+ó!µ/I\q7r€ˆ
+?îhš‰³ÌÑùğ^¶§šùÉ!aÓÛh†yáÄ¹²Æ0Æ¡}Çfvmh&şŠ \àÕ—‡ğ3m<°kÍÕZÚè%N¿q’‹•ê”zE¬¡}÷­£1á¡0T–Æ9v¢‘EŸÀ@²}3¶µ’Š\Yl—ç&8qúƒ‹Õ¡YÊ"ÕØÁ£»2Ì?ÅÛóµ<¹{#™šZ›3Å4;÷l!6u‰£gFXÒáùrµlŞÖÍö¦ä¦8}¦‡óS•ËwEâµMì=°w|£'˜°¼(m¶°wS=>“ƒ}»˜cûCÛiOz”‡NògĞáÂ˜(İv²­6ÁÂù#¼6X¦¹k#nm¾üF={ŒSó1ŞßM­¾¾Êâg{úèŸ.âkp}˜”È    IDAT)ºïßË&gs§Ns~6W'PI·òø£[HËVOâN£TØËóÂ ],ÃR1ì/”Wã9áüğ¸^u¾ùGªÂìÔ%Şzk”¼¶Nª†-Û·³=ÅÏ-Òsúg¦«ïSË"ÑĞÌ¾¶Y^sÄ_âROg‡('§cãfvuÕ±z½^ºÄ‹‡'ˆuíäÑ.#½>6I±ús•ãÒ¹ëlÛË 0Ï…^zÇ³”°"q6lÜDK¾‡W.°,µ²ŠQÄëšØûè6r3œ?×CÏT‰@C$ÕÌÃm¥ñêcm¦xë•FsÕ6İRx©Z¶uob}&£ÀøÆÎæáRõ†µÁxu<z`Ş4?~y˜Hç&öoÉ¬ú¾9Î¼uŠ•á‘ZX¼p‚£ÅVöïè¢1Q]œÊ¯ĞìmzU»÷´‘ïíádÏ<åjÏŸM°ùÙêNsêÔYzçuõøÛ¤›ÛØ»k#u”fÇ8~æ"Ã«~—¤›;yto'Å±¼Üæ+×¥®¹•İëi’Qkâ£n2!\_¨zéÆ68Dmœj'ã(vÜ¢0à£‹¦º7ù¹vMÀÜÀ9Şî›%WÔKÑ°iûÖgğOğZï<¥ ¬Ÿ´gÇı[énõè;rŠó“y*:üà¥3üÿìİwœ]WyèıßÚí´éE£ézïÕ’,ÛrÅ¸€!ˆ!òŞ	IîŞ”û†äRn
+ğòB !±M3Æp‘,Ù²dI£ŞGmTGÒ4¦Ïœ¶Ëzÿ8£Q±¶$Û’x¾Ÿ>²Gçì³Ïsõ<k­½Ö”ñ#©ÊO°{sÇ;’êüªMAU=‰ùc¶¡+VÉSËğã=4Ôïå@ÇùÊÉ)eÑì*üã{©ë)`ÆÄZÊbƒ§ëõqd_‡ÛúIz¬ã¦etqN&Nû=ÇvñÊ1‘cG1iD6ì¨kàdwzèœ4 ƒ€ìš©,âäÎÁX7§–ìÁ6åìéÔn¥+€iQXZÁ”ñÕä&‹§ØØĞF:«œ¥³kˆæ|İÍì<ÒÅè™ã)‹…Ğn'dK××¨¬bæÏEIVH–<‘!ëì×‘›•äĞİ,ßvŠ Ğê£åÀvÖ´ƒ¶Â¨ŞfÖmŞÃn…1°#aËdhc¡  yd¿Ú|€Õ[p¼5~>ö’âÄzVïoÃ‹*¼äY6®YÃÓÛšèKxéfV=¿†_o;I—ia«>N´u“|“m:¼xwîbKG2q"&NØÆ±C(¬[Ïš“=Ä}ğ:÷ñÂÚœJE)ôv4óz]m‡á¤8²}3O¿º}]@ºŸûw³údœÀ<®c"` çur:‘ÆŒø´ŞËÓ«6°±1øôu´°¶îI­5^Ç1^ØrˆÆ„I(jbGl"†BiMÓ!}u3Ïn¨çĞYoè}u<Êš=ÍÄµúÚyeùJ~ôÚ~õy(;MÛé“4õBŠs¢~ë›{p'bá„ù ‹½0Û™Ş†çÁğÜÌÔöœ”ä@iäÅ2+®_‰¥Ï@_«6¦-áâØqlßÎÓ/Õ±@¤œÚ·›µ§ºH9&j ‰•«ëøUİQ ©.öo]Ïã¿ŞÆ¶ö~´•âô¡}<ùÂ:^ß×Š{aşš<Ã¦-ûØ{&xôtdÅÆãt»~&VEÌ¡-ÛÓİmlzõ_±‹İq°]ºÏ6qâl#dãD-‚ŞÖoÜÍŞ~3lrl¬.ê7¼ÊÖ£Ã°".­ÇšéÔoUÓôq`G=¯éÄ(ğ{8¸c+O<µŠÕÇzHú™Ä³ëø~Vì=E§9S£6‚Àïb{İ>ê›û/9nŠSû÷³v+)S“òÛY¾¦Ö®ş¡G¸nëÖíçD·O‘æLÓQ^ÜvŠ4'bŠ˜„,ğıİ½‹Mmıø!“ ·‘çWÕ±r{#iÀèáÀö]lëJÂ¹¶$dcĞßİÆúiJ¹˜ƒÎ¬\±–Ÿ®ÜÂÁNO¾«â=eE‘‘&N‘Iöd›héùb|(«s‘b“ì	6áR“P©I¸Ğ|ï§«ë‡7¯áñç7òÊÁVLHÇÛ8Ú2@ÊƒDÛ1Vm:@£oÆ6›e`àÒÒpˆ—w&Vè —=uëùùÆ£´õC8d
++‚ø)^ª;È¡nŸPÔ$RªC»ëY{´+³I*ÎÉ}»Xwº›´câ„3y¤xô7àÅı­t§În3¯-•Ÿ¾¼í­N@OK§ûãC1ÚóìÚ¶·Ö³æ`í) ‹°cá„Áëkä…ëEM¢!…¡RœÜ·Ÿ×´‘y©$§ïâ™çÖğÒ3$MM_Ç	–¯xç7äÜXQª³™õ¶óÌ«›X<9tYã]ílŞ~”Î”Kà{©{Ÿ¬®çh@(äÑÖr†Î´‹l~'ŞOä\_Â%SX6¹‘×ïçÀ¼Jªû;ØvÔeÑü
+ÊrT»ÂtBÔLšÍc3¿>Ó<_A[÷tR>a:S’9Úz†IU#8·~ˆ2LŠ†W²xá,
+‚N*Ö­å§N“š^J8yŠ]Í“î¸Ÿ&ÄPøÚ d›—é¶9q
+·/&fR¶aRQSÃ’ÉÇxnsóË-NoÜK[VSAXy€B…ò˜5k:£$&Äøîc9ÕÉÄ*…BS4j·ÎNN(ÓQáĞ`ç0múTfVäáOËåß¿·‡#§Î²¨º†ºh1ıpN!“gÌcI¹&Ğ`Ù†Ö "ƒÛy’ûRrËXŠÌL1b¨Ì¨UïáèÖõ¬ì-áÑÍdtIKi_cØ {@i‹ª±¸uV5ù6 l7Kan›`Ngå:ı|ëXs¦NcJU‹k6ñç±ûÄ £ÊL*GcÉ¼Qiò~ù¯4œ¤õÖ*"ÍGxqMãî¾;Æ–’m;{€ı«ÅS[R2¬˜IÅæ—E]Ô“­s†±pÆtjJ2QÖ0H÷Ñ¸oÏqøàÃ÷3¹"ÇPA€2lswWCoÃvN5ö3|êî¨ÎÂ1’]mhècÒ-K¹gJY€?Oc]f‘<eZ•æÎ…c MĞ×ÄÚW×ñâªLøø|JãRÁğ
+æÍÇØ˜&@a[&^Z¡ŒLÌ{ã¯ğçVŒ‚â‰Lãöw÷2²<›ïÔaè–ÖŒ D¨ür–ÌEav(Ó6Yà&lªÇObéÔ2¢ş²~ñs¶kâÌÜj
+ p¨8•ÛÆ5A)›Á‚ÛÎeÆô©L/ËÃğ¦ÓİVÏş¤M…”.M®|SÅ{Ä°ÑR]¢Q¦ºlhT&8Yv­dû^‹İÁ¯6'4u)9·œˆm@(‹°m(BÑ<¦ÎšÃ-……ešô‚Rdå—rË‚¹7âŒ¾ï¯=EïŒ*FMšJïÑ*Åæ#Lœ<»Æeƒ²°Œ~”2.îÇÕ•£Ç³dÎH
+LnæIàÂ¸”bß¦m¼z0Î¼<ÂÒ²(¶©ü eÛ„ t@ºç Û»ó¸eQ]-œí¨¥¬,‡1S§1*pé>‘`cc?S&Ogéè(Óè>ë€ÄÙ³ìX·ƒæêy|ö–Ñ”dYà%ioXÏ·Wî¦¼¸€¥ã†R˜¦C¾ÓÇúºíÔ”/dT(“;åA‡%wÔ,>¹la~ ±S¾>âÒx"—àzûØŒ5–ju–º-œ9±Ö‚QŒªv~ê¤Öx‡ëº¸®‡œïju»±»Ãaêô1Œ©qğøYÚ{/-¤Je
+_­!¡”r"d“âäñ£t¸™Ä1²1Ã(˜ïy¸®G:íáú™óPÑáL›2…	ñ^z}-¿<ÓÎftÔ¼è£g[6!ÛÆql,4ú\—±‚Àó‡ëùÁEÉj°æVA€6MBáËIkàynæZy~fÖÁ œâBæ-Iû®4œèº¤ÇÒ§·¿•»Ó,š5†1UùÄB!'D$&d]xÎŸ«ëi™†$n¾ÂÜ02‹À]ÏMÊÀ¶mlÛÆ	[XJqé ²R ”G Á‰„	%ãtmàTùfW—SrBdåæ0jÁ$
+Z›i=Óş›³‚ ×ópÓi×' úØ¹½™ñsÇ3nä0²Ã!BC$&ì˜¦…cY8¶™Ùúİ²qlÛ2±LƒX8Éştõ¸hÃ$	aÿ¦fÃ4qìÁøT8’iãFQÚu’ıqoh'OíƒqÊÅõÎm?ò::Päåf1©ÖbÇáâZ{4ìoÆ)(fTeè‚_ğnpQLUCm"
+]0›HgÚ’ô¹¶äâœ-;s}Â‘,†•LàşÉĞĞÔÅÙ~ùzŠ÷<ì`Xê·‡F•)Ì¯‡bzÙ]’3öî_XM~,LØq‡ÃDCÖù‚Yk<×ÃM»¸®O ßğ–2ùÖ8‘¦iaZcãØJX–mÙØ¿¡ÃÂ÷3ùl&‡
+Şø"}ÇÙyè¡‰óXVGVd0FÂ„-33]ûth$•_Í¢	ÔMêèd€sñÃÁ±ÏÉ¶ÏÉ¸(_S$éè9Á–Öî™RAEA4s]¢9×Ìeqn{[ÏröÜ{7#ÌºcÅg±aÛ©‹fSeh“Õ´´4s°ÛC+ƒP(„-ë­ˆ7!#ä×!3g<Ëfæ{k6ÒQfÎ¼Œˆ^ÿ¹)¶®x–Æ×Á·r¹íö¹Ü2®;OĞ+eBM”SKl[#íµTçäŸ{6gN³¾Îƒ.NµÚÜ~[-±˜ƒ¥'òàmgyvÓşåGX|Ë,L¬¢ bóÆ6D¡—í«VÑTgaÚ5Sğ‰[ªÈQÆ˜‘Ùü|]#Öøù,“uqïO¦³³‹V·ƒ†õè^IMy!è^P&›_á;m,Ó¢lÔ~ÿq™^L¿İ»öÒİhÒ~¬…ÈØ1ÌšXƒ“.•8ÛÊògÁ¦P€.å#/`láàIV#*&S;ò%^ÜÕHù°\´:_»~'§¼,¦ÇbD/ûËò¨_ÿ:ßİÂ6
+ÇÍåswŒzÓ'!Ä;˜{)ººº9ãt²kı1R¹eLw ¥š5°Nuîma_ª€¹'Qêy´õ$6<‡hÌ¾(Ë¶ì\òIÒ“L‘Â—é¬°;NğøÓg‰Ú&N¤€;>xc¼.ÚúÃŒÈŠ{›¹W$/™·Î¡}õ^¾ó_˜¶`wNª¦$/ò–{Ğ£a‡ˆåÒÓ§Ñ9™‚·åèA~úãÓD€ tqßdbo%Ğ@VÅ#G`¬9Ao¢š£‰m'|J¦ÖPcŸoŒæƒ|ï'§pLƒ¬Ârî~ğvÆ Êğ9Ù°Ÿ5‰&Ì®Ó0+X8},Ã€8 —­+_æäÓ
+1jú>¾ ô²¹Ù=]©´|î…xûú8Ó—BQş¶§Lö·óâSO³ÁÒx¹|ô9L¨IîicÃ¦­„“ıœ:™bÁÂDŞnÔF™>û7¬çßê·aŠ¼±sùÓ%e—ôĞ›t)*u™¢ }š5û6m£sBÄG†yöp7‹jÊ‰e½Å|LûxÉ^’yEäGcb[–EaÉît:S<)byY¸ ìªgkMÕC¹ŸÂ4³™wû,N­ÜËÓÿõ$[gÌàÎ™c¨É\ö})ÈÅõ”XŠòic±ú5:££][xqBbÙLš»„»jP6ùùƒ%N³ãXI{‰ã-ttB$ÑÌ¶nFWæ“;¸š…—NÑÓŞMû©NJf/bAe#óq¨œ~+XÙÈ¶İlß¸†£gçóñ%c)šoÈÒ´67ww* l*BÙçJ÷ôÓÙ¦¨,Lgo½.yùçGRŒT/¿¼–-YÙTäş™“˜Tt: |Ò\>4­˜£pÂ¹d= O| ÅÙ®3Ô”ğ±û¦1æ7´á¼.]Ä¬M`D(Íœ²¬ì<FÏšAısÛÙtlUC÷Ë+ÀÂ& Ğ¿ánŸÀ¤vÚTî›TJV¬%Å¸ïvÔÄêkã¥ÕkÙ’ŸMIA÷Ì›Æä,…Û•y„›tèlcÏ‘^Fßq'·ÎAÇ;	M:pñ×\.&i\”˜)8ÿ×àç•òş;¦PYA6E9A§…©\­ßş½‚F˜²Q3ø½‚Æï;Âî]ëøöñşø¡ùŒÈzk%¹ëk<_rÎ'‡…•Ü}ÛtF„t8—XØ‚·|v„á…åŒe;º’ä´œà¤ÎâÖñÕOß/®â÷L /æ`ZaŠ£ Û„xš³Íì?šdÆ}K˜_sÁFÌÚbÂ¼9Ü92iÎ)är#øZC:²L™÷)Ä03¡çã+.;ûÆ‰ä2çÎ%ÌÈUv„’ü™–¢İ4}}œinA×Îæ–1eä¾íï£F5S§ğ¾)åäZ`fb¨K¾û¦‰¡iÏ»ìÄÆ£êq©pÓiî¥=°i?x˜3ó«–•óÖ:35 ¾ç¢ƒ‹#w Áõ4¶¥.ÚPDY6ÅSæ±´ñe¶ìÚYìŸŸ	 L¢eSøÈ#¥ìß{ˆ-{÷ğ§;øäóS•)ÊB
+ò"½4ó(Ê¶	²²È¿ô·dXä¯bTÕÅ_çã'hèÈªhçåº³(åÓ³8²¿ş1åäæfÄğê1<øÀdºwÖñ³-»Ø1¼5¹8Fæß³‹G²ô
+*êøÏ—öpbfùÑœ7~X´IAI9µUEƒı¹l°£{ö±µ«ˆïÇ®Wv°bãq*ïGÁàã‚P!Ë–ÍgìğbJs³°Œ‹3®pa)µU%dµ™=§€ÅK0%ÜCş¯W³|ı†ß3²ËåF(JIY%#/èp½(Ğjƒœ’jÍ<ÍO7×ÓO/®.LÂv1£³öĞĞÖÍ”‘ÅäØo–*òŠK¨­®¼‚ÆHqmh¼œaÜ{ë,&Õ#?';Ï†¾§&#§Nç9Å´o_Ããë7³}Ø,,sÈ)/f`ãišfÔP	z›i
+å2+çüJë:"…"‰YZYã‡²Q^ÁˆâóóhRN6#K<v4u±`L9‘ğÛM½L¢UÌ_TÎøaßüåAÖŸÎˆÉÑËvH%Á §ÛÎĞ­àş\khvS4;ŸªÊ
+j#ç¯YÚ»ÜÑŞ(«8#Â¼~°™œŞ3E£™:ì’ä:œGmeùç7I@&cçÌá¡‰a¦mxŸ­İÊ¨¢Û˜QÍäÀÚ  ¤œQÕl–’¾è½û±›ì`O£ÏèÚ\†eÉ'_\qŞïğùçRYElâ`çD¦‡ß<
+ÙQJË«©-xã¿Å†àş÷Ï‡Ã;øÙ+{ÙX6Œe“Jˆ¾İ<H+r‡QSUIÁ¹$3=pq‘œ—OQVˆİÇÒ>e:ÃC—¤ú½-t›!JOmcùI…™N‘•îeSË µÅ9om¦’"–]NUr[»Q%lfNÂíoaÿ“Ê11r­çd*BáfÌ›Ìáå‡¨k6èŒ‹~QNlÓæ3º,—'Ÿ^ÇÚÓS©Ê‹¾ık%¤ ·ƒŒár3oákìõ`¢ò&£Oo{'²3+u:ÑŠráà±vúsGğ™»go™(Ğzô Ï¼|ˆ#=c(Î9—œj°ÂTOœÌ‚æU¼¼~?5ÃfP?É–6EqQ”—æTk/‰pŒ°a\æítŸm¥±)MÄÓ
+SX”Cªõ8ë·5S»èNÆ*¡¼¯™o­ÙÍ¦ÑÃ¹wô`Bi8SŸõÆ^B¥Huád“OÌÃ´É+ÈË$œZ£ƒ § š%·cÿÏ÷ğZe	Ì.zÓsR	Î¶µp’Ì¢n‘œB
+£—TÖFŒ'1óØk¬8Ğ¥ ±œaÌ˜UÌ›·òëT“G“òéí \>‘€RšŞÎv›r-2
+Š‹È’@+ŞÕ<ôº¿­20Lûê"¦fXa%yÙoOƒ€ÀÌfìŒÙ,:²œ¯×Sş9”VeÆ¶5¼°Æf`j•9ŠÎ“ÍlßÑDÙøùŒ)who9MÏÀ §wŸ¢ÇÈetU˜ÁÉÖé~N·¶ Ü °³ò)ËÊaÜô‘¬_¹›‚8SG—Q…Dw:¿†Iå—+¬zÛ9|¢“P^Q+ £µ‡d`‘U—m+ıœhj"HÇik<Êk{z™»äVª#†Î¶‰şšš[E4“œÂ‚Ì­8GwO'[´Ö˜á\†å¼Y»VHeY)AİfÖôzÔÜ3šBuñ˜¤zili¦7fƒ2‰äsAG¨¶ò™4gs¾ÌŠºC¿:ù™Aè>ÛÊ‰ÓIÂ¦Â´Bg®’âL['tœtg+GØmTğĞ”jò%ÎŠ+dGyã=¿73çj–ôˆ0jÚjmà™éXFÙ°,ˆ÷Ğkg\e¦÷½m­M4&Uf[Æœ<
+²Õ`	(›aµYÚÖÄOëöR[šÍ„aoäwpgÚßS—²`j{–ïàÙÕ.3ª‹(É±èïÀ)+§Æ<I}K’3—ñ¡¹™Û½N6¯«cå®“ô-"ùíKc‘_TÆ¬ñ{ùÅë[0’cW–×ÓÊ½û8]PÍ’Q¥D;‡gXä–bá¤&xéÍY5€&ğÏ°gW;Na>Y¶OóY:Ó!*CFÇÅõ_+cKac÷zE5,+É¬.{-uÁ_C|7Eı†×hß¥@L˜Ïƒ5>§;)·€ê‚œÁa‘¼ÊáL.ŞÅÚ#]L/É>¿p`F˜9yßÎò=åü~qkÖ#Âğ|’VwŞ=—Ú¼è›®©›¶ĞSoc*Evq%‹Mf`ËæåG–³BD&ÌaÑî_Q·©ÑÃç`©Á³ĞúÍ'%*EÓŞ­<yÊÆ2 ”WÌ’e·SuÉµÈ-ŸÄƒSñƒ­»_¹€ü7i’İ¬_ı
+ûCè€ªù÷ñÈä‚¡ëzîxfV	‹ç¡¡©‡cƒ-ƒáD3ó~ßØÉòº-ìŞ&+„ó¸í¾‰Ô8€ò9²s¿8v [)Â±"nèNfæI¸ïh8›ÑvŒÃés•«fˆœhşU‡Kı[b)ˆcşmcØù£ƒ¼¶«”Ï­å¾‡ ºn'/-o$R$“£f/àÃ³FQÒ<u„åu‡8är÷}‹™”£†jP³«™çWõs0m*&ÍãUS>~×»Y±a?Ûœ°B[1fßQÉ¤ßğ.üd/‡¶ldOÂ"¬ú}›i·/æÖÊğejxŸö#ûx¢ëAàcVrë]·1ud1¥Ğn¦Ğ?{º‘å/t‘ej´3÷»¹¥pSÜ³“ÇOîCÑÑsùä¢Â7i|lªªJ¨Üzˆ:«”GÆæ¼¡ãYiäé—:2ícÊìùÜS~ñƒTÖpn¹}$;ŸÜÇÆQÃ¹µH¡”Ç¾›éÜca*EnIwİ7Ÿ,Fº‹Õ¯nd{ÈÄ`ø¸I<ºxå…Qùâ‹+Î3sj!~˜÷~û±+‰udMë*ú0£%cxøƒ6ë^İÄsË“Fù.•³—Q[‘É‘ÒñnÖ¿¼š}öà,—[qÏ”Üóœh'Æ˜q“™uh/í¬ bñhòÂçqù`üv8”MœÇ§ÃQ~µr?İcQ5I»ÙÜşp´5qz Ê­SË(Î?·Td6c«N³ißAê{&R_>©¾àV,Ÿ™KnÃogå†õlµCø©$9UøÈ}ÓUzŠ¾àéÊ‰1fâD–œháÇGCsçØ¶mìNØ* áŒœ¿ˆ%#rIg¢¸4.%ÓŞÛúvh­ñ}×McÚa²#ö5=!/€åàCÏBòFì	à‡wÂ‡gAì*6¤ÖÚ#ŞŸ 0CÄ¢ÎùŞ47AOÂ»hµpe‡ˆYL§Ñv”ì°y>Oò]â‰$i";bHâ±X8Sd{iú)|3D¶ĞŸpñ3]Ÿ(Ã$	gV¦¼ômziâ‰ÔĞÊê¥…Cèä i#DV$”™Š®’$µI8Áô’ÄSáX„Ğ¥Šoê‚¥2LBÑ(v"ôq¢aB–‰Bã'ãô¦!	cé‹¤èIú_#%;lá'ˆ{Šp,JèÜ)øiúâ)|,²²"X™åCñÜ4‰Do°PW†E8%„G"‘xã¹ÆbD$ØŞ´’®O"‘À¶,,ËzKkA€ëföÍŠ„/»…Õ•:–èäŸ-ç{=Ço¼Fø`tÿÏø˜”UrE¥¸ç&éOèÌöÅ×VûÉD×g¨ÔAŠ¾¾4ØYÑ†öI&’$]ŸÌ®ˆ&v(D4d¡Ğ¤“I)­LÂ±(aSét’xÜ;b”Â´CäDLqíeb‡d²7e˜8‘ÑÁsÜ	#%jgâlà»$âIÒ—yÎÅ\úû’CÇG)Ë&	aŸ[4HkÒ‰Üà‚X¨°£1¢¶Ç@o
+ï‚ìRY!²£©x‹¬¬ğùY?M<…§M¢Ùœ¡ÏşàõKù]Û	s O8bNfçÀOÒßïb8a"¶&ñ&mI$ÁôRÄiÎı“2¬PˆXÈ–İ,n ½ñ4—ÂqB†ñ[c¦Öš H§S˜vˆìˆsMÏGĞ¾ö~ô8S§¡æOaÄı`Å®æ@>Éx’¤çx+¬P„XÈ"HÅéOyŒ\+ÌP˜XØ$“LbÙ‘Ì¨?˜)‡ìˆƒiÈgñi    IDAT(7A_"ÀGˆİ?äÒß—Â7rczğyŞ±ùÜ/ÈKÆé÷-¢‘0yîtÓÄSÅÓP$Œá¥HºšPV”ğ‹¥y©$ñ¤‹µÚMĞ›Ğ„"‘Ì6oƒ±+Şi¬Ó¸©$‰”7”[vˆhÄ:G?•` åcEcD-u.1&™L’p±¬¶èO’‚Ìu4œp„ˆcÊ¹¸şr€ÎøÛ—á;ûn¼ŞË×ÀWï†Úbùp	!ù»Skà¹–İüŸkØî{û‰½‡Åø8+Âÿ¨\È'+çÊîBHAşä n?4ü Z_íßX×3w&Œı,äŒ”Ï–7‹ë²“¦ ¹>3
+²Í£(·x¤şj‰ãBˆw¿°}¨t
+ÿ½l3œä¬5ã­(Ÿ>ƒG+fK1.„x÷r¶,¨}
+o#×}/¦Îìy=j•b\ˆ›Íu»ÊzY>ü¯»aôVxí¼ÔMf¡·ë)h*ÀÅ¹p[%<4¦”Ë‡Jñ^„#Å£ÕóÈq¢¼ÚVÏªD;‡İ|®Ÿ^MÊ Ò²,\ÄmÃÆó¡²X†Üã!„xw…aÜgàd9tl…Ô1ğz®³sfB=*ï„ü	ò»â¦Ëá®Ç)ëêKÃVh;^òú+ÈÍäçÃøR(’5f„¸é]SÖ/ŠÑÀñD'‡{[I$ûĞw]Õã&áP#³K-Â”‘q!nj×ã”õù	è;}-N\›UØÄ
+3£âN¾|„‚ü=(È…B
+r!„‚\!nF’
+!„B!„R!„B!„R!„B!„B
+r!„B!„B
+r!„B!„BHA.„B!„BHA.„B!„B)È…B!„B)È…B!„B!¹B!„B!¹BÜ ”\!„ø-´ÄL!„xg
+r¥ ĞZËUBüÎ$—Wó´Fb¦âwF 5š+yŠ@k‰™B)ÈSQx~ Rñ;Rkïù€ì˜|{1SkçH~)„ø]àûšÀ÷QJ]QÌ|_òL!„ä—’(…ç»x~ WQñ»‘\×óx»>ç’Qø¸#FBqãpı ßó®¨WJá{®ä™B)È/	’ƒ÷JÖ¸O ½—Bˆ›œÖày>:0Œ+í1”Â÷}<OL!ÄÍÍ4ç¡Ğ†qQùVòÌLŒÕ¸®'£äB)È/‰”™ÄÒ00ƒt*EÊ“)˜Bˆ››$Ó.è Ó4ŞÖLÅ`Ì4M|Ï%)	¦â&¦5¤\Ÿt*…i†18»ò­ç™¦i`™étŠ´çK)„‚üO4,ËBë€x"‘	–r=…7i1>HáºiLÓÄ0Ì·7B>”`š˜¦A2™$JËbEBˆ›¯’®G<‘@)0MëmÏ(PÊÈ<WÃ@"IÊó$ÏBHA~>Hª¡QrÛÊŒøôÇ¤]éÁBÜ\‰¥çôÇS¤RI,CaYÖ/Pd–ia I$$Ó2R.„¸iZ“L{ÄhßÃ2MLÓ|Û1óÜãMÓÄ²LÏ¥?$•ö$ÏBÜTy¦h¬+=À¹)˜–e£µ&NÓ„Caç|Â*;O
+!n´àˆÎ,»–v}i—t"iØ¶s~êå•ÄM•)èA“J¥‰Ä	MÄ±±,…BIĞBÜ`1SkMdŠñd*…ïº„B6¶mæ‚W0BN&´më|©5~8DÈ±0$ÏBÜ¨qSƒF“v}’i•L{úÊ¦3Û ù>®ë’N§A˜¶c[8–•¹×RÂ¥â†H,5Aàz>iÏÃs]ßÇ¶,Çœ®~å9C‰k€ëº¸nÏ0-k0fÚ–™Y4Sâ¦âº™v=\ÏÃw]à8öE˜W3ßgºiÀÀ´-lËÆ±M,Ó”<Sqƒæ™ç^]A~a°‚ Ïóp]ÏóĞ¨¡iJ2»Hq#Èl¡	ü ­¬ÁQqë\ç¢ººbüÒ¢<³âº‡ëf¦®†22¯£e^¦âz—dVA×:À÷”ÒØ–…m_Üyyµ1ó­å™™sBˆë;ÏThå™¦adf]mA>-Ñ@CI¦ïûAfK´Lb©%V
+!®×Ìr(P*e­ˆnYçp3”âšÎ'×š`0É<—hfbf€tf¯r‰™Bˆë6f[OHaæE—†a>äÅLÉ3…7M™‰™¦yşÏµ)È‡â¥¾èO¦çéBÜñR©‹æ…Ş)—ÆÍóñS!®ÿ˜™é«Ì¬<´ßø;3ÏÅÆ ÿ?<Sqãç™×² ³ yé!Äõ(/÷ÿï¤Kã¤ÄM!Ä3Õ»¼"¥ä™Bˆ›%Ï´ŞT²l°B\·B!BñŞ0ä!„B!„R!„B!„R!„B!„B
+r!„B!„B
+r!„B!„BHA.„B!„BHA.„B!„B)È…B!„B)È…B!„B!¹B!„B!¹B!„B!¹B!„B!¤ B!„B!¤ B!„B!„äB!„B!„äB!„B!„‚\!„B!„‚\!„B!„R!„B!„R!„B!„R!„B!„B
+r!„B!„â&c½SÖZËÕB!®’Rêº9iÛ…BˆkÛ¾_Ó‚ü\C@“ùiÀ…Bˆ·ÑL£2¡ ÃP™Ÿ½Åù¹¶]k=øgğçÒ¶!„o¿ulÛ•Ê´ë×¦ ×™†9Ö(¥0…¡“
+!„B¼Õf´Æ2E°¡ÁPÃ0õw§e=W„&¬ÄÃÈ´ñÒ¸!„o³]…@øF)q-
+òóu€¯3uÈ21ó¹B!Ş`°öçxA€©ı¡¢ü-‚ ­5~€2°,Ë40L¾´îB!ÄÛ¯m¶í> ’iO_ÍÏ5Ö~ ±-‹)Æ…Bqmø&íù¤]S)LÓšêöN$z¨3 À0B¶…eR„!„×H 5®¯¯b„\3TŒÆ±3Å¸Œˆ!„×–i(B¶‰RJ{àû˜¦9t/Úµ­È3£ã™bÜ$âØÒÑ.„B\c†R8–ºòmÏ2÷Œk|?À´¤B!Şù†ÛÄ¶-ü@. zmVËL¥ğı eH1.„B¼“W¸ùĞt6Ş3nH1.„B¼EyÈ21L“ ĞCíñ5-Èƒ ­”Ü‚&„B¼mû•>1‚ À43‹¼!„âg
+Ë4t¦¾–Åø¹‚Ü0lË”‹-„B\w¹fh±PRŒ!„ï2Ë4@C+¡_«™ë™Ùo`ËnB!ÄõYŸ»_Më e˜¦4ÙB!Ä»)³µ¨14ª}-î%?7:iÛ¥³]!„¸.òs¶Ö¥dŸq!„â]o¼·<»–÷ŸkßAÉ½ãB!Äõ\_ØhK“-„B¼7Ş‰Eİ„Bqä™[m!„â=.ÉßãIû.„B\×¹B!„B!¤ B!„B!¤ B!„B!„äB!„B!„äB!„B!„‚\!„B!„‚\!„B!„‚\!„B!„R!„B!„R!„B!„B
+r!„B!„B
+r!„B!„BHA.„B!„BHA.„B!„B)È…B!„Bˆ÷’%—@ˆwAf &@a‡c„å›'„BÜ¤m¾O:•$é(;L,lc¨«I!ô§|Ó&	a©«=ADWƒi9D#êº¹xßK“ˆ§	”I8Æ±düPHA.ÄMIû‰NºSÁ%ÿ¢0,Š
+c˜×èµÜÓùúÿ~’­F9Ÿù“/ğI¡ëôªxôuõĞŸtÑC?3p¢YäåF%`!„¸Ñ[ünÚzS—ˆ2	Çr)Èv®ì%úÚØüìğñÿÚËmşßüÈ$r£W–QhßãìºÇxàŸ¶2õŞ‡ùüÜÇø¼«+Ÿµ>Å“÷ÿñÃCiîxøQ¾ğ‰™ÄŞ¼+€ô@/=Iô/iX1ŠŠ²¯AÇÀ›fLœmÚÀ×?ö=­XÊÏ¿úaæŒ,¼fù˜Rq	}ìûù×˜ó_§(U>-)´ANv6wŞò óÙÛ[YDø¼V²³ƒ¶î^É¥³«¸òtœö3ûyö±çøçö°ÍË$.¤*øú×>Í=<‹BÀëláDGŠœÊ*†…¯M¯µßÛÎÉ3ı„K+³®£z!„7Wãï3°ëY¦}şW´»l‹á!‹€Î¸K< ÊÆñÿşÙŸğ¹»ª®¢êèJ{xZ_eÿ¦£µ™Öî^
+Ïö10àBsõ—!H»>ÁeÎOñ¦ƒlØ°œ/}-U Zápï½Ÿáñ¿_F‘i “´µ´’ÊNYAû4àRg=¾Úë'„äB\ÏÊ0)´s—¾ŸÍEa¸‡M¿xg6ıšÉ6ùÒç?À„¬«¥¬1óøÌçKøˆ
+Q=¾è:¼.İ§vó“oı'¿½“û?úÇ|yR6Ğsæ,¦FıMÇØöÒÏøÖkšÏüó—¸§Ì¸êâ9ŞŞÌ•Oñíg[yàÿiaJE.„âiúBÕóøé?åÒr¸[ÏŞÔhşÇoc|ve†^w}œ®iR{ëGøAi±â
+FsŞ…WÕ¸İÇyù‡ßác/uóşîå³ó'PÒøA+u›3åƒïãèú—øÑkÈÿÌù£5äJe!„äB¼]iÏ£tÌ4–Ü:ƒ²¬4•gêYİ¸‡Î¾Îv×  WÑ2fßRvı^?Î©“yuc…#òÉ‡neqMà&úèìqÉÚlã«vrÖ˜‰i×d${ ©+W³³o0”ãB!ŞÉ‚¼b"wT x4æzì~q»ReÌY²ˆùyÑk?Këj6eà”O`Yù»xt€{zÿ¹±›aÕc¸÷¶»øà­5ƒsû˜P'Û4ğzØùò|mÿjWuŸ¼Rñ»Nk´œåÈñ^’FóGg\)¸-‡yíõ:öwøŒ^ú{Ü=6
+É^‘—÷3|ÚÜ;{ùNÀÙ­/ñä6|ZDªæğàâIëÙÅã¯ÖÓ§³˜²ğn–TÄÙU·–Õ‡º(œ°Œeáıüzo+I/ «bK/ 6ğÜ‚€³[_äÉgğµÆ·J¸uÙ¦Ödî©
+<—ƒ+Æªî`;ê3|æ½Ü;£‚˜y’O¼Æ‘¤h|?9ï[Ì¬šaOÅ÷}‚T’¤mb4q²ÓÅ«Ç;’M‰ÕÍ/ñÜ¯·ĞĞo1 OğËÇ£iìXn[8úµ¬Ø×AÁ„¹Œì8Èş¾€Ú¹÷²¸4Îæ•¿fG§9ØP+B±QÜû±[¨Ò	NîßÄSO­aGG3hã¥?Á™5,yÿ2&ä(z°vÍ:˜(e’7v)_Z…q.¹é8Æª5›Ø×šÀpB;ƒüãuìéÍaÆ²EL	µòÚºİ4'Ljæ¼û§ç.-»YóÚÚüJîúƒ¥ŒÍ
+Ë–Bñ;'@k=¸fŠ&Ğİ¯Üßt”u«_å`¯‰aÄj—ğÉ;j0‡*Ï^ö®¯£n÷i’J¢|Ì\îŸuñÙ]ÛVòÔf\EaÍ$n½m6•aˆŞÊ¯7ÔsÖ3fş½5<ÍÚf p{Û2–ŒN3[^äç;Û‰–OdéâùCùAÏîWøùæ“$<Ö¹µ³Y¶p…m[ùÕúzÚâÁ`ŠcR2a&KLfø[¹cN‰$]†ÂêëæLO}.„l€•5aNoå'?]ÏÆÆ,Fçô³ş×O“ÜUÅ-ßÇ´œfV<ñ:'µÎtnè Êæñ©»Ç“9Wzxœ9VÏk¯l¥Å3P(ÂY£¸÷cs°/î‘@ÓÇö_¿ÄÆ¦~\§™ó³xb||…äBÜ,"Nˆİ/?ÉWö¯$fõÑĞĞË½Ÿú3şdY5y6¤º9ºu-ßÙ‘â¿M}„;Ãsé:²™ÿùøq>W8Ÿ;fÀ‘—ŸàûÏ¼Î+§}ò³”›¤`ÑHîš ÚX»z-ûu9Ÿ›pOĞ~t_ùÙ!FWckŞ íıtv5b£xÑ(r‚êü9¿Xµ…-İŠ¨©‰§¶œâ³ÿëC,¨4Ùøøx|Åfö„(Œšø‰~f•İÊííûxö©gùùË‡èEÈu4}]•T,™Í¥ËØáäSV=ƒ»¦®á‡‡šyü»ßbïˆ"–<òîmcùiº[³iogE@?;7m#—93GÒu|7_şÙ~ÆWí§ŠÉX!½xn»ÖÔñË³væ¾²tŠ.w§S>ÿ×'fï<Å¦­Ç9¥Ğ	ê·n'Ùk0íŞMG6óØ?ü’İ$•…á»$6œ ¿ó!ıàTœæVşâG|ë•t+‡¼E¬n7nËIvvŒà«³f0sœMç‘½üxS³R£X<m>¹n/M‡¶òøc+)úø_ò1Ã’b\!ÄÒ´5nå±¯?Ëºö”é»DÑÛş Ÿşı™äô6Q·ê9¾ñôNš4QÇ+‡Å¡qÜ;;S[–Í¡WäŸ¶%8z¶³]	tÖ1ÒÑl>xë8ÌV¶­]ÃŠÓ#¶¡$ÙHCgŠ®—â!jşò>Æä;$šêùá/v1vY3çô³óÅçùÅ¯^cÕi—Ü¨…vSÔŞYÃÂ¹`4Ÿ`ë†:vwZã¦R¤W C’Ü2Bû·¼}ÃÀ7ŸO}oï>ÃóO=Á¡õkXöÑG¸{|)Yv€—hgGİ^êlÓçØ¾z:O0ú»qS¬m»¤“Iºí}4÷ÿ!÷{“«'÷¾Ê·¿»Š­M½v°ƒ¢â0‹?:‡üËq¥éŞş?yv¯öğá~ŠY£rå#*¤ â¦¢ÀM&èêî!ii,¿—Ÿ~‚˜û0ŸşĞLÂJR˜†ºd›"b(”R@;·5°é´É‚;>Â?=—¢ ‹ú£	u®QQ(ÎD¡p…òGğÑ¯|ˆqFÏåë|yËAêö7±dÊ(‚†5<½j{ƒ1|ñşˆEÅ	ïXÍ¿|áW<±j.S–¹lŞz€şp>ü‰Gùï÷Ôâtekg6ı‡êØ¸ã(ñ’J>û¹/ğĞ„0}GéÈ6Şô"›Ìû~ÿ£ô=û
+uG±òä¶ìkdí‚E|üc÷2çıÌ7³
+ø—ş’İÁD¾øÆåaBñ6Ö¡Šx6şÇ¿æšlÛÆ6
+ùoßş7>•N“v}¼ƒ«øü·—³u×VZÂİ‹?Æ7#åüÇ÷şgZFóùÿóE¨É"èogå~Èww–ñ÷ßúîœPÓ¶‰¯ÿıÓ¬¨[ÇÄYµ”·íæ™gp&wõµÏq_u„şÏğ‘¯Â6@iÊŸÈÒYµ¼Z¿‘ÓGvSß1—Ù~§öìa{¨–š_E,$aP!ÄyÉŞn¶üø?øîöB¾ôõ?å¾™#‰¶oã_ŠUu«™0½–‘gVòÍï¯ç 3’/}ås<0¶ÓMsêĞ	ÎoS¢ñR•|äËaR¸‡şşówÛQ·ï4‹§£Tere†5åvşæÓè¬_Ë·¾øc–oÛÄæ¦¥ŒÈq …a(”e@ËÖu<ıÌ,oÉfÉÇşœ¯=<ÓíætÛ †Òòµ9÷ã¦¤R	ZêWğ¥¿|[NpÏ¤Z
+‹{bÊ©æ¡/}ŠÎ/?E]w›·µràäa+˜ÅŸõfŒ¼“¯}{/şëøÓu%üõ_ÿ90§†ü¨Å¾şÄ<7MÊÓ4o^Î÷{+¶sè£©êİÍ¿å~ÕåóĞ§ÿœÏİ5™aQŸ®mûH\h™†fÏ¼ZÇ–6›%ï{ˆÏ¼Q[ºÑ…äBÜ\o*ÅÌ÷?Ê_=8‹òlŸC¿üÿó‡»ùÁó/SYUÆû‡ÿ¶›¢4Mum1OğÚòÇ8ÓİÈıŞCÌ;Œì,ÚŞü™¾ï3áLÊÊ!Ûsû]Óù¿7¯æT[éD'GOÒx&Nkj÷gAÈĞ¸®Ç@L“8ÒFê¡QŒ­ÈÇ>|œÿÛ´}€?xßB¦É&«­‚êâwçŸ¾öœığƒ<rçxj³bDŞ´ı2vÑıüí-³YıÓ—Yô›6ã…gW‘[RBÉ#ó96¦eØ¡!ÇB%sÀ'gáíÜ^•KVÄ4n:A_7ë^á¿_ÅŞÍ€ ólª6—PÈÆ249f8¤èê<ÆÆWdåä;_ùGşİ2P¾GOÒ#êáìÁFbü2ésÏï½Ÿe#
+ÈÎ20¦,äÃ•Ëù›îóIEíäÉŒ*ÙÍêöì¯obÄğ&¶n>MÅÒÏq{eÙKE!Äù–™Tú_‰ÎIòƒş&OX*ğèMx„Ëz8±ÿ$±–İ¼Ú—âGàÎÚaäF- Ä¸Ù“Q½Í x—iãsrÉ±"Ìš^¿u?®\0U-;7‹‹fS²É)ÇÒÅù<ûòIÏøc..”=œhjdÿ—ìÊy|êáqD"*2œ‘Ù¥’}qú)êŸú_]ÕJoÊ#1hjí&•J½µË l
+Kçò…o£aûZY¾]§Øø5şé›…üó_¾¢PÛO+l'D8ì`š §·»“cÛWğÕİ@‹òLby§9ÕæRr|/?oÀŸú>™3ŠªÂÌBu¥·ÌåÒ:ø^H²aÅzv<‰]2—>2—B)Æ…äBÜ|4 ”a*Ó¤vŞFÿt?‡zúèíë'YzQ[@ 5ét
+kh¡–,f¿ï>>­†sììq–ÿløêóÜòğgùÛ?\ÊèßPÓ«FŞÕàñ2»|ht ÑZ‘›SÍ½÷O¢xèq ÃyàTñ¾=@OÅAÎ4îãÉ=Æ/{–O|ñOøü}³øø#íŸØNã¶µ|ã;ÿÌß=1‰ïÿÍ£¼n±7Ù@T)…R¥Üñ±Oğÿ³wßqr÷}ï?§Í™>³3³³½ ‹^X@‚¤HJ$EªR²¤kÅ²-[Îu»Íq^qÜr£¼ÿá8NœØ÷Æ¾qdËE±¤XÕ(±ˆ$H‘"A@”¶÷2;½~ÿØ%° Á"’bı½ÿÀk1³;óÌ3sæ÷|Ïóœsnµ§ùÚ¿úü›'–¸ÿè8wÜp€eÓ à’?w}Ÿíù4šº^,¯ÅÌÓßâwåpfß>}ëû8¨,ğ½{O±<Ûó—<ÿùŸ|<ìx½{[ò1Ô_WÌİ1`Õ§E€¢ª<{z¹õŸ/~duø*>|Å}úNÙ£O3uå"§ùÄ¯K„eBqÑ¨ x¶Å²|è]ûØÑ›¸PƒBqzş¼OÃ÷éÎw`ú¦:úB5şÆçï\_ypù+~­_
+Ì÷AïÎÑ©©!ìşÏ¿á¾ô8Å¡ƒüâG÷Ğ¨Îrß×2şc÷…‚b¦Ùyãüî5ïà_úşã—ŸdşÜÿŸÈ_Go×búŞ/ğ¡?~œí;¸í“¤£8Æ‡G™öù>­ `w&I8æ²§¨èõif}ÖZ*zWÅCÁ¨@.Ä[’ª°#Êó7d`!"†N(lâm–UT%NÛ-3zz•ÄùÙÕÓ+iŞÿOş	ŠµÀ[øîwş‘/üı}|ø}üØ§‚ÙTœXD'šìãºÛïä½ƒë§|·‹%š‘0q¥Æ„²›_ø…ƒ4—O³¥ï¾ñµğ—õØĞ³ûC|îk×1pÿCüÕWŸæOî¿‘›wöËm:³‹×¦°\ÀgéÎ¬ÏŸkjŒ®|˜ ˆEBèçß Ù¾ÌYÖ7Ue·ÑbæÁûøŸF¿ÿñ;ù•_EböFŸ8÷œA mEÑ	i¶8¬Uìºîv>ıÎ‘™l‹•ù:ÙŒÏS‹&[Q)Í.Q
+öÑNs~’Éú%WyWâì½í WÜóM&Oà·LùÀÜ¼=GÂ”¾Bˆ‹èj†-.å•;®¹•Ÿ½}qÀfy®JG<]È1âÏ²4~Ùê™ˆ	~‹¥ù?ÑCœ#¤¢q:’>+åYNNTèŞ•·E¹ÒÂ]šâÔÙ1¦µn>û™Ïğ«·v²üÌ·yâà¾ä!H€³6ÃX3ÃîÁÄúmFŒT"J<U%F4º^òƒ t¥I£@ ~°Âıß}† ÙÃú¿úñ+°ü.³gÎ2WT5ßÉÕ¬.O1¾Tf{OaÊÓ³(ƒÏ¦|µÄ.~êÓ[=tÿã‰ûøÂ]ÛùíŸ».©İB¹o-¦n0wò0ß®‘ûLüà!NÔ]¶_=À–‘.ÌN•|?]v‘‡ïıw)´*gùö)¨ê²>¯»Æ#_ı>ìé'2°QP|—b6NJÓÎïYÿ±"yføú+¹êîÃü÷Ñ'ùo‘¤}S7(
+…“«}âİÜŸâ«s–}Ww¡é`)
+¸«ı)‚“ñ×ÉĞ¡     IDAT‡¹¶ßÄP,œ–CO:ª_²NÛk0sìî9§³s{=pì¾qÏ<å Ëõ;†èË©h³¡Acu‡¾{/‰«ûÙ¿5ó'EóñUƒÖâIî¿…öÑ9Rháoº{ØĞ‰DÂØî*|ÿ~rK½ìÚ·…›>z€‘?<ÂŸå;(+ÛÉÆ5§Ær©Ÿûìº†÷óÁGøÊƒ÷ñå}»¢:Ë|ƒ/­(çÛßHäÄ¶İÀûöŞÅï<zŒë|ä—?Ì–|Fö³!„xN D{¹éÎkÙöoÄ_şãwĞKt%u\·ÆìbÏş¯×3rõ­üÂQşõW¿LG¬ÅmC	pëƒüÌGR×(|“‘k®â¦kpì¡‡ø·aPÏ j³HAëçÚÈú•c<úÜÓÜu—ÃÊÑC<jj—?\í²Oãc=ÂÜíóÓ×w
+J{‘CœàDÑgàÀ\ß­ ·T‰M½Á‘C‡øv}=×wâº>¾ê²29ÊÃß›æìáÃY°Q’€¦“¾–_ÿÄã|àKò©åé­dÂ>KO—yçoôüIİlÏ#:|Õ
+<|òÿş]|s[–Ÿ¾u„¤|P…r!Ş
+Ö/R	à™GîáGxXB4’à¶w~Šßùµw±¥;Zïzß­œ]äoŸ¸—>ç3ú?ÿşQ>ı9ü Xå³üá|—vŞğ~îúõqëÖ,æ„ïyØøëKĞ6.‹V°=üàâ6•m7 =·—Ÿı¿ÅÈßş{~ÿoğ™{}ÇæÊ÷|¿'	öÄCüê·Š4 <;>õ9üØmì˜û&_øó¿åÏf,|Zn¿ÿÏƒOŞq‰K6}#J*›dòş¿WÓ‰+
+**;wîàóŸûu>vU–l‚½ïâã·äôWæë÷W,®ÜÉï}îVÀ§âxx›^‹K²ûÊıCşİ¿Êî»…¯ÿÊ.v_äˆœŸLo½’÷¾ç/ÜË½_ı"gnáóû¯äà‡>ÇŸ„ù«ÿúuş¯#@ ½½Cüæo}ˆ¢wÿ;ùì/¬Rÿë¯óŸÿÓ$‰lŸüÌgøåùÿ?=wÉğJMsı·°ÿñïğÃa®é!—¦
+!ÄÛ~$øGË	Î¯òÒÌ»ß÷Yş$<ÄÿôËüæz%€\¶‹ßøí? ¦†ĞFòK¿¥“ü‡oğ_¿ø÷ü=à§zùÍ_ş?‰nÔøêF¿p·€†ãmŒÖù¾‡ãù/ûö}Š·±zl# ;¿¾Œ=œÛÉOıÚ¿`0ûgüÁ·îæçèQµLş÷ßøßx÷­{øà»oä©Éïñ×ÿÏyúÀM|úÓ×qû·Çùâ¦Æ¾íú·ï|ÑTP·‘ìOùé»- PTZ¿ñùßãÎ}#ôGU³“+ïøy~gìÏø‹ûîâñFø£/üKŞ÷Ï>ÉÉÿã‹üİ—ÿ–oüÿr×0ûû&y° bÆú¹å—~…»GîåÿıwßåŸ=¨àcpó»>Ë‡Q€ Ïöhy>oĞ}ÍûùÅŸâ_}s‚¿ûâ7èJ}š\İ';ÕÅ[†Ò¶İàÇıâò<Ç±ÑŒ0‰ˆlâMZ„}v­BÍö/^z­(¨z”täÂÌ¯oQ­4°\•P8NÈ«S³}ôp‚dL¥U©Ñv7¥E7IÄã„¬kõ6>*f4I2äÓ¨×iØš™ #a¢âã6k›ª&aë-kWŠÔÿ|ÕTŒ(©D#hSª4q7¥zÕŒ‘ŒGP­å†}¾ğ¯Á‰¨y™í §İ¢Vo^ªU'’H]¸Í®W¨¶‚@AÕCÄâüVºå¡™qÒqóü5Z}×¡^­Ğö@QM’q•f½‹J8š$±qF5§Y£Ö´ğEÓ‰¦RDµ §İ¤Vo]h“ªgÎ/5wšujÍöúıŠOÛšæ¿ÿÓÿÀŸêWò…ıs|àÚB ¾Cåğ?ğáßı6ïú8¿óKŸâ`¿œÍM¼¹ÕÛ®İÆ0Bhš¶éÔ—Ç÷}lÛU_ÿPd§•xË°ÛMêõ^ Ë$‰œ?&;À±ZÔj›ê¢¢b&2$Ÿ]28Ô«uZ¶wş~#'UhÖë×E%ÀªU¨XZ(B<Ãpê”ëµÏLt4Ç¦^¯ÑrŒhšTDÃk”)·=Ã$OŞØ§nÕÊÔ,wãXs-% Yëƒª‡ˆÄ5Úå&®f’JÄ0—j±åè¡©dø9ã‚ÀoS.66&Î0'SÄMíü¸É³-êõ–Š¢N¦ˆé6•b7 Åˆ×¡m·q|•H*MÜP »Õ V·6.Åª èa::¢N‹j¹‰«$’qÂ!»Z¢j{ëc™pŒdÜD¾¡„r	äBˆ×‘=wŠG'<†÷î ;àØËÜı'Â?´B÷ÍwòùÏ}„«‡LlËÁ±WøŞı{şÍc*?óË?Ç/}êZ:¥…r	äB!ÄëL–¬!Ş”ßgöş?ç·ÿØ"®+‡åêŒÜò~~ñ£·qõPª§ùû?û_}rbÛçº÷~˜Ûo”0.„B!$!ÄË¦†î¿Ow9ËÖT¢ÙAŞõ¡ÛÙßø%-Æà®}|0=ŒÏpÍíç`ŸôB!„xc%ëB!Ä›,YB!ŞüTé!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B€.] ŞìÏÃñƒÿ€jhhŠ‚ïºª†ëhº†ª<ç¯ñ<Ÿ@QÑŸ{çËkO°ş˜Šª¡©Çu=ECWÁó|TMC	<\_A×U”€çû ¨hÏÓ¦À÷q}Ğ5åEšø—y—óº|×ó	PP	CSğ<Ôçoëês€®k²'R!Şè|Û»PÛME×TÏÃC]¯¥®ª†®)?±Ú·™çºŠ®]<†ğ]Sñ½õq‡®¸u~si|Ñ6mŒ^RM|œgÇ6¯lĞ‚çy¸Áú,]€‚¡këı¼QçßèŸÇÛûÉV#Ş¤´ßÿWÿ÷ç_Nàğ}UÓ1ùø‹×ñ{¸UgîÜî>2Ç¹™ENœZ ™ë o*œ~ôi&ÕnRŞ_%œHŒ\òyµL<si'D>yU‚šİ¬sä‰1ê±<±g·™'e¼¥SoqøÈ,~*‡¾0Æã.ùè…¢gÕ=>Æ"arÉğeÛÔ˜™âĞh“|.i(/X°Û³£Ü;Ú¢ MhÓ]NÛÂòµ—Xljs³zr”§f›8«sœ.)&àä‘s:#>-;@{	;	^ûŠO{âÎ4I÷¦‰É¦#Şl×Ç÷\4MCUU”W¸ásÓĞ_ñã	ñ²96•ù1¾ûø4g¦9yvEO#—O°rìO–’ô%›}rœ	zÒÆsBZsf”œkÓßŸÂxš§=Ê¿‡ág·›™sã<9çÓ›18óØ1¦´>º‚"O>=‡K‘nŒ;|—êä(O;ôõ&/Û&»^ãÄSÔÌ4¹ø‹Œ¯×¦¹û‰²ıD/ìıÇsÚ./±Ø
+Ç=Ê¦ê´V–9½Ô¢/cõøqW’Œä4,Ë%PŞ ;ŞgyàÄj_†´úêí|âµ$3äâM+h×™;všÇ‚Nn½m˜¾(´æ­)øÉ2k-lJ%•êãöŸç1v3 Òi¼JƒëW¨úİñ·*Jœ«®¿ğ(¯ÍÒPuÂQ(ÏÚ(á(Šz¡˜–K«	M6TÛ6¾™BÕÔA`—-üPö’êqöÉc,tà=Ûô/`^Ùµ
+¹}{xwOê|°oVJ”ŞHˆÚôY­$¸í@71óVU•Èö]Ü!›B¼±y6¥³£Ü³¤²÷úkÙ—QqjU¦Û¸Í:¥–G$¯b˜in¸)ı|9»Ô&åˆ¾j«Ph)$:6ßf2¼sÃ€ç­Rhkt¦Zm›F` ›b·¿^#LäyÁv*®N:zÑÖ¸Õ6MÍ$yQêX˜àX£“wîË±‡	<µE
+É>~í Ég›êÛœ­»„ó1ìj‰§/‘ß½ƒ‘Î7`lèâ=½²Ù	äB¼i< 17Á¡r”ÛŞµÆ"½ı\xeZ”+Írº&›ŠàWËÌ—[Ø¾‚KĞeøT]ƒ®pˆjqÕšOG–íÙ½¬.µJ…•’…‡‚f„éíMÙT [Õ*Ëå:v ‘Êeˆ´ë¸¦IÚ°Y[,R"Æ`"`µî“ÍGq­¡X’Pƒ1' —ß¼´ÚN@[3É…Ã€Ka©H©í `ÆbteUªü
+Óó¦a’ïÏÄ£Ù¨²¸ÒÂSÂ‰=IBÃ#ÕÜÔymV–—™,Ù8±æ‹:£mæ—š8¨Ä:2t'Cè/ÑwlÊSËL.´H©uÚY•µ5‡hw‚*®i úUÆ+”Û*“Ë5v÷Åi®­²ØôAÑÉäRd‹ùZ@ÄkRÁ$ßÛA|S›–—*TÛ>h:éTQ¯JEÓ™Šb‹¬´5ú#mˆ× äär):b!T«ÆôrËİŒĞÙÅm4q]‡ºíc¦s„›%Üh|Â¥V­°²fá©
+‘dŞ¤Be­HKã5ª´µ0)"¦Fk­À\ÍÁW42)²ºËâZ•†š¡¯7EXf…âUá84c±ïÚ+Ù“Y/F"É¶DÜN{!úÓ
+´*Ì×:»’èí6+k%ªN€bÄîŒRh¸Dó	ìV…åfg1scàà8UæçØ( ä»Ò¤Ì;¨]Ûfu¹@ÕUˆvdé
+Õ©ù&Ã	Ÿva™–FWÊÄiÛ„Ò	¢N¦£7éb5šhQ“Ø¦äíPl$:€O½Ra¥ÜÂ4İ$×›Àk–¨96¥âçÊ*½2!}}§ølĞÃ	º³qê—xG×¦•,.õúKe*ªÊL!Ì.Åù:-Œhœ®L‚¨~aU_ZaüT‰Š¡cÕª¢qR¡
+%×$Ÿh2=W`®ÖÆ.TéI¥Ğf«^ ‰'èMéTÊ-×¡é@ªï’1Ôæz›è¤;Tg©®íN¡7›,—ZdÃ*k®FÔkRt ‹Ó‹£»mVÊmTt.CÒ«±Vó!°q#iâ^“¶¢;­â»Ufç8(Ñ4=™NyªE©—©:™t’\ÒÄ­U™/5°|EeÃ”V¬ZŠjĞİ&ÒeÆ]H âyó8°²Ò"Ù½û|ß¬¹PÇKt’±,ÆÎNSÌn!I›ÓÇ§¨v$I…B(!‡–R§…js‘ÉY‡T:F"8?, Vçğ©z8NÚ_åèjŒŸêJq>­¶êŒÎÑ4B„£"N€¿ØFUbTÎL0ß†X>B}n†G—“Ü‘ÓX¶‰ÆDZM*m-‰õãÊ7J6§‹K¬ÌÍğ£Ñ6½,»ÈÒB†[#Iê¥Ë.dÃ0==Í’¶kRuÎÌTpõ±µ%œñùÈµaZ:=‘‹zÏ-W()öElje&Ëİú(rf¾ÅÈG6
+QPiZ”ıqtÜµ~xÂã–lµTG‹¦É†jŒµ=ò™ Ïs©ÎÍqvÉ&–Ñ(¬”™kÂj‘Ï”éÌvÑß§ám
+ã‹óóLÔUâ¨¸‹3œKoã`²Ä±¢Éş~‹¹‰Ì\–øÜ8÷®DØÙÀµ™*pã“åéJ¡(!×ee|™z7şÒ$§Z1v¤ÉÄŠŒ>=CÇi¢µeÎÌ7Pôá•E£ò±«Ãœxâ4óÉ.†#.K«Mìƒ»ôª?¹ }YZˆV¹Êd¥JÃ´8ûÌVâjö$¥d!Ä«¡Tjá%{ÙšÒ†œB‹¦£SQ©OOòD%Ïé£L´!•a.^Pa±­IV9úL‰–g$\¨îÏœœc¾™a(QctŞáÚx””¹1,v]ÊÓsœ^i‘Ë%Ğ]Ÿæj+’@Ÿáé¥:Jo©B“³Mv\…¥:^¼“œã2[iK¤Iê®TY²Côu4*«9±Š‹Ö8ynîÜIxµÈ|’Õ&•B‘s–Êm[5¦'–XSã¤›uÆ&Ê(WôPoxd·EQ7-#÷[MÊ-èéTÀ/2zf•ÑB†móSj»GØÛEÛG9¶ÃlİÇèáT‹ŒMUéÚµT½LÅˆsmÌaÜ*£D"ÄLæò2³KM´¤ãÔ9=UYfNŒ2§v²­7A,.Œ¡jËŒÎ7àÙz(Ü¹NŸX¢[İEli… FDYãÑY‹T–t¢Î‰ñl%\šgª	!Ã 6=ÅXu½1¾3»†²ôéŒšÁŞ¶›l¼Å¹±eªzœT­Ì©‰ákzX=9Æq/Nw"ŒÑ(0™ä[bLŸ ˜ˆ“2CxØ¦L”<âi˜™*±¦ìâš¾8!9éŒ@.Äók¹‘Xü²÷­Z‰4¶ëPjj$‡"¬-Œ1ÉsóÎ^Ò†¾Íòä$Ó‹-ìT˜í{†Nçg«½v›Ùs%Ì-Ü‘Â›j0n%/šÇiQ­W±º÷qõ¶8šçpb¹Â‚­‘‹w²go–ˆÁÌa›pº“°Vñ0:ã¸å
+MÇ ¬ntxíZBybõ5k°gÏVFòajÓj~˜ˆåRsöoàÊá4õUÎÔ©ÅçxâœC¯GÔ‰ríp„P³@Á7ÙqÑú¸¡‰L–ı#y3§yĞêàöƒƒÄ‰PşáËN7¹ˆ¨!ƒD.Å®±wÆè*A<CÚXXj£f¤5›d4ÉàÖzSGî}†cv‚mø‘¹ù%´hš={èØTájÎ\dÚLĞÖ	›®‘Ñ5º—'yä©2Wïb¤'Îø£çèÈurÅş^Ü•)~4ã²6UæğXHw	U#–ë¦7pÊRÙ6ÒÏU[;PªcS£ìØŸ™ãè‚BŞ%ì'xÇˆ‰ª–)ûa††z9q8iMáĞdb|jÏ6nß•ÆÄ§´0ÍıçÑ²)RÈl$oHBˆW‹åú„"qP›„ÊÕ6®‘EceÍ"Ş™Á«/Áà•ÛÙŞ±€âÙõP¼\ddx€ıé8Ñpø¥‰yf[yn¹¦—x}‰RµFTÛ4¸Ø5
+AW’‰ÀÌd“R¥ÅÙp'»vo£+¥25‰e¤ˆé!
+këãÏv©\ŒMç€	À¯(a²/h±8±‚ÑÑÅµ;ó„ŠcŒ' ç,Ô<zûû¹nÏ ö”Í–[8F…GIùXôtgèÒjLµ ?Â¦ãÄu¢ZŒt²ƒm#CtÛS|eÁä–†èŠµ˜=Ëx¥F»+JŒõ¿‹u§éÊÔéºª—®ò<§½0†Akºî!¡„éŠD°â½\»5ÅÄÑã™sì¢é*=Ã½è^ƒZ`²cG?û¢&l›ÒØOÍo®·"é(ûº¸ÿğ;3\»»—Ê™5”p’=û†èÕi&Xš­ã,Î3©%èŠ›(‰öçtjc.¹Ş>®Ş7@<XfÚÓL+xs<úL•Î¡€¶£1ÒŸ #Zç¬™<¶¤pg<m[,.×˜Õ3\·³Ÿœ©âX%~xÏSFCŠ‘ë¢7F“ò.$ñü V9]\! ›‹ j°f…¸BÇuËÔ0ÈÇlJ}I"ÏÎn»>^ÅÃsTÔv˜LÜ¸hé¸m¹k!òƒ)Bj‹“Ë5Ôè %%ŞÁÕ×mãØñI8ÑÃÍ;TJ–B4ââ›a:"Ğb­ÈëxA†a¨G¥:ãêHb˜›1s|‚†J2› (-ÒĞtw„ñ=é™:z÷ –UÃæéÏ§ÑÕ€–`ÄbTË°md„|E'7ar5İI6Øè´…r-ÚçAeÕ&Ñ‘&n Mˆ¢\øu×¢^ª ‡»ˆ¨°Ô°‰ÄÓxBÙÓéÈ&pª4]CÕü5Vİ×Ü8Â¢ &‰xÀ¹)—ìà0İ©‹YVÕ¢ÊqÓönRÍ0éˆ‡ ÖBoW)™[Ée¨j¢e×µyR¦Ë¢ëbDÂ”›‘Ş\¿-BHW0#QüÒ2V¸“m]èš‚S°°Ã	R¶ÇJÃ`ï¶Avu›ªA&f`MÍâfó\3'\]Áòúµã-•Ş«âÇÌÛÔíñ-}ìŞ’#(„b1!©ØBñj‰›:­ÕU|/8Ø¦jäLôPƒB[%™Ri»5ÜDœgOì…6ÍP„5ŸÈ¶a|ıî€•Å6‰¾.R¦ËÒB…’GÕ7p­›äwíäÊéE}j†w\ÙÁZ+ sYòunËD‡šm¡ÆhzscÜaàø.Í¤#½hd¬Ùèé^â–ÃT²Û“„t˜©àšı¨~@É5éßÒK4Ç#‰S]]!Ş·•[w$AÑˆF#DKsxfšNM¿èÄ¯õ–M3£è•¹&j¢›ÎX ~€ï)˜†záLäA€W\¦¤„ÙkBµíâ14M§ĞÈ÷¦ñ\JÉEï‹ u
+MØqp;catU#7©.®¤óôç7…qÀs|ªõKêmÜDõ]"KÙU‰æºˆ“-…¡ı½t§œ¦…«ê¸ªCËìæÀHù8¨F„¸ærÜ	Ñ7ØGÜT`É¢‰I…ÚŠEnp+ïÚ‘ @%‹.NQÔRÜ²5CFwXlúDc~Û"ŞÓI,¤>®W¡ÎpğàºĞÃâa]¹xÍÈBñ¦Mäû:	ç8<íáyµùENLUh85*¾AFwqi F"dc>àR+»Ø¶‡ëùxG¹¥qÅ>òí"Åî%Oâº¶İ¢:µÀ™%ŸŞuÓ.oŸõË\1¡U(PtKÔÍ,ûö÷c¯˜.Ô©øa†²>>U,L’šMÍ¶	¥4ÔM×ó©Y*¡P°­mÓ?ËÑzˆ\Ş Ò® çLB‘€ÕÓg8ÑNpÅˆë¹8¾K(#3ÑT…rÍÂŒ¥Ö×¦×¢Ôö‰Äü ÜÀÇ±šø~›‰éUª‘ò!óÂ—ƒíb×="†‰I‹R[§gPÁSjTƒdZ¡j¹ØZ„@Ñ|›j9J:%1ĞiP±²]ús&=|Ài6qÃ‰D”DD'hÔ™[$Èvqe¸J¡İÆõ*T“¬•B…“ã»âdbP«WHÄL’ñQÃ£e7	¢&!S*u›d¦‹ PpGñ‰$¢¤c!E¡´fN¤«Ğn;‘‘P—jÉÅq<<?@QªC‰‘JDˆÊì¸B¼ªR[3tk«<2fÑ¶=Úµ:§fYhY4„¦ R¥FŒŸ@ñ±š­ÆÆ¥9ƒ€RÕ&ßÕÇÕ½07¹Dó’çğŸv«N«Tab´@¨Ï$½(>ƒcKWš,U
+Í
+ÎÀ5{Ùî.qxÆlZ¾O>­Ò«ãÛ¯ÓÒ¢	eÓN ¨ÔÂÑ$øà¸6máÍOst¡M¦7‰¬PP"d»êósœ˜·ÙFİj¢Ä£¤ãaÂ†J£i˜qÔ‹†ñ.-§…RQ4p»İÀqJågWMºÒ9Âò&®%…KÃqˆåŒHƒµ¶JGNÁö}Ê¶‚
+ªbQ,„ID£¤baBªƒå´0Ó!Â—œ©.€çÔ[|ÆØ9lwğáR¹ˆE“ª™ŠcÙœyj¯#ÇÎ4šÂ†B*%Vñü*eß ™Zß­ĞhÚ„’9TEÇ%À¶Zh‰õ~
+*ÕrÂ)b!Ï÷©Ù:‰T]q©W\,k}<®åa5c¤“Qbæå.“+ÄO\öL¼i¹n$éëq8ùä9œçÌŠEÏ`®¤Ëât‰U›l^aòt'œbO6Âòä4GÆ˜®ÂPÖgj- gÇCg¦*ä³‰óŸiCĞœ"OeÚS&][säôg—˜[ÌÏñÀc“œZ¶èÚ¹-•zïØ–Bõ×/(d;TJ‹Î-¶Éu«ÌŒi¨*QÓeâä
+t§É™*à».ÅùNU5z†’¨õU]dÌ	3ÖI÷æ‰û&Fç85¹ÈT#ÌÍ7o§'¦c&4æÎLóôÄ'Ûæøµ"g8ánz’Šv±Pbzv‘ªÙÃ¶ág&yb|‰E·ƒ›öv‘]Ø®íV“ùU‡DO/™¨Ca¥ÀØd³/Jm|™G%×)ÍL1Ö0ÙÒÙÉ°Zãğ¹iNO,2ßÒÈx>+…]½D/ùÎ0’&ŠUáÄé9NN.1]p1‹L‡s\±¿Efª	ºÖ–xl¾ÄÜÜg—šlÙ¶…}ƒ)’*õ…%œ[äôÌ–kuJ3 Ğ,¬2º´†Ÿìe¨;`âÔ4Ç'9½ì°¥+ÎÚÊJvˆş´G±\f-ÓÛ™gDopttŠS+Ô¼û:Sx…9~tn3S«Xñ=19§›x=ÈeÏÄ[²º«QúûÎŒsäÜ<§g‹øÉ¶õšÔ×Ö8~®N¦Wgm¶ÄBUa[_Ñâ<ŸåÌ²Å`ŒâÀ¬    IDAT§ÂÌb“ÔÈ0Ã™õùEšj”\b}\Q a´8uv–³Å:¶§;Ÿ¢+Ù¸™O«9ËıŒrt¶]ıìR,“Cr.cg‹è¹$Zsã£5Òİ:åÅ2Ó«¹|ˆ…3‹”u“lGs#ü6V—9½\FËäéJÕyúø'êÓ4½]t…}–&æ95±ÀèŠÍ«FØŞ'–‹Ğ˜ç©±NÎ”	Ebt¨6S³3,ĞÉPFß>­Féñ9İ#ÛÒx‹süèìc«[¶maOÏ…U ï±4µŒßÆPÚ§Q¯pîÔ*~W·Xfj¶I´/…5;Ë™’MGª“]q˜šæØÄã‹uŒp¥X%Ü‘£/i^ô>ª!•P4`rS½M—çy¢æàõÃDu‡¹%—XÃefa‰33«œ›]ÅIõñŞ«zˆ%U´ ÂSÏÌsrj‘¹f„µÂ‚g×–&àÔëLÏÍ²¤t²c[ŒÊä,O-ğÌlt2ß¬Rw1”3pİ*Ë¹şFÂ
+«Ó3›g¢¤°»·›¼SàÑ³³œ™X¤@Œ|*"Ç‹×î{¯m»ÁË)Øc£aCzQ¼®‚MŸàóãÇ e}•v\rûzÎÉb.YÕ}ñã¯O´^6x=ûüÏŞ·ùq.úyãï7·'x¾Ç¼äï.mïe_óóÜ¼P»7õ—í—õË´ıèŒÇşkFè?÷µ\ôÊ%í~¾~Á÷Q9ßİõãÒ‘#<®ŒğÑ«S((ÏyM—¾—{üÍ}r¹ş{¡v]®Ÿ%¯ˆ×S½íàÚm#„¦i¯8@û¾m[ ê$¢&ª|ÀÅëZÜ7-îR._K/Ws^êÇöÅjÔ‹Õ¤jÏåêöóÕ!…ö¼µiS_\ô÷Ïó/¥_<w•ïŸ%wÃ®L]¾}Šrá¹_Nı¼Üï_:ÖªNóğ‚ÉÍzH†µçï\æ}xÎë½L?½hÛ^Á¸EˆW‹C.Şü{•.÷­¹éËô¢û_àKVy±ÇW^Úó+Ï÷³òÜß¾‚¡¼ÈëS”—Ş/åw_¨pé!“>ƒTøÇ{-?îXş…ûÑaµ‰£l>¾ıÇx¾—úz_IŸ
+!„xµŠ;/ø]ÿj×œ×¤¶+/³¶\¦/^ê8àùO%ßŸ§;õ"íS^|Lòrû|*-³#ƒnh/©O^°~Ì ıJ?CBH B¼4â‰ö&^ïvød‡éíQe¯µBñ
+©Z–ı{_ÿÚËåØbJ"È…âÌ¤o0/İ „B¼…bH&Ÿ•no{rº!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„È…B!„B!\!„B!„@.„B!„B¼èÒB¼>|»ÆÜÌ<%_ÑHtõ³£Ódnb
+²½u¥^ŸÔ*pfl™ª¢o÷6úLeıv·ÊôÔ<K0;÷’24y…Bˆ—/X8ÃdÉÆóA5"ôõÑ›‰¡½&p©–9w®ˆE@ è$»ØÛ—Ä·-fÆ'ğ2½léNKhâ'DfÈ…x8õ'{/?pœÙºEeå÷=1A±Õàè‡8:WÂ}½×^äáûñ—ß|Î4.äôÕy~xß½üÙw¡à¼ÂÖù•¹3<zr†5G>B!Ş®y<`öèùÊÃcÔ”6Ë“OóŸb¥j¿V#Ê…3|åîÌW]š³Ïğõ{ŸàlÃÃ±ZèON‘R-ÄOììâµO¼,ÏãŞQ•wİv+û;ĞÜì/ãª¦Âë:÷¬ i
+™˜Êø‰1ÊÛ¯"ÅÂò
+…¦J,¢¿òÖ¹ÕÉcü`u½[Éò©Bñ6¤€¢êdò½8p€P>Î]÷œb¦<B>™yfÉÌ\ûöîe„€Ñ¯Œ2ÓŒ€¢©¨2}'„r!ŞRšMÖÎ.ß{ÛFòÄTÀL30’ Q+£¨³gNğã³Pqğ=ïå¦Ş…³ğ­Ã+4lˆîäc7í!_:Ê\"3eal?ÓÏûo>ÀÎ¼ÆÂÓ‡ùî±Z$³&ªÑÃ-·\MOk’G;ÎÉE5ã†wßÌÎĞ%µ9 s÷ şä4£¥«¸>Tda¾Nwošbe#S·‹œ:ô÷O·Id#MŸşëßÉ-éY¾öıs„¶ãœ=G)»…›ûBÌNs®¤³ÿ]·r}˜¿yd‰»Ä—0?ûÎİô¥%•!„x›ærEAÓL3LL÷p|Ÿµ©#ÜûÃ	V[Fª“›n>HŸ5Ã÷.ñ[×'øÊ7ÇH^s;ïïmqøGOÚy€İñ"‡y†³³£‡›o;H¾6Æ÷9‹ª(4SÛøÌí»‰šúæıø”WªÔCY
+Š+ï‹¯Ùç%ÄkÌq=Ê€®x„è¦-PÑ´õÒnP‹uqã­Ù—¨rÏãc¸~@2·•÷~ä~æÖİÄÆNr¬\Ã²Ì,.QÔ¶ò‰\ÃÀÊ9Ì¯R\8Ã=?š$yÍÍ|æ#×³­½ÌD¹ÛZæñG3™ŞËÇ>ún®,ñƒ‡QxÎÈ@%’½‚™ããËK5¦íC¹N’
+¾GùÔ#|kZç¦½—;¯ìEY]bÕòğİóókZ	n»ıj23ó•3möİt=W'ë<zx¶äÓ3ôì¹’Ÿºu½)	ãB!Ş¾<×¡Y/21s–1½—ÎâYî¾÷Ü7ğÙOŞÎÍÙ¾÷È	–lHy‘ñ–Emj–±R‘‰™yªÍ*c%Ó]åá°ÒŸúÈ-\LóĞN°ä¶Y<·Fdßuü/·ï!Ò7ïÀ™>Å—şáküå}Ó$wm%¯ÉYb„x­È¹¯1MU‰†<Î5,¬ "—Ô¼@³k “ü0n÷I?»FÕoãgxğèÓ¸v‰e›tàãz(ÁÖÃôÄËlëSy°a3>]bAïâ·æè0¶ïéâÑĞX­0?³ÂØÌ“4Ï(~˜®.ë9­TQöíHqìÜUB(Ùa²©/ãûã«¤ú®çÊŞÂ­<Ãıq–ƒ×h˜ôo§/S`gošz7™®AbÃi~xÒ¢­é„4UÓ	*ŠÔ}!„oWÇÊÔişşËÄ"¼û{ÑÖ3¯ôğ‹{»HGU”ı»Iüãmµ›<L,×ñ&l»v˜ò¹qNÔ8ÑzÛbnnéµÇ¨>£ƒ£3«bàwt±7› e^²>Ğú¶ññdkx¯ı¾íä3;¥8!\ˆ· 5¦s8Ïê±IÎteØ7$ä[ÔZº²hEAac	™mQ±§øÁİSô¾ÿ#|0_à[_” ØŸ•õ­(–í£E5Tß¥ÑrñuŸj©‰Cº¡¢‡\sÓ-|xg!¯E¹—i§¢iD‡vÓığw9TÛÊ·eÉ¸+çï¶mc9>ZË¢Öp.äy”õPXDcıĞøõEq(
+è\ô:„Bˆ·E#?¼“Ÿıéƒô&š
+…º†4¨ÖºÂíZÇ0%ódsiÎçØj‚wß>ÂÄ3÷qüôÓ“)£…’ÜğŞ÷ğ¾á,ŠÛ¢n»4Ï(Êzm¾\ôáp”x¦“\Dád¡;³òŞ!\ˆ·âV£{Ûn]>Ä}÷ÜÇä~Ò~•Õ Ÿ÷ìÁ÷¼õ 
+¾ëª(J‚¾ŸÙÉq/-ºì Àu}ü`ıçÀ÷p¼€®¡~vŸ{˜»~ŠƒİóSuĞÌLûövòõGŸâ‘R?&uÊ‘a>|Uß¦ø‡¨˜f»Gb«¦Éww Íø¸ª*ïÙ~ÏIî:ä1¨™XsèR |\×ÇÛÚ¾çãùÏşÇÇõM#ÔÙMèØÇFÉìÊ“Ë4B!Şfğ}@Q‰˜æù“¸åG¸nüw:Â}aVgçéÚ{ÁLŒp3=ÂBß{Ù¢ç²ß™ó¸úê©\Œ«vóŸ$¶§¼nºŸ=¡ ×õ.Ûky§>Ê‚ZàœÒÍ-ûz {}<àËÛ$ÄO’Ò¶İk~*<ÏÃql4#L""Ç~
+ñr*°U/1¿X ÒöAQ‰uäÈ­]Òyúr	ËsÌÕT†òx+3L"‘
+*±î<İ~™sKé!z›ÒÒ<+Z†Á®Öê"s…:^ ^ñß_ìâSwŞÄ¿ÄÌÂ*å–‡¢‡Éôô2˜6/4Í.11S$È³5Ğ*.1oEèëË¢—W˜,8ôwSl–§çYnøDÕ
+O>…síùÄ0Ì-Ôˆtoa0Ò¦°¸L-¥?“À]cª¦3´%Ö®0;µD=”ak_§r!~Lõ¶ƒk·1Œš¦¡¼Âc?|ßÇ¶-PuQU%â5f')øq†‡ó„7İÕ*-1½T¡éÑ$½½İd#*´KLÎ°â}lï4±3ŒÕLzúzÉEÀ©˜^(R³|”P„|oé ÎÌr›¾<©èæ¹ºÔ««LOW° •x¶‹-=IÇfqv?™§¯3!³xBH B¼dÍ%NÎ{ôä‰´xğÛ÷3‘¿–O¿ï
+2¯Æ;ğ±KSœ®¤Ø9£|ö)şá)|òƒ¼£?|+!\!„/Nvv	ñV¤ÚÌ|’{rQ|5»“;®ßEÇ«8¾vİOÜó#î×lGeûÍ7rE>)a\!„Bˆ—HfÈ…x+
+|ÇÁõ@AQ5B†ª¼šOábÛ>ëÏ¡†¦"sjB¼6d†\!„xó“r!ŞŠ#dşDg«UÇËWˆB!„/—œEI!„B!„@.„x­x~párdB!„xÓóƒ Ï“Ú.Ä›‰¬7âmÈv<j-€x$„ihÒ)B!Ä›˜çûÔ[¶ë3¢a9Ï“È…o(A -Ë¡e»øÁúôzËÆuu¢aıŸJ!„¯=Ëñh¶\ß‡ š–ƒãùÄ#!4Uj»od²d]ˆ·	Ï÷)7Ú´l—xÄÀÔ5BºF<¢í¸”êm\Ï—B!Ş$‚  Ş²©4,ÌFÔ40t•DÔÖª-,Ç•B¹âõäz>•º…¤b&¦¡£(  !C#3ÑT•JİÂv=é0!„âÎªËöHÅL¢¦qşr…º¶ÊcaƒZÃ¦Ùv#Ë…xc’%ëB¼Å‹uËriYÑK'smğ}Pbë…;3iYÕ†E8d5uTYæ&„B¼¡Ø®G­iaè™¤yş3ÛhØ€¦*ÄÂ!]£Ö´°]ŸxÄ@×d>Nˆ7Ù"…x‹r=ŸZs}¯x"º(Œ·£‡NİP/]Øg1’1“–íPmZ²„]!„xñı€†µ¾D=j$£ÂxË‡ÆşããŸSÅ`è*©¸I@@¥aa9Şùû„¯?™!â-&ÚGËrĞT•L2rÑ	]š•€:Lñ	 «bså²]*ª!]#“ˆĞhÛT›ë³åáv~œB!^{¶ëÑ´\‚  7	éÚFİ‡ÕzÀÎ¸ü—“>Šóu—ß}ÿ?{ïd×™ŞwşŞ“nîÜh4r @‚ÌqG4ÍX¶«V¶J’W»N+YÖnyËU[öZåİ­Z—?X–½¥İ•´¶âH3#i†8C9Ì$AäœĞ@ç¾ùœó†ıpn7@ç¾ÍÉ÷÷Û§Ï½÷<ïÿyŸ÷ÿg×ZG€ë8´åÒTÃ˜r-"å»dR®c÷æ,–•FÔ#¹ ™1¥qáúi
+©`±Ü-hm¨Ô#"©É™´ÏT]5z)æÆMºEã¸PwÀû?ï±i·K¾ù?jaL5”x®C>ãÛÂm±ÜE”ë12ªãû®ë.9%AkM…àx²)Û„³XîL£×B‰ï9äÒ7ÓµcıšgJ¾?`ØŞb\ÃXİ!”ğ¿<êñÈ—Ü”åz+Êõ!—	&…½Åb±‚Üb±,H&‘'‚dô<¸-[¼<ªùàG1£—¹&1oó\—Ê˜!ª¶<ærÿ§}Ò¹›ñXjªaŒÖ†lÚ·™å‹ä‹åCBiC¥¡´&ø¤‚›ßu¼|Zñ—%çë°±]à
+Rßs¯†Ëšÿş>—/ïöèÊŠ[^·ÆD±"xdR>ö+o±¬vdİbùˆcy£•z”·¥ü[ÍØGï=S0ä;Z&ÿ&äÛQ]pi¿¦8ñÈW|òB$gÏ
+n@-”+u2)Ÿ\Ú·™å‹Åb±,#a,)VBß¥MİbÆVÏ”|ûŒÆ÷as‡Às@M	Jik»ı×ŠeøÅÇ<Ö¶$µ;1|ğ=I¹JEK6°“pË
+`wÈ-–0ÚJÕˆX)òé€”ë.™Ñ0zCóö_EÄhéˆF­¥ş”o­ 4lpÃ£_è½ÇÅqo
+ÿH*Êµ×´äìšÅ²’Ør‹åã‰ªõ˜j#!%ÜL=1Àå1Ã·Şyáºa]› å3y<M)ÒÉùT³·ëãšG»ş‡§<6´ß*º¥Ò”kJZr)|ëÂn±XAn±Xæ.Öq¬(V#<OĞ2ÍâY+ìS¼õÍa ¥[Ü26 ŸŞåCy\óÈWîyÌÃn}«Q£›xs³X¬ ·X,Màvqì¹Î¤ØÖök~ÿ­˜ØØ!n›uNÄ
+®—«Ò‚ÿísë:\qkí¯…1•0&—òI§<û°X>$lÌbùˆ¡¡V¯„dÖiÎJÂÕÓŠ×ÿ,ÂZoã³!:«¿sğÅ˜zÅLF¤‘4 r)ŸñJH5ŒĞÚæ§X,‹Å²XŒ0VŒWB Úòiü)b¼Ãûÿúµ˜K6wİ)ÆgÃwa}›`42üúó1Ç®(êòÖÚŸM'1j•zL©ÙèS‹Å
+r‹År;±L²Åë±¤5—"—¹ó,·ŒàâÉ;‘J	Zº,´É- •´¯v¸¸Oòö_G]ÑhukánÏ§‰b=¹cn±X,‹ea(­©Ô“8²LàÑšKßWz£døÁaÉ¯¿&É°¶59/¾z[!ÿÏ^Œyå¤d¼~kC=å»t´d (VBêQ³f±X–;²n±|D¨…’jã9ùìôdqçÄzQ’Nrí3ïŒÏ4²~;ZÁØuMª Øõ3>vº¸SºòZÊµˆXi2©†S«}»,–eÇ¬[,}"©¨ÔbŒ1ä3Á	)§5ß9(ù«‹šûº-iÁlúx¦‘õÛ®G¿¶Ëåçw{¬Êßù³•zµ–ò²S¢Ö,Ks±.ëË]N’-+E&å‘¦?×‡†ÓïIN¾.ÉäÙÑ”³İí½N’aş|LyT³ãiò\¹ã
+Ù€z¤¨E1Riri›Yn±X,ËLc¨E’z$	\—LÚ¿Cğ¾wQñÇgK†İ=šµYİ™|ã”b¸nø¥‡}Ö¶Şúûsißu¨†1¥jH6íÛÌr‹e°;äË]L+ŠÕÏu“Â8ÃŒZÂñ7bÎî•d
+"ÉŸCŒÏw‡üæw?ù=•QCÏ}{ñ“qø)H•ŒİERÒ’M‘òmÏÏbY.ì¹ÅòÑDiM±bt"zÿVsÔñĞğúIÅŸWàCKZ0_ãóùîOP—0T6ìiüÆSë;œi†j˜ì–gÓI¼ª}<X,V[,k‰Ûiµ“’1ğ™FÅdd8øÉÅ’B‡ƒŸßïX¨ Ÿ,öŠ¯ ı|Àš{Ü[Ä¿ÖI×"®Ån‹Å
+r‹Å2Q{1î:‚\&¸#b¬¿høÖ>És5]mPH‹[¨ Op£lèõà·ö¹oµsÇõÄtNR®Gø®K!Øg„Åb¹Åòñdb—Y*M!à»îÌçÀCÃû?ˆ¹vBÓºJÜr¶{¹9$çÊ+c¥á/{l~À›Ì+Ÿ(ÜRkŠ•0iÏx6×Ôb±‚Übù„¢™ô‚É¥}2Á­ÍjmàÊ¨æwŞ’Ñô¶9d±Ä^Œ Ÿ¨Ûı%ƒ©Á¿øŒÇÓ›\ÒŞtÏ	C±"¥¡MÎ¼Û'…Å²4ì
+Ùb¹K0&1w)VB´6´æRŞÌb<¬ö~7¢ÿ„¦}õÂÄø’.ä;™¬`ÿ$G^‹©•§F£ï:´åÓ`¼\'ŒÖ¨Õb±X,Ÿ4”NRªõ˜–lêÉ±Z‡¯(~óù˜³%Ã¦ÎÅ‰ñ¥ ¬iøyø·/Æ<{TRï,Ú#hÍ¦Hãå:µzŒ¶ÅİbYö€§ÅrWkC½aî’ÜF±A‰(öÿ(bè¼¡mµ@¬@kMHåÀñÇ*»¡Ùõ9Ÿ^gr¡á:‚Ö\šZ”Ä¹¤ƒÄ”Î:µZ,‹åã1†0VTë1®ëĞÑ’¹£şW/ŸRüÎ>IO‹`MA°’òvU.1{ûöIFªğ÷péÈ‰Ûê¿ Ÿñ	<‡r=IYÉ6à,‹äËGXj*õ¥ùŒ?«š10Ú¯9ğ“˜±>Mk³"b|*~
+ºÖ;\?¡©Fìú‚Ïºí7Ï•Ù”ç:”yå9ëÔj±X,–1Jªõ˜0–dR>¹ô[ŞWFß<$yöŒb}‡ =³²b|‚¶Œ ğß=§(Õÿí#«[ïl¤¾K«›¦\‹(VöL`¥…Å²Pìr‹e…0ÆPµ0ÆsIÑ:ãÏk¼¬ÙÿBDeÀĞÚãÜrn{á€ÅŸ!Ÿ­¡:n0î{ÆeónŸ 3Í%Œ‰¥JÌêoÉç^-–O*ö¹ÅrwÉdW˜6*,Öpª_ó§$GÇ]A¦I:v±gÈ§C*¸\4<Õ&ø•G=¶®rp§yImnNùùK.åãØI8‹Å
+r‹ånFiC¹"•!›òI³/¦†kçû~£ª†–î¥‰ñåä„UCyÄ°f·ËîÏŞf€0’Tëñd†¹Í,·X¬ ·X>êÕ0¦Ædì4Â´Á«§%yX1æ@oAĞLíÚLA¬WQ¾Ù…ğ˜Çc]wæuÅ„)mK6EàÛI8‹e>ØU°Åò!#•f¼RÇhÉdRŞœb¼ï„â­oE˜ZV-]Œ/'©¬ ¥Û¡ÿ˜æïF^Ö·ü» ÒA²àOßB"©íÃb±X,Y´1«!õHRÈäÒwŠñbİğ§ûb~oŸ¤æ7_Œ/®[×üÎk1?>¡ˆäô?ë{.…†á[±RcûÁ°Xæİ!·X>$ŒIò¹+õ˜lÊ›İ¸m¢À+¸xXòŞ÷b²9A®]4-Ó;Œ`f=³¾”„ZÑ€€‡¾æ³v›{G#áö{’IùvWÎb™'v‡Üb¹;cE©â{…Lê!®ŒVÿşµ˜ƒ#†‚ °,qa±Ô(­	|·©ßac`´f(ÿÍn—_}Ğ'åÏü³±Jî‰ë:Ò®5|³X¬ ·XV­¥ZDKZİãùÚsû%“md
+ÍãÆ$»ô±ÔçàÍ’u¾Tj¥d„}ç=¶>ì‘É‰;V!a¬(VÃ¤»	¬»Åb¹År×cŒ¡J*õˆ\: ;ÍÄ[(áğ5Å|S2l`c›X¶z«”&’mëà{NsE9IDÛµQÃÏmvøõ'=²)1ccAª$îM›$³Ü÷lf¹Åb¹Å²Å:1w‘Á¼ÏKÇ‘áì>Å±—%Ù¤§±‹*ÖÚ U2.n+²ë,›+†Á>Í=OxìzÆ£¥Ë™öÚÊµ¥¹ŒßÈ`·¥Ûb±‚Üb¹ûˆ•¦V‘Z“ÏÓ&‡”CÃ‹§¿¿WâåkZÅ²RmRŒ6·ˆ}mµİmîïUÎ>·JğôXİ:½ÙÛÍ¦EL=RdRiß³†o‹äË‡ƒÖE(‰<É¦ıyÄ¨n8ıäôŠLKr&»H¥‘Êà:Ïu*1uó|)Ï¸®³,Áø€¦­×á¯xt¯s§l«ÖCœTÃÇî–[,V[,wÆ¤•zŒç
+ò™ÔuÊ C%ÃwJ¾yZÑ•´e–GŒOm´ûƒÑfÒÔMé¤ö;ÀwES›ÜJÃÙÃCøµÇ<vôÎlöÉ$\¹–Œ°çR¾gGØ-+È-–e$–šj£µ!›öIÍÓi4ÇŞœß«ÈµütÎùÄÛÄÂáv—u¥JiÏË²7Ê£c`ç<6îp	¦i8D§VÁô‘1‹Å
+r‹åÃFiC-Œ‰âFtç4#êRÃ©šï”üdĞ°¥M^«c@é¤™î:×qâN—õ‰İsŒÁmò$œÒpqÌ°Ş…ğ¨Ç§¶Ì.Ê•Ò‰»Öd‚¹f,+È­ ·XE5Œ©ÔcÒ¾G6íÍ;Ò+ªÃÁ—"úh
+]/EÒf_ââ!–Iwüv‘=]ìÙ„xWÚà7ÆÜ–åÕ¢aÓ£.;?å“k3.|j‘$›ò&xöóe±XAn±|øD¯ÏuÈ¥}üiÅ±†WN+¾}@r^^rªó    IDATÂ¦6Ár$i“Ôv¸ó¸ÙL±g·LÉyÍ›„SŠO~e·Ç×wz³şÍÆê‘¢Î<a`±|Òğì-°Xšƒ1‰q[+òiŸtàÍ{\+ŞÿQÄÀ)Më*×_º'ÇĞ“b=ŸKBày¡±ÒógÍ7|Ë®}ÕaÃÃ_õï8Wî:‚\ÚÇs*a’kZÈV$X,‹åC¥ÆTöLzú£TRÁŸóìiãÃ–vÁr‹«F}vöù®3<×Aˆd¼=Ub°Ö„rê
+èi”CøÃÃŠáŠá¿{Üg¦Á6!™”‡ë
+ªõ˜b¥N>“²#ì–O4v‡Übi‘lÄ{8.…¬ãÌ³ûl 4¢yçÙ˜âUM[ƒ³Ä6Yb$wó<ÙLvºòÛ_'n¸µ»,&,ZAuÜ <xøk>«7»¸Óüı‰á[D,…ljŞG ,–3v‡ÜbY^”Ò”jZòÙ šµ1p­døãwb^0¬i.ModOD‰imğ=wÆ]å™vÈ§¾T©5¾ëà5©k`M‰Ë£†/õ:üÃ§=:s³Ÿ›×ÆP%µ0&›öÉ,`#Ãb±‚Ü
+r‹e²°Õ¢˜r-"“òÉ¥çŸ£mŒ^×ì}6¢6dhíqîÈé^ğâA¤T8Óè†Ïü³s	ò©…[5
+÷²äˆ6Î•—Æ’ò­¸i1í³§JÊõˆüñ2‹äV[,Í—±T”ª²Á´ÂUj8tMó‡oÆœ›;–c£w¢Ñn3kƒ|.A>yíÊ+…ç8Ma—ÎkmqøÇŸöØÚ5³ûõHR¬†¤|B&°.ì+È­ ·XæYtTbÜKM>ãøŞ¼šÖ0Ô§xïû1õQCÛê¥‰ñÅçùò[…~rİ]&Ã·zÙ06`’h´Ï{dbúER¬(Õ#<'9Çç¹vÌÍb¹äKsĞÚP$ÕH’	Ü†Éß…0†7.(~ï=IèÀš–æ¨’u99¢îÌ¹ó>_AI,Z, ¾ë4MKG[ø§Ÿòy`3çYz¥'2Ë!ß8£oA+È­ ·Xfd"òD8‚B&X(Ô
+®ŸW|ğ£˜p|éb\ëä<&c›oA]ˆ O
+÷Ì&2MkrDP2´¯<øeŸöUÓğ+m(WCÔ„‹}àaë¶Å
+r+È-–¥KMµ+=ãñ(—¯Rü‡cŠuYA[¦ù#êzÒdUã».Ş<MV"È“u}’©®µÆkâ»ÒpmÜwà7óxzóìì÷¶R‹’¸ØÀ#“òín¹Å
+r+È-–;Åo-Š	cEÊsÉ,`D}BŒ_=¥8øBLT5´®rp–Pûd£ğ:Àsœ-*È'
+·Ô}[ÌJ31Š'»~ÆcÃı~júgQ-”ÔcIà¹dlf¹Å
+r+È-–EÕC+ª¡ÄkŠN7if€“74ß;(ùÖUÃ®A.X²ë4b6Ù‹ˆ!]¨ ¿ıw:¢y“pÚÀHÅPŠáÜãòÅ©yøä„±¤Z—8 ›ò­á›åcuY·XæI4qÌäÓÁÅŒKG‡_Š1
+ÚV9ˆEÖ˜	Ã5ÃòíVO‡ÉX›j8µj­ğf1[ìïhé”G~S1ìxÚ#ÈˆÛ~NMûxCµ3V®QÈ¤ü¾X,‹å“‹Ò†R-D)C6å“NÍ<qõæ9Å7JN–t9¤½æŠqÈÉ„ñ¡ÉJÒX¤ÒDq"è—º¶ptåéĞğŒU_ÙãÑ™ıuS¾‡çºTê1ã•zbø–òí$œåc‹İ!·XæA-”TÃßsÈ¦~nÙ8ıäø+?™‚XôÎr³ºØ‹Ù!¿ıY •Akƒç5¿)`Ä5C­][ü’O¡]0]EVÚPcÂH’M'™åËÇ»Cn±,X*ÊµäÒ>ÁY]Õ?*ùó“
+ÇƒÖŒhºy›iœç^j£}±;äS¯cbá:¢)»Ó¨ÅpvTóõ‡_|ÂgKÇÜ×¦Mr¿ÆK>X3W‹äV[>i(m¨Ô’ódùL@°ˆg#æÔ›ŠlAà/ò¬ÙTã¶fœóZª ŸZüc•¾ùËY®er®ÜÏÃ£_õY½Õv²À˜ä,}¹1ÅPÈ¸s³XAn¹Årg½¨E’j=&“òÉ¤¼?ï}ã†¿ÙóÃ+šŞV‡L@Ówj¥ÒìÌË¸m9ùT1Ï#Bu!DúÆ»ÒğkŸñy°wîm ­4¥ZŒÒIôéL‹å£Š]­Z,3	V¥+×‘ZÓšKÌ]ZÜ´‚#¯Æœ|]‘ïÙÅŠqC$“üÑÀsï*gq×u<£“±~mš{šÎñ u•@ÕáµoDœy_¢ä?'„ ğ\ZrÉóÑrHÔØm°X,‹/˜b5¢\‹(d²3xÁh'nhşÃË1ßïÓ¬mwÈ.ƒeÒÔö\·!¢ïĞ¨©B¢X¡ôÒ«iàÁÆÁY	¿óZÌŞKš¹^V4Ö-¹€”ï1V®ScŒ-î–v‡Üb¹£›ÄE=ŒIùŞ‚²Å§ÕÇß–œyCÒºÊÁ!ÄIv­bipğ]·i«fíO½Ø¸Ñ™÷¼†á[ßc ¬*ã†{ô¸ÿ3AzúÑmµ0¦I²O:ğ¬S«åc‡İ!·XVCb©(×Ùâ™`ÆˆĞPÂÉ~Åo¿)QVµü&÷ÁoİviV‰jÖùí¯+ë:xXú³¦aöV‹á_=áñø<Ø'ŞÃHJÊµßsu„Ğb¹±Ÿb‹e
+²1ò\®ÇäÓ…L°ğE©jÑpøÕ˜S¯JZº)Æ#ê‘Ôx®À÷\îjG‘Œµù®“tü¥Æ4±…-¤ó‚¶‡³oKö~'bäšF«ilBK2)ªaL±!•¶p‹Åbù¢>#ã•ÀsiÍ§gãƒÃJşÑ‹1ëÚš+ÆMc­Å*Ù…ö›'Æ—‹‰I8ÕX“è%î–O˜½µfà_¼)yé¸d¬>÷k
+‘¾µæÒ(e¯„„±²pËG»Cn±p³ëšÄl@.,ºëZ6}=æÒŠö5Î´‘]óY<H}3ó{9vªš¾C~Ûs"ÉFO
+y³ß”„Ñ~M®S°û>ëîugÌr—JS©Gh™”·¨£Ëİˆİ!·XæQë”¦VQZ“Mû¤ü™†Îkşúä[g5ÛºmiÑÔcOÚ”2hc–-!e9vÈ§®•¤Òhcp×KÚ'@±GG¿uŸÃÏíöXÛ*æ}/kõ˜P*Ò¾g'á,V[,e´6”ë±ÔdLÊ[t»¡9ğbÌÀ)Mû/Å‚3Q¤Ò(ep‘'ËU^–Sßñ·8Ïkîß¢5”GBÀöO¹l{ÌŸu¡ÆIÆ¬ëÏ6³Üb¹ä–1fò¹Ÿ8tçÒ3?÷p¨OñGÇG½­‚¬ßÜH3¥“uÇY¾Fûrò©ËÄÔÙRßPàì°æ«kşŞ£÷vÏC$Š•zŒÁ4Ìw­á›Å
+r‹å#…TšR5Ùt@j	âtøŠæ½F”®ÚW;¸üj±RË¶«¼‚|¢p+uóœ\S×Â:TG5kv»ìúŒO¡sæ_É¤pc’ÂíÛÂm±‚Ü
+rËÇmåZ£ÑjìÎğy.EğÖiÉŸU„´gÍ>–K2×xÎò·}‚|âKe0MÚí%ôkî-~íQŸ‡×ÍÿMJScâXMf–[,V[,w9Æ@=’TêéÀ#›ò—4êtã‚æİDÄECK·ƒë-T´&g®]§±+ş!,„?,A>q¿¥Ö(ÕœÈ¶;ŠqÅAMºCğØWz¶8³ˆ$î¦Ædq7v„İb¹ä–‘T«#’i¨Y&ÍË†¿ú@òısš–VA[š¦Šååˆ»[9$Jk¤lNd›Ô0V5dßxÔã©-ó_ŸL¤Ñ”k±„³XAn±ÜıbÜPªÅÔ£˜–LŠTà-º€×Ï)ŞÿAŒ!ß!f<Ë<³0Èw—|ënä7†X*\ÇÁ÷š+Êµ‚Ê¨Á8ğàÏúlÜ5}^ùÄûÅ’b5$ğ=
+ÙÀŠ‹äV[>ÊµdD½\‹È¦üãÌ¡7Š†ÿğVÌ¡AMO« 4·şNÔ;ÇIÌN?¬¯Ó‡)È'§1Ä±F–ø{Rh(Và·vùìv…HXjÊµc Ká[v‹äËİ$ÄA*E©!´dg<™ßâúÏ(ö?c$äÚÅŒpúAJaéì£"È'Å°L\Q›½c`DUCeî}ÆeÛ£©¬˜q!¤”¦T‹PÚPhŒ°[b±‚Ü
+rËG‹É‘e©ç|–×%œ¾¡ùß_©èmiîˆº1Ù8ªå{î‡¾K»‚|¢!K…Öà{g‰Ñ§ãuÃÅÃoîñøê.—öìü&®úõX’Kù¤f9²`±ÜxöX>	hc¨‡’J=&òÈ§ƒ%	/­àÊiÅÁÆ  ×!ôz“s!>a"P|)“ØÏsğ§i¯Ê	„c8ò¼¤8`ØùYÖUÓïN¸®Ck>M¥1V©“KdR¶p[,ËGCbêU®%Ùâmùî,õd¬fxùŒâwß“´æëZ›û¬ŸQ7Æxî'Êõ[ ç6"İ4Ç’ÎË·¦[:ÿq¿äFÕğKy¬™çûå4+x®C©IM.m3Ë-V[,+FÒ9—H¥(dƒdD})WÃ¥c’ƒ?’ø)È¶ÌÿÕ&:çZ|×YÒ}32+Y¸}ÏÁÑ©4Æh<G4­›d]}‡•Íî/ùôÎpM@ÃàÍ¡RQ*‰Æ±…Ûb±Xî^´6Ô#I-’¤|wÖuHFÔ¿yXò“Š6AG¶‰ÓY$&R!ğV°ÑnV¸¾O8ÈÇJ…ç8‹nL´¤àş^‡gÏ)k†ü¨ÇÖ8°§Ïu(×"JÕˆlÚÿÄm‚X>Ø‘uËÇšZ(©†‰ÁG3º£FÃ™ı’£ÏKÒÈfß ‰˜x’¹Ël™0NÆÆSşÊvñ§V14=—Uk¨Œ%oĞÎ/zlÜáâ§Å,ï‘¦R'y3o·å®Å¬[>©Ä2ÙæLH‰5œĞüÅÉ;#†ÕyÈøM¬3Æ+ËPÃ¼F1†H&ªï®hcÙĞˆ>Õæ¦aí"_+R0P4¬Í
+şùc.»×¹¾/ÕPR$çK6³Üb¹Åòa¥r=&ŠéÀ%“ò—¼¸T1'æÔ«’\» •ónCO-J®ã¬¨È›¸Óè$1kË˜y>÷û•ˆa¥“Ìòf›°ÔË†Ê˜aÃÃ;?ï³~vja²ëâ{‰S«&+È-–»ƒ$[\â»ÎœÓLµŞ8«øæ!É5ëš|^|²Ñ.+V¼Ñ«d\“÷f8Ÿ7ïï.~wZ®²şéCmuI/Ğ'Œ%•ºÄËÖğÍb¹Å²\ÄRS¬†·œ!Zj-ŠªpèÕˆ‹ï+
+]‚ =¿W¼%òÄuV´#;a¦fL2.®u²+íºRj^,Ë¼îW“¯%ªJ#†}Ù§cÍÌ…Øã”ëJ
+Ù€Àf–[¬ ·XVTØ•kRiò™‰Ñã™?£ÕÈğ$ß?©pÒ‚î¼ Y%81‰MšÈ+V´¡«d\ŞwÅ¤8w]¥Ú$o+½s/•i˜Í‰YÏùÏußGk†°bøÕ]_ŞåÑšZøç¨ÆÔ#I6YBÒÅb¹Å2µHRª†dR>Ù”ß”T+ü4æÊ!Eë*ÿ©_+İ¡ºSÇå§º¬cˆU²k¾Ò¢üæB§ùµJBµhp<xäk>«·¸³ÆÔic¨ÖcªaL>MÙçÅ
+r‹e%g±â8ÏÌe¥ŒVÿé˜wİAÖo^¾øÄX¸!i´¯¨Ğ¥álnn^ËT—uH­Q*i¬ô»R†X%çÊ}jCÃàˆáïŞëò÷ñè\ €1P%åjH*ğ)dü=éÆb±‚Üò±CiCµ8iÎ§s>ßvyÔpğ¥ˆkG4ík^ æõÿ”ÖH¥ï
+ã6­4ñ4ÅxºØ3Ùè²{îÊÖO64\§©†o¨–’öİ_öÙúK*+f}?c™Äåù®C.ã/º»o±XAn±,à3iaÔHH	¼9Ûb‡û5¿÷fLŸ„MíÍÛ¿Y—4C­¶Âëé®eºØ³É¦üİ0Zß¤I¸Jd¸2bøÜ—ß|Â£«°ğy©4¥j„!‰>õVø=µXAn¹å#K4ÅÜ¥%›jJØ(j¼sí˜¦k½ƒÌ¯ĞH¥Ñzå#O&FÄdÃÜåö.şL9äZ'İÿÄ)våÏÄER!„húÎ}½C}Š{?å±óŸ|»˜cñ£)V"´1ä3o·Å
+r‹eÙ§JL6ë±¢%fªEğÓ³’ß[¢²I¤™hæˆºÖH©ñ=gewšç¸–™rÈ'wöÇÖÜ>B—ìì›%MÂE
+®¶´	~û3«Ûœ7`Œr-¢Iò¿1ÂnŸ}+È-–ù-!ŒÕ0&ğ\ri¿ix¤_sà…˜³šÎuŞsÓR5„ì
+¨O½–$^lz•™ùd±TÉysÏqpİ•a×&Ù¹wœæÕ“!ŒjÚ×9<ôs>í=Î¼FØÃX‘Iy¤}Ï:µZ¬ ·X–A¬Uê1B0é3[Í­;¦ø£“ŠÎ,´gEÓêÄÔ$•ö‚™¨íãòÓ]ËL‚|â^)•¸°»÷•ŸRiä„û¦ò®ŒZ\ø×ŸòØÖë’Z å‹ÉIŒÀsÈ¤lô©Å
+r‹eNb©©Ô“İÊlÊŸ³s¾/k<3Ş¯i[íàzóX<4²´'Î‹¯´x0š™íZfäS‹¥RÇ¡ÑdX¹Â8µªÆÈ]óvËÒ°A8°ëKî›= Œ•z„@Lf˜[,V[,Kœ•Æñ³tà‘MÍ=©œĞ|ÿäÙ~Ãö6AºIËÒ[b»„ÀóVÖ¸mâH™ã$b|¦ïûl‚|ê}'Ì\WºÉ`²q&)±qıEƒÃo<ìòÔ6—B°ğ×IÌ\c”ÒdÓÍ][Z,V[>VÔ£$[Üu¹tĞTÜVqğ…˜z
+bÖİÒ‰¢&•!ğqW5Em®k™ ¿åoœçë.ûßØ0ŸkjŞ«IòÊëUÃÖ']v<å“)ˆ9GÕz„T&É,·†o+È-–E+M¥aŒ!›öIù³‹!eàõsŠoí—œ¨¶´;¤Üy§‘Î±Ö½9%6ác²RLskbQ9— Ÿîu=÷.pa7ÉnùbâÈ0T6„UÃ/İïòó»=Ú3ÿ›´1ÔG%R~2}iGØ-V[,S„a¹KM.íønSŒ}'‡~cdáÌşàŸØ=¾Ğ’Î¹^£û|ùDá0ªs]gE³;'FîäÄ®E³«†ZÉĞµÅááŸÈ·‰9Ÿ‡a¬¨„1“d–»v„İb¹Å² ÁYk4ÚÓ¾Kf	)ÚÀ·öK¾}JaèÌš5¨¤´&–ÇYy´	sS§±C?Ÿk™¯ ¿õwh1ó·óïØ XŒoŒŠ5ÃXÅğ•M.¿úˆGgná¤T”ë1Æ
+™”„³XAn±ÈFä	ódÍÎ„¾t\qğG1¾©ÜìF0çÛŒI"ÄVZ€Åòfñ]Èµ,DßR¸çäıßÓk¼æÓk•Qƒ—…G¾ê³j“;ç¤D,“Ìr­5-Ù¾Í,·XAn±ÌkMYªF„±$ŸM‘ögÿ ¿døÖ{1?¾fèmMsROê©Æsİ9w¢?ŒuT×]Øùê…
+ò¤Á‘ˆrÓ¨§+}:‘Y¾¸èS„1Ü(êüËÏú´ç÷^*m¨†µPRÈvÎb¹å“[¬ÃXQ©E¾×Tã¶d
+}'$|O’ÎC:7—ÓöDÌÈİ#H… ß]xW{1‚|²!¡Z7
+÷J7$“
+Ít5Ê#†JIóÈÏl}Ø3ò.1|“Ô£˜\: ¸vÌÍb¹Å2ƒh’RSª†!(dç>~¦¾®ù¯oÆ­Â¦ß¤ŞçÔ(®f6x{-G³³K¼A~{Às®ëÜ±nnÃG,ø>&fokøWŸ÷ÙØá,jŠbÂ¾\|‡lÚNÂY¬ ·|‚H²ÅcjaLK6E:Õ\s8„Ë'$<“o¤ó³wå¥ÒH©ğ=weÛWJ·„ø•Å
+ò[
+wãV|d_kâXáyî’œZo§V2”†ÛtÙùŒ?gÃ§Öb5JÎÙÌr‹äËëÈZ$)W#²)Ÿ\&˜ó™Ixï’â?½+©èmmæˆzc,Ü‹jn/‡bñ¥ò‰kˆbÕ8&V¼9Å
+Ñ8W¾˜öË£†Œ„ùY‡×»¤¹”œœÔòÙæOjZ¬ ·‚|I•E—†¹6ƒHFbŒ1à¦YÕÓFJU©P58.¹¶6Ú³)œpœş±ˆL[7íi ®12:N˜ê »%ÀES¢,²tvdå#ã5¤68~†®62w<˜"FÆ¨hÕdóğSu†‹8¹V:©yş§ˆb)$(H7¡@&F#gw °.ÖaÕpş âàs1-«™YÄøR»ÕÍ.NJ™$»s‰kKäÉşæ.½çÜN­šêÂ.c(º6	ø’Ok·3ç»TšR-¹Œ¿øEVTËcŒC”8™½¹¹†´¢^aD¥éhŸë{©(RÒ)z»òó¸o†°Zb¸(iïh%Ü¼FÆŒ¡ÒÚói÷­.RŠ<º{ZI/¢¡aLÄèà‘Ÿguû<Ÿ„qñº!—Ë¬¨“äw5¯©I1áxd
+Ú¼fİ#©•Æ—¤ÛÛéÈ¥’×6š¸6ÆõQI¶%ùóù&]a` ŠßÚMGfºWŒyºÚÒD•ÚK“MyÊn¨TšZ5¼`RÁì¿× #Ã[gÿîb}Ú2ÍÉŸôF™H%qV2!Å ´¹G¶„İé¥
+ò‰{Kµdçó¦Ü’£f®³ğñóş¢!*~ãIŸÙæ’O‰E>#•zL$UÃxpq^FÆTè/ê$NO¸Ù–VÚs)&¼õŒRG(‘££­…¬320JİÉĞÓUÀERc<NÑİ'pïÔÅÑ"u¯…Î|ĞxmƒŠëŒS‰5BWmia$å±QÆ*1—ÎÑÙ'í:(Ufp FĞÒNGÎºÏ7÷ı7¿ıoóàĞZá¸)ÿŞ!2ŠzÿI^=r‘ãGñ×Î0^­0^…nÍ…ƒïñİ×Oq}tŒ3Çql°NKç*ZÂãüÁŸ¾ÉøêÜßåQ¿qç¾ım«¯ã±õmøºÊ¾ü¯µ°m•bÿëoòÖéëpìĞ {6Òy{ñ¨\ào¾ù<ßÿà;w².½ğÇ^½z•ïüÉÜÈ®aÇÚ–ù= Jçxî¥£˜5›YYâ‚°‘ó\%çÒ’M5=»V2œxGräIÛj1«›ödÌHÃìdEÍ]”F6úgÍ×:y-w	»ıB\G u²˜ VL”!p\£“E€p–~Ğq_Ñ«š«§5é‚ ß>»(wAÚ÷&?ÏJ›Ycjfz¶TÇ.òú+oñöÙÆ‡.ófŸâ-”np½&hÏÏĞ4‹ª\}÷ûüá)Áö-ki›µvVØÿÂóüÉ	Ã3;{ç±ğ’\?ˆÿïÙ“lÚº)× Ë£¼ûãç9ív³eu+‹)Ù¦|™?ÿÉ5Ö?´´»à÷Ğè~úßãÕROoëœßsáÚ1~´·¶«iñ]>
+R4’­$®ëâ8K³h¸#R¾÷‰?raÌ%şê~È÷ÎãÔF8uòûûÆğ[ºéÌ3ìĞFŒ\ïçjIĞšæ®ªÌÅC/ñüßopµ£—½d<QW<Ç¿ùãCø==l]ÛÎÜÛŸæÿå-Šë÷°½}šooXçí¿ù&o—ÛØ¹Éçä»ïqZv°¶=ËrzVMä<—jBZ²)‚y|ÏÎj¾¹Oñ»Ç5÷¶Ú²ÍùLNø¡“ÔÓ•œdšhlkÍäXâ÷Ø–”1.ÄÍµA²!+2= `².)­Ñ‹¸–|J \xã¢Æ7‚‚´/q_Ä¤¯Öcb©•>£ÔY¾ñıŸôU•!=Á‘ëÒmİtf}\a«×ùé7¾ÁÕÜ³n=cê\xãÇüÑ{ãÜsßZä{_y‘7FÜ».yvÜBµŸ×ú}©5lìÌâ	ĞqÄåcïòÜÇ¹<^äâ±3Œuo`cÁgôâ^|åmŞïeğÊYŞ:z•(ÕÊºÎ²~‚ÿòûïPíÙÂ½«RXš‹mq,Ç#»ñ!şÎ†ˆ«§P1_xæ16u¦<ö<Ï~óÅ¯}]«[1å~Ş|ù~ø^ÿğ³kÙŞ~„ëpï‹£\+ÁàÕkÔâµd¼\Ï°îáª×ğÎ•<_û[O²½Ë£tc|Z5váW÷ğtî"§Nòäãİ‹zô%‹»ù?\„×Æı»¶Rğ—ö¤–JS©Ç(tÎ—#ÿ±2f8üjÄGÖ¡ù    IDATÅ}šö5‚TVL›‘rkˆXñu)×r8ºOW ßt>7Fã­Ğ˜› qfUZ •Æ…×„DÇ¶‡Ò°aÿ#Ê£÷>áã§f_ĞäÒ>+¨ÔcŠUM.½€i3~á ï”ºù{_ŠíÙˆk£’´Weß+¯p¢÷Sü³–™o„pñæÙ“îübŞïy’É+îlĞ,i:A3Ü7Àpf+w_áĞùqö<Øµ(Ç&Çq´Ó-ò«Ù³-$kÇ-SëabóîÇùÛOuR+±ÿİ÷yşõÃ¬úùGYßLóı*rüı7xÃ}’ÿùgó¸óú>9´·{\:ÕÇĞµ´¥2(9Î‰#Cd;Zğñ8"Ù]ufùá8¸B iVoÜB>“a9Kœ1É®bØˆ‘Ê¦ıy=#Ş»¨ù³ƒ’Ã#šº²~R›—ZO'j•#ÄŠdOäœ;BàzwÛpNRçóXªy;½/×µ8B+MÔÂóİ¹@GVráÏN)Æk†_~Ø£#¿¸¿%xx®C¹Q¬†dS[³
+n&Ç‡ào?ÒJyl€÷ŞØËŞÌĞûÕ=tg :Çw=t–¸24ÈöŞµ¤D{ŸxŒmßdï±>ü«íæÓO¬§%uû—X2ÔßO_¼†Ï÷HşÙÖFØ·÷<­}¯=²3>B)HCõ
+¯¾´¡-Ÿá_G«Sçú±}|û}t÷|íÙ»ó3j¹eÊbÖÃÃà{cğ<ß-qâÈ­÷}–G7÷ d6ñÄÎ+õ,ıOÿ;7¦8}½ŸaİJqd˜î{ÖPäJÑRêçšÉóÌšVÒCZã3œ¹6Îæ®5t­[=ÍUŒsêÂ«w|'Ü
+yò×ëfµáÄÑ“\‘YÔè¥z¶ÜÏÓ;Ú)İ¸Èû/1¼\'<µ‹‰¢^áÂÑË\ô·òøÖn2Îûß<IÜ»Íú<oŸ#TYv}ö¶GC\¾VeÓEu¼ŸïŸ¡¯“^w?_Ø½–BÊ™³@†‘¤R	<—|6µ¤]Û™(ö¿qı„¦£×ÁŸa‚`"vC4œÄ»àüT²pXyµÙp]á$cãa¼8wÔ¦]‹“,L¥JL›aø&(t	¢œ~SQ6ì~Æ'ß>ûë¦|Ïu©…ñ-…{Î•ãàÚñÆégÓÖ6¬®pôÍ·xûÂ(£ƒ‡x©SğÀöV®=ÆÉë!ÚI±æŞ|zCêæ]—8uğÌzÙÙCùÊaŞ:>L4›wìà-É!ÆØ÷ÊËôÕ\º7mááh¥Ì…“§8|~”ºqèX·‰Ç÷¬¿õ:ãQ8ÁÉ5a­@wcT½q†w_f¨.h]½Çw­¦|ñÇ®+â("Ïã|vó”9]äÒõa²›à©Ş:ß<qÑ:éŠ*\9y„£%dH±¨èÜ¶‹g¶µS»ÈÛû.2R×8¹.lk‹,S«pãÈ^:kydçzÚô ¼s–hİÃl¬æİóãÔÉ±ëÁûé–ã\¾Q§}s/qåïî=Íµ’$·v;OìÚLwÆÖºO*®çãiüÎu<¹gœ¾æRí~Zªgy÷ğ5Æêà·­â‘=½è'Ø{lˆ+Á|?SãóOmfìø>\©!ñXµ}'On]EvJÛ )¬ï¢ql°Î†–4æúNÔºyl½LFZÚàyŞ=|‘ŠÆËµqÿ]Ü×&ïçĞ‘S\‰ñ»Ùø&d ïû]c\ztß³ƒ'6æo*”°ÊHÿŠk»Yí/£Ğís£¯ˆÛÑËã»·±¶Õaøìqö¤j\
+m¼ “={îaU0÷½‹¥¦Tq„ %àysïŠWcxõ¤ä)´÷¬JÌ¸–š/>Õ¸Í_é1ì[ÒZÄ]í5’ÔS©4Qœá•Ú¤pA Ü$šNi´™¿á› Ù)\øîeÍx%æ—÷ØØ±8‘é¹-¹a¤¨6ÆØóé`Şë4Àõ<?C[÷F>ıà ç;Ç¥è^Ú}Ÿ¾Óı´îz€G[¯òêÕQFîYKoÜ¶üÌÇù£W_a¸7Ãš±­+{gó/,qíb?Á¦İt´¤&ï‘ëútû¯0¸½‡=ä1ÔNàD¼Š¯?¹Ş¼äØòĞvœ|…÷.–ÙzŸ±Å`9?Ûö4÷{³dŒ2P2tööLùúu¶åh#dAÏ–U˜âûëŒ…lØ¹™­UN]•@µu³¡àÑ¹~;_xbßy™?øÖOx¯?Dİş½¾Æ¹á4;6å(lŞB{ùgúè7.ä¹®Ó±u3ÛÅ5^zçgª7È³å¾ûyæ‰µ„—ñò±ÑÆ³”G\å­ı)WcÔµ“¼~ô*E¯Şì'·a7_øô.62¸Å«¼}àWÆª\|ÿ]…9~ú1>µ½›Œ/æ¼gåjH©‘Iyä3ş²ˆññÃ¾EÖ´¯YŒÇ.°»H‘f’«$Ùâ¾çŞÕb|ò"ÄäÈ],õdèŠ4Ê»¸+ˆ¥š\ˆ-í5!•:×)^û‹ëçôœ»6®#È¥}²iŸr-¢T¯‰Yo¦Oç†ù»d9ğãñßy“3£Šµ;¶²¥-Cï¦Í<²µ—‚vhíİÈã?Äô¯¿~„ËÇ¨pæøQ^<4ÎÚUyLÿ~¾·÷:İ{öğĞ:Ÿƒ{?àò`è¡a*k¶rç(/¿}‚E.Ÿ8Ä÷Şè£mÛv»·•Ëìåõ#}è‰ï…\<ğ>?>4Ìº÷qÿºÃÃQr£ÆÎóòÇ×ßË“{ÖQ9ùï9Ëğsüpÿİ›·ñ@ïÍór jtŒşÃ}í9ÖÜ·†ÎbGGÈˆâ•cüàĞ…ulp†xã•ƒ\P
+ÇO±á|î‘uøCGøé©5Ù¸<ß ½Ş?p™Áq¯\`ïÑÜø0?~ë<l|€/<y?›»Ô¯±÷à%ÆÃ˜Ó{ßáÀH†'Ÿ~”'·÷ĞØúöÉ.î7+{:Pğe£qœëwîâÓl%ßw„·Ï’Û¸­kst¬»‡'w­'ç8ä:zxä‰GØÕ%8ğö!ú«uôm…ĞißÊCÛ¸tö:a=æü©+ø·sOŒè±‹¼úò;Ö«xôÁí¬‰ÎòÜ›‡¹0:ÊÉƒ{y­ßg×îl«(Æ¯Ÿçµ}WhÛ²ƒOmw8öÖ;¼= ‹@D%úNãÄHxüoî;Â‰Ñ,;ïédüà~ö]¢<xšŸ¾v˜ö<zÿô¹#¼}aˆŠšû¶ÕÂ˜Ñrßu(4â çªb×J†?~+âw÷K¼t4)_\iC$Õd£İ]a¿“°q>Û_áqù…Ô>¿a"+Uâ:¾’×â¹¾ë$ãş±ZĞäDàÁæ6Á«ÃšÿbÌW4‹]ª8B$k×l€Tš±r}Aë©×Í¦È¹ŠŠÑÄò
+Ç¯8¬Û²•5íkÈ\¡X,76|º·>ÈV=ÈéJ'[7®'çŞùĞ*qzĞåşŞNZÜ›:ÄÏ´ñğ3O³¥xŒ?ıËòİW(…š±¡2nKkòS>A+]-¥ñÚÜkË’°;äË†Oà†Ke47Í*µˆº“¦à8ø«×ÑäğÉ¤Ã{ºî£½{€ŸôİàìX‘ÖµÓ-ÀñóÜóĞgø'[¯³ï·xş»/‘úµ¯ğ@öæ7ğÊåA.\áô7¿Ë+"f¨™KW¡3y‹Wm¹Ÿmk×’ò{	Î38.Xë”9sô(ç†Ë\¾2JË†hrÑ¡6­ŞÈ¦C§¸PÛÆğ©«ˆM÷óx[šÂ;IWÇìhw$#_ëPÈ¹\<zC]í|fç¦Y­Tšb5m…ô’ÏMÍ´Ğ|ğ\ÌØ5Më*×Ÿî¡8%ƒÓwW8ƒ“Fç×Ü±b‹-–“ÜSmôŠ
+nÒÄ²ÑİoÂÔƒëAë*‡ò¨áÍoF<ôÍyÌ¶®B<|×¡T‹-Õ)dSÑïé¯ŞM·sß_bİÖË¼ıú^şì9øÍ_ØD.pÉä£'S+1võ,ïeüú ÃÚ£Œ¡ àúñãü¸¯“¯~å³l[]àÂONrğL…kÅqYg8jå¡0$B¬ÚÈS[× Š5Öî?Jyà2Õ¾‹ˆ{?Ã›ÖÓ"ºùò•3|ëÒUºw¦HÖ8yæ:ş¶/òĞ¦^({<´æ5!¸Öwcg.Sº^á˜g(–5;W—ÈûĞ½e›Ö¬¥ó¿µ˜Ãœ9}‰÷¯ñ’34¸ÎçÍ€ñX»y[6m¡ÛëãÕÓıôW¡GÇ\8úç‡K\¹:DËjÖ7ÂËÑÚµ›Mú]F†¯_BmÙÉ¶Uš³Q…‡±6ÿ {:¡ çÛ2.ƒWÏñÎ™6>³û|Ûº¶4ˆ¢˜j­„SåÌ¾£ô”¸q©ÈúM?“¥õ	R-tµåLÚè~úÖaF†F8_í¢¦Ôm»½-²ìÜ”fè½3/Gœº°ã‹ëñ÷CÁ@ÿuNŒøú—6³©=Mgv'ÿê§eˆ/”¹ïÓO±iSÎªaÖì?†UFFÏ°÷À]"ï„ŒV¡mV››Ï!&üt[ï¿—ûò£T×âıb³¥ëœÓİüÊ®¬M+üİ«8vfÁ©åzD,5­¹Ô¼ÜÂóÃšÿ÷ÉşaÍšv§abµä%ÀäX¸ïº+nN¦î¢X±E‰×Áu’èÓz¬VprÏuãK½àI8ÏÍí}EÃ¿{!âŸ|Æç‹÷¸,öÄRà¹´æÒTÃ˜±r|& å/Ìh³^¨+‡ ÏŸàİ«ƒä¿û×¼kêÜ2ä­°~U¬‘ÔúNrZ¶ÓÁ CÄ=½·zL¨Ã7Î0Ü¾Oõ´Üò9G[ï½|ı{yğÄA¾ÿÚK<—ş>ã8¨Z²6ôLŞÇ*¥º$¿:‡#¶ XAşQ¤›{Ö¥8qê8W÷<AoÚ]âÔ¥ÊİkØèùÎFîízï:ÂÎõ;hië İY ~p?‡†›ŸèÅÁ eŒT‚LÛ|fgşä gûl¨~ƒ\¸v§–¯İßAFÄŒœ{Ÿï]ºÆå]CÏÇ+@+Êƒ£?û.WzŸà¿ÔÆ¡g_à 0·T`Í*¶¬9ÎÉ'Qg$÷üì6ÚÚ<~á—ÿ'½ÏO¾ı=Î~õë|uò‰”eİ£?Ë?ï9Åko¾Å>5ÄÿôwaÕ4níµP2V®“Ny´dƒÄh„íØ€fß³1Å!Cëªé¸¦F+yr{êGÙåØ‚ÀsB¸áP¿‚†o¾ç+E+‚&ŒÓ;.:aÅğÿ³÷.A’d×•Ø¹ï=÷ˆüÿÿY•YŸ®®®nt£¿ ñ!‡IÃ$8âŒh’™Zk¡ÖÒZZh1KI&ÉÆdcÃ1R?3 $4h4ºÑ@Wÿê_Yù‹pï]-ŞóÈÌªÈHŠ¬ª{hÄ¨ôŒğˆôûÎ½çóÚŸæØ½Ç¸üƒ$=Şl†¤ı“£5lï7qsk“c5ŒÕÛv‰àò4ÆÏã•oá­?{oÙ³`UtÖ÷ñö[?ÂŸ¿QÃ×¿òÌğMüÏÿ)oöµÑH¸›ûMd 
+‹ŸÇûûŸÄœ	S$mâ{ßg6H4ÁkrÎZ(RH5&eIã3mÀ`€\1`f6ñÇ_ÿÎOÕÁ.‡ÏïáõWeôƒÍ‹æn¾÷.Æ?õ9|íÅL‘ÇŞÏ¾ÿíõ_àİŸ+şœÑÀâŞİ&~òßÄÕ©á_}e?ü«¿Â÷øèŸÀs5¼öö°{­‰g>»ˆññ	üÁ=‹×ğşòßÿ)~õ…/ãÂ3ˆ”ÁÊ'ÿİÊOñ×ßşşõÛ7ñ_ıÖ§pq^LlT0{°wpn?¿úŞ8ƒ/Ôïâò=\]ÿÍÇğæ7şËÄVØl±sãûøwßÙÅË¿óÛ¸´ÿü_}µ­ôš=nœÁS?¯ş?ÆÖÔ|u^ãu>xvÀ$…= H)8$ ŞÙÖõ™=æ®|øÏ^Âæ`›9r¾ûƒã“*HÊIAkÆ~Ó#S€×&ö™á,£Óp<ww· €©ñZ©„‰¦Ş¾îñ?|3GÃsª’|qÏÑ¸Íó)h´3r\ÔÓD?Ò9ÖMn­; ÂÃ’°S<+9½í)úT°6I¸e€ÿåïrl5ÿüŠA½ÏFP¡„SÜÙn`¤`j¬vìÙ–‹g{¸|?yûÜ^ÚÀ%üäõ›Ø|ù‹øãO.ƒ¨‰·^û.şîçw°¿>íŞÅ_|û.¿òY|jäø·ÿø6Î¯ÎãüLÒú]¶±ßÙÅùsËXNïÖX43Naóùçğñw¯áÛ¿ºƒ±gW0õê[øÑëw±~i†<ï¼ƒ_İMğÔf=üı0àÙÇó $‰Cù©-ÛàBÚF5<û©ğÓ?{ÿæO2|ö¹U4Şû^}‡ñéß¾„‘zã<:;ß¹…äÅqLÕÉõ9Ì}ëgx“ÎàŸ­€}|øÎñı7	g6§°ÿ‹ŸãÖØ
+>¹xğG}pï\µ¸ôÒ,f§‘ÀAŸßÄÈ«?ÃÕ_MÁ‘šx•µ†jìáö{[øåÍm4çÂÂûâßÏãÒæ:¾÷€wkÏá+ë
+Îîa{Ÿ°|v—?¸‡½]êïŞ9ìíîG×ğô¹;øğWMì2ÃãÁİˆÜ:x³²ı‰Q­îuU¤íößır4vÓ‹Rvçƒ¬z˜;Q¯…á¼º‰\ÕD8MBáÎ‡æá™Ò…\×°{f­W`GÔÇ	&%¼şŸ,¶®{<÷J‚éEõÀ÷­p¢/2Ó­™ukçŸl›¸ı“¿Ç_lMáùµŞı§«Ø]:ƒÍdzÑà'·®ãİ­)äŠ°ÃÖíxïW·±“Å¢Ë˜»t¯œMñßú{¼6ú
+^8S¿ü%şê‡ëøüJ†«·,6Ï-ÆâÊ‡
+¶‡¯Ïáìæ&¾û7ÿ€ïÍ:œ¡›øÖ;Ï¾|+şj0ğÃ:7‡ïÿğÛxuáyLï¼…xÏáù2–W—piô-ü¿ß_}f
+Ùİ÷±›, ‰…üşgçîö=¼ñVç>»ˆµ™)$`Œ]>‹©¿ÿ)~üöElŞ÷sŞ{x ll£[¿úï½{Í§Èˆg’	,Ÿ=÷ï¿ŸÌ}_›©C»=ÜŞeÌ¯ÃK×oãİÌÁæá03ö¶wĞ¬/âòÓ›xÿ§¼wRŞĞšîÅkWñÆ›wqûƒwğÚ/xù•—0;•Ã(ÀçM|pm?¼ºšc˜Ÿƒ{ÿ¼{s3NA+‹ı›øå‡àımßş÷°Ô<.›Ã_ÿùÛ¸øÕWÜŠÃZXYÂ•ñ7ğï^}¿si×_vı®<³Œë»?ÁŸ}ïgXç=4®¾…«™Ã¦©czù¿óOøñ›ÓHÖê¸şú5Œ¾üLHÊag>ÔñCO8ÏX=³ˆõŸüşô¿Àç–<~üãëpãKÇ“à¸Û«ao?G’øÖäRÑƒÏÛÛ{Œo½éğ?ıƒÅÚ8a}š*øÔ¢s¹uPJ!M‡›špàKƒrş!BmZk}Á@ÕCk®á[TÂå¾¼˜#Ôá_ÿ£Ã~ƒñ/LÔË¿âo4Ôö`8Ç ²Ì£5´ûò1>ÏpóÃwğóŸßÀï¼½Oøâ¯_Æ¨ı9¾÷.aãŸ_ÂÌT8H\\[Ãwşú'xo{üÚ·ñS³?~ñVvFpéû…ï¼½†¥É³×[¿Ä?nMâ3+‹÷ızÆŞøÛ¿ùÒs˜i¼ºfñÔgæP_ZÁo<wÿáwï
+Î'·ñwßú1Ş^ı,şË™´c¸æ>|ï¼QƒK&°±4‡Ñš¡V‰=«Ş:˜ÚÖ—g0š*¨Ñ\Ü˜†ÙÛÁ[;h&3øøg>‰W§‚Û!h,ÁÔÄ<½pk“u ®¡}«›çğÑ33HˆÀÖbëÆm|póö“Y¼ğÉ—ğâÂH|¨3¶w÷°ŸNâòÙeL¦Â(êÔÀØä&&&13³Œ³su¶€™Àæ…uœ]¬a÷ıøĞcsyk+«8;›€)ÁÂÊ2–¦ëMvğÆOßÅø'~Ÿ[EÖø¯}ç¼yséÒ%¼òÜ2&®Oamiîİã»?û[¾ç?şQ\˜C»5rRç£)À@3wÈ¬C¥eı=Ü¯ıÒáïÿm›“N,},IÓC$ÀE~¶‹Ùâ‹ŒW{V*Æ¯8}DÃs¶Uš>Ö…"JtòCDví-›ïzŒN‡h´b¢™;ìgÜÂZcFj	œgŒ¤íóo	p¾‰›ŞÆõ›»ğcøô§?‚³“£˜0hî4°ëÇpöìfİ-üòú.æÖ—±<¿€Í3óõŒtr}fk×îjl<ó.Lî\»†woì!]ÆÙåIhLÍÌãüÊL)W×p~s£×Ş»ïg®<O]Y‚¶I}gVWpöÌ,F}×oÜCÓÌâÊ¥,.,biyk³cà»7põÃÛØÑÓ8v	£Falbã¨™ƒCB³y[<…‹«˜MÂHêH¨aqz#ÓK8;?çpéÎn¬â©å:¶oÜÁ$˜_\ÁÆÒ2Ög°W˜]\ÆÆÂF¹‰ëï¼ƒ‘g?‰×§¡÷ßÅ«ß¿¸¾^¼€_{f©C:6õµyl½õ#|ÿÍë¸ÓHğÜ‹WpauÉ)<DKìÙ a‘ç	Æ¨ë·wÑLçğ©O¿„Ö¦‘Ò8&{wnàÖ°~ş–æ°6;‹¹ºÉ·qmWãÌÅóXÂ>¸¶ƒÚäÎYÂ™µELùÛÌp12>¥),N'HFæñìóë˜Q€e`|n+Ë«X›İ½w®mÁNnàÓ{3£˜šœÀèşŞ½±µ¾gff°²¾…)¬Î'¸õÁu\½¶Ì®ââòfL/.cmv	¦W°:ª F¦pæÌ
+æÜ+ŒÍ,áÜ¹u¬N4nŞÂí£“×“¸ri3Iû&,ƒQO£BmÏƒ‡Gˆ¬:ˆÇ¼z—ño^³ø__sØœU˜«€ŒsWí‰,üÁ×òpxUÄõROµRpìc=ŞÔ”âkñño
+(7à	Sv`"%üå{·ÍX›V¯¯vcæ8•÷¡¶gy4à­'ğ16’ =NÏÖÔ±ë·÷`Ç–ñÙ_{	W' îÜÁN}—Ÿ^ÁLŒ1«À€i…íí:.^y]AR×O°³WÇÚü$ê‰‚ÏxçÕïàêÔeüÚ•9Ü¯í"fä;[xïÃ;¸µ§°réy|öé9Œ×j˜]_ÃêˆÅ›÷pgP#×j˜ÃÄd
+í4”ßÃõ›[¸¾§°¾8ÑšÌv+ùş62Ë½ş¡;ççtRÇÄH"wñ±XÜyó»ø?¾¹…_ÿı/áòt­RÀ›[{˜­µš:¹uÈ¬‡µ>šÄj£U:œx÷‹ïÿ‰…RÀX›nûáÈ3äÈ“¢s®•Äsõ‚Ü:€ä!6ÕNUœ3¬ãJ_‹wÀÎm4pù‹
+‹Oy:0ÄIŒnå6ÀÌOñôsì?Âø»ñ‘ßø,_ÀãÒFŞiä°YI’Bk}âï‘÷YÖ”ÁÄhMäˆ yWï ó‹ÓH÷®ã;ñçxµşşåo~‹Çü!mï7&Œ†X¸"2+gpõÂÿşŒ×n1V¦Æ’“»¨·&Ñ@_ÙĞU¢h´3ĞS<W%çŠbgŞ¨‡V[Š]}_œ­Ìp÷ãÇÉ…è¶²MNàõ;Œ_Ÿ#ü3xfYµŒG‹ÚÌÚEóÚ•BšœS½gÜº·™èôĞÏ•¶«oı~vçOb·¯ãgoˆ3‡gŸ^xÁ@ mÁq…xûõâÏÿş=l|ü387TnÉ_K™E»ÆYa6°a]˜˜ï5,<çH´B-ÑH1Êpxû‡?úK‹$F'é–©@¶#¦¹s`hıøHÔ»¡ ¦…±gWjÇp0¯…jâ¼?™á›óAvZ›î¾üêûŒõËµzûŒïıfZª…Œô9ÖÀ7¾‹ÿû»7±òì‹¸8;Ñt	½üİÁ¾ıO¸Mu$Í»ø0_Å?}sş­±ŸY¸Cë`F+ŒÔ
+Òæñ£ëß¼æq~0pÈ]ÿ+D‡ÛŒŞZÔa2h]LHÑ
+OÂ#¾°{
+{ûÍÌuo¿0–µ.8Ú—¹KğÌ,áoï0®#ÇÂàg kƒŠÜİR4Şßøid6œ%†evgêØ|úr5÷qbÏ>¿(ÏÁ‡ñ7$rA[ø;Û÷p¯©09=‰±ì`åÖãÎÎ>¦F%%ÅnóYtÉff$Fc$5H‹ézxó{9şé?ZŒŒFÆéÈŞ÷ŒÜ¹–üĞÍ]¢qÛ0»øÃ˜ùŠE"\D¿;ï=4|ON¼…4Îyµ<n¼Íøäï%8ÿ±öÎëÌÀ­]L×—´	*ø`š;wq³¡099ñºÁãt6–	¹`ğCMÜ½»ƒ½Ì!D&bjr)u~¶ßİi`l$A-i?÷yûãüÓ&²qB¢¹µªvÒA¥şV[Ím~£ˆk$‘Dõa`òû`”Æê    IDATÏ8ÅJ˜1
+fÈÃëı‘æP©ó‘c|°å1ÅÀÿ9ÆS©Q0%¼îlï£–ŒÔÈTPºù!·@Ğ*ÁøÔÆùå‹$,Ëjiû¯"EY¹Ñ
+©aøZ=ïí5ƒÜØ¼óàgã19G¨ñÂ¸Í9Ë!Ë¨<ÃZ­Ui'ĞÁ‘Pàä"Á|Å!QÎÅ82­†£â´ÜûhPãc$µ?lM¢bG­ªÍ=†I€å‹úØ´¼ÈÃÕ’§5ØV£69‡µI¹AC5LÏÖ0İã³]ë°‘nK
+7¦	O¯(üõ5ÆÙ©¥Å`xœÚÙ2”"RĞÇÈdCBŠ	)fÈõÔ32vˆCÜÕ_B³8lQ?|ê3åÃ´Ü{Q	‡Öt<ø¸ccøZäİ3ÀŒzªp÷ãÒbã#‡#;œñ¢7Qb”qrÁ£BpİÏì±„üş‡¼&@« mI`Ç,Şø–…t]Á & ÜÚY«"æê$he‹ûÂqvˆ»Ó{PÎ1E¾§«ª¿…œ;ŞÉ_K0ÁQÈòçeTŠ“p…Z)W-î3}!`ÿpöy´ÃêÖ~fQÓ,@ğ˜¢–hì7sxNĞO+¾xÙàWs8¹Ğ‚ÒÁOÅÇfzî<2|>´:PRY¸CbôĞW¾¬
+¼dˆMåÃMŠ°ßÌ±!¢†VgŠzš[¦uCr1¬Ñ§¾DEƒ=Îªè'£‰pïÇï>c0RSP¥wĞ]œ K³] „\ğHmƒİæ><sOj¢P¼S£1=©°¸AØºæÀ`4³/RÈßjF×Ü%v‰)¾ßÓ’s²œ	™uC•ûiEP‰AîÜĞ_‹ŠQmYîĞÌ\ë»¤uİCc4vg>¢‘¤Ç¯a4s‡éñº< Ác‰Ôhlïg1Ê³ıZÎ‹+
+§oí2V&èÂ®tÈ#÷dØyÜá-âeÓDCÓpR\4=MÿÂTM+B±dØÌCª‡.¹0¨zŒıÂ^} êÿµÓòÜAÇÚ®((:RsğºšØß¾zIÃôğË¬‡ÑZÖ}½ÿ­È-&J·›Yÿ9¿µÂÜÁe¡+?R3±ÃÎ­Éôı‘+³@fÖIİelEDÅN1Q÷ŠGn}k§{(rÂƒ´,8ò>Ä+®âD¦pÇõÌ0J¡ı
+º¸ö·Ó+
+³æŞhæ.ººKÁéáR£¢ïËqdøİhÜÛæ¸Buü¿KL|·<7¶ÎµˆèÃ¬…\1|2î}hª;ÏH’ƒ¦qbÂÎôA=Nu/ßŒV-Çı‡{ğÜù¨TŒJ7"ÔSƒZªcâÎÁYäÚ¶Çç7–&Ë7Âº[±»/Ï A|Hn`˜ 
+²õFf1Òg–¡IÉE‚m†Ø)Raúë|0†	1¡¹"WŠÿ~P“s3*™ƒ{üp;çñ^‰ypÂ[8Ÿ«ÂdıPãà
+Ó½¢p›ÊÜ<™š÷ÜjD…lvÅG]vŒ!æ‹£Ç÷:›™;†²a&cÔƒİFÑ:·}ŞŸ:£1_·¸³Ï˜íşL,öÓ ZjyzÄÚN‡Ì5ROq(Ş+Ê›‡™sîâÎ³RÔò¥q‡ÚêF”ÒQV0¡‚.ÈÆsëª„c~/|ĞØoıë“YàFøÚ%zRşõåÖGSB©í‚Ş!rÁĞQÈ™¼ï¿c:2ÌÜò&yøò­Äh¤q×ŒbNdÍá
+â\¬&eAR?\×WçÍ<tñ“.¯EGcF¹9?dÃ·¸£ÅÏ¨ÊBm£‘\‡ï]a˜ÆïÉáïNÙO/ÏDÀÜº‚Io äÎ·
+@ğ8×vïÃ$ûxÒüŞ³×ïqégbx>ûÖ¾–„*¥‚ßGˆİŠ¹ç‡š­'…gF–Ûè¢#Í†to‹U3çFwW¦¥ª¥„+â_‡"â¶0YË¬«ìüj;#Ë]87ø˜I¿'iıâ:c»F?¸»ÏxqpnN•–«çŠÂë@ B.xäPÈw›yÿ²õ‘q…‰%‚Ë’ºèÁÕ*:>˜£ZûÀ>îôäü$<4·Îr+^c˜¦]EáÕZ!)¹ÓT8›è›[?4#v¢àÄŸhÕ’”„Ÿs1İh}¢Ñrç÷Œ¦,Y˜;§01süc5Ë”Â±®Á@ğØ0‰&
+Üv¨ÿÀ75î5ÊŸ iâÓêDäC&ç™=Ym·‘YE*˜“¹ÑÇõ³¤dÓ¿0PMŒ
+áÜ‡UÛãkIs0BëWÂÎñ³iæÜÁùp_L«¶ë x;tşñ<ˆÚ‰¬Şßaü«§4fÇ©‡ÏÄÃzDbLBÈ*„41hv(Úİ06E˜X!äÙÑë*BŒ§zx.àµ$ğ@Î-­Éy¹"Qü3#MÔĞ\Ë™Å)Í($º7•Br•&
+ÌŒF$°Ã*Üº(Ü÷¸ìk)¤ú¡P‡Ÿ3Z!MTË™W©öÒ|ï=•ŒñÈv…ó
+ãÓÔ‘§bø"ÔÓÌKşÀôáknîrégn1%oW¿‚¬BmÄ,<-qr^– „Ñ9¦âCt-gFÜw0ú`êİ‚.(´š¹…«P}Ö3‰¯E©¨„+[Ûq şkdá=(E¨%!ı¤hR¨¶ÑfERJûû¶›ëã
+kóª'37ç×!ä‚G“ÇæŞ_qĞ	0>MpÃ»£…¹›ôšè`ï,1õÄÀÄ©lãĞäœ¹½ôÍú ‘R¤Z2ëaÁ¯…®ï‡QKZVHã†÷)^‹BÓ:Ø6HÅ¶È©/ºåZ)Ôƒ$š²)êŞ pÑğ¥ìgérFm˜_ÑÇ²xï9vĞ•Ä	‚'©Q sË!½FSàkOiÜj0öKöåµR=ÕöÔ(Ôƒ¤hîfî9ow%ÏŒf”T'C^?ãxæ§'Ë²q£5²hz;Ôó_ltä6(ÚõJŠğ,whd¹j³Z¢‘+%j»ımÉ:€{ûŒßY!¬M«>›Ğ(¹ºà$S7Á©€V
+J)dÖa¤ÏLÑñ)S#8)+2]†QüC£ôiŠ¦pDÑ8%¾D×2K;‘'ñuY¨U6K”‹9áJ=³\!wÌÔ’~³GËE¿5UWıíistç§dåyŒ/æV;LÇ­‡C-[ < "Ô¢qkšècŸí“ã„/­)ül‹±2YÎÜ@kı¨l=ÓDĞJƒMl’:åßJtŒñ°ŞA5oXµ=¾Çb\«ª¿…á[n}Ìæ^N¸V
+µ¤ å!ÓT×qK¡•Bí¯3xÆ í=læ€pyMa,íáš1N¶^J%èr2œ/bÜ]ÎNĞ©šW™¦#’æ´M}Owƒ|[¡–Ôâ„µ0mkd.º–ÒP%È-sÇ­ÎyåÅRSË '³Ã“°<­B|J#³-óE„Z¢QKÍ‰ša¿¥Ş; ßÏ*$õãH_Á“ˆzbĞÌ]Ç°™QÂW6n7e…r*Ö¾ê‚|»–hÔ£ë[#shæŠŒ¢!º¨sËø,ìWoªZ1¨„,{ĞÃ«íaZÎìgÍ<(ŠxÖzjNÔ4`”v5˜ìfŒÏÍ..÷V£½±º©ìN içNŠqn-¬q½b|†PŸ¶®µ‘ò¦¢q[DĞh‚Ñ…Ûjp/wáÙ·\;ËÈ¦ª‚u!;[E“AşŞ`Ğ£acV·f:b„6ØƒIŒ(‹ÓkæÀš«æ?X\ƒš¢lÑwĞ£ÀÚ¥ã§.Nbj‰¸«‚'ì kSfÃ3°í¿QÀÆ¢Â…	Âv“1=ÒıAi¡YÜºˆºÔúĞÎ¸u&³q}IÔ÷‡WœA–=ÈßKV¬+_ì^ôi¡ d­¦M8oS×*ÏÌíåêÎ÷2à…U……QêéšÍØ0¦JRğèCF5‚S%Jıv¼•&fl“q¸ÉKD-BW%95šZ®íŠBeq1;;+âV4Hf»TÎû–sêÃ8'Ór>w•Ş×ûuá®GSPLÑrE«Tá}åãw˜Æcj‰0µpü¯İhé ‚'B­„qëÚ´Âo®+ÜÚG)Gt":‘îØëibTk8à\H.Éz4|í§îµRâôúa5
+£¸` :ØèÓ"z¶¸Ÿ‰ÅÜT¬öŞ0íÕox&>v^÷øy?‚Z"óMÁ	ÿşäNÍ—1vsëQKĞÁœYTxGØ£Õn*Ü²™*µgDAâV¼v ­	n±›VH­«“*ÓÖ¢)0¹|é‡z{˜
+oœ]z(+TÇ½ıâ½2`_yôLñù©²ûãòÇ7®$XÎ·bÜà‰"ä2É·÷²~.u<µ¬0ş¶GÓ#I÷ëjy•ÓÉĞùaÍè ©Ïc}çV”jUJ±ÂŒ1<¹°>¨a)æ•ëêˆ±¦«ÎÇµ°xoÕâæÎC©Jk­»‰»gàÖ>ã³gV'zû­Î•d-•f»@¹à1B¢uŒ¶ò}íBÏ®(¨L¦)>ì}ÅE[QØ-c@üwˆEº`ù¿•åZS¸~ˆ$°Ö·¦âzˆF3Å}MµT^ŒîO’]8;z”"$D±›Mí‰30BN@é&G¶ÏĞu`íòñÅ˜c%1"hOäaS”²Üw$/WV4¾0íğŸ·õ¤ûş¶&Bæ<ªì··Zœ‡±…!"9/ö‘3òÜ†¹"¨>ë²s¾åI“èá®6J8MaŠí|ÿ†o„s+~V©àDª}8s ¹UÇ‡ŸY»3 30‘1>ÿtï¤º™ÛK/»h‚“r
+¹‚SEÈMÈïW*5¹@HÇÛ¼ï‹~¨ˆVY´ˆßOoE©iI¢qŠuØoÚV”X™—Ä2¬½ÆmfÈdüÈ(¾?ïÃî]™{ÜŠ0±ûY¸B-Õ!G4ª%›¤„)*İqkí—õ@ò÷î1Î\6HjZ‡öÇà‰<lFãÖ¦í,[Kk
+;9Ğ!)í¾:ŒÊF5Q+"ë8Ânbí;0|eì7ó•ÚÃÊZ0nó0ZÄ¸­ïÏ¬È,Å¹µaâœGÓÕffÁI4!vNCëã½vA^µ:ÀÅfG;¼¿ÍxjAáéùŞ(3ĞÈ,FR™m
+Nù	N×²kåú.LÓ
+Üğ¨<ğ,<<t…Ïù¢‹Ş-VbZ¢Ã¡¤ne¹‹²·zÿeœ÷È-C©à4zÇ¬*ºÕæÎ¡™{$† ÔÑ¦AÑ)"L<¹a¯†5ÌW?gc]rÏÛ{ kç^Ô'Ö¹Vd›@ <‰Š*½fÏÜñ™ÿÒ†Æ3¯;Üq@×>&H@¶‰¾óÓáºß›Š†¯ÌÎ{Xëó¤=l¬­ïE\ ÔR}*§¬aİ@Áº §÷::Ïz­G®p2§¾â`CIõµÒzFÚfêî<7€¯|Z£×¡¼u>I¤Ù.¨â-·@pÚ&!³ßiöâYçp¤µ]×ªXQ«#ÜëÏ%Fc¤fF˜€g1æÃÅ=µ`zOO+?|2Iât;ËÃş™÷Ü2f+Ş3`½÷^!!'œ+/Ú…`Ù—³—1³B˜^R_k3w¨I] <ákVÔ"¡Çam’ğÜªÂµîZ[	ašÍ\±‰jtTïuò^“ÕSÓRÅåÎ£™IºuÜò˜)òÓ¸­_j ç<2Î(®8£ÄìpçZS¨íIïd<ìyûÊ§ã¡¶·oØÜÜgœ^>Ó;©nd9j©y(nô!äÁCG-1Ñu³?·õÅOr‹k•E»
+¢da
+õšiíMYçÑŒVkUù4x ¼\…â[FáH‹`hV¯¤ÉÉÌj|\¬²†©{o-ÆÅOtê0‡‹ÈÕÁ“M¼òZô/<m0ã¬¤l=Ô†
+WÒbmö' úA PO5ÒèÜî¼GÓ:4sDÃÒGÅ\¤h68Çhd¹ó`šãµÄ –è)ÁŠæGåruß~êÎÜÜbüşó½şJĞÌêÒlTõ|”[ 8m($^yvªz}4Íj£@Ş`è1:B|óòòŞ_¯Š2«““ÄÂĞsŠR°Üò‘œóÓFĞ½ç#9áá¾„IšTgfÆ<˜zñÊÉd)`å¢uø‘,÷‰o‚GDcTË¥S»4Oxfğê]ÆúTçç}±ì![D_Ÿ°¸+EP @‡†{Î!cÜ:8´êúq»ÕÃBkÍìPmWDàÖd¿JâÌƒ‘«Óßj0&Â§Ï(ôZ¢»áU@¾I‚S‰zªC¹_Ùú†Fs÷ÁÃ@'¶¾ÿˆZr¹ŠMe´juØ‹İúÂ,¥¥í~€9¡e
+uëµ8ßÚ<ÈE®³UŸ-x EÛyu0‘»ÿ¶·l¼ ‘tn42+t@ ˆH´3`}wÜW3hls©•°"¦¬Ê2¬%´Tzfˆ÷°gc‰cf_‡WÛ‹×r E'&v
+ŠÒb*.îÎùûúıÀ{nıî¯ã×î1¾~Ec¬ÖûïlfµD’SBÈ9j©9QQZ:¯‘7üYÍ_*^5ƒ"‚«šG¹¢1ŒÑ
+I$»FŒÌz43È9¾€û‚„gÍ<ÈÕL<T$Z·²äpˆQºjâì#qFå×-;YqØßbœÿ¸†I©ã½Ê¬V@ (yôB±¶;!n‰°>M¸±Û½¶?€O*ßO/”nÌ8ÒÄÍ÷àjn£KùÃ"ç„Ï“f¡`ˆ™äi|m…ñl±+^m®>9İæÌ°İ öAøÂ¦B¯âÌ@#w¨'²?.B.xÜ¿˜LÌš¹ëëç—Î+4Œû×ĞV¡Û]q}Ó:î§W|ô}D¿ ÿZ\KL4…kæÌ†í
+_HÑ-od¡PS6…Z¢b„‰z@fç¼‡Àt¼j'İâıyÏ¥sï;Œ™U…±)Õ±1ĞÌmÈnUR° @ªUPUu!šuCøÚs·wJœâs¶rœ*Œ[«½.(ë({Š©yjt+r,·>ÆƒúJÿŒà>ŞÌ¹m5¦ÓXÛMô¯9L:g(
+âÕÖö°ç]5¿õ¾ıNú}ÆïS˜ï½ÁŸ[?+@¹à±G=5hd¶/’[«&ç»í§äeär=g¥à½ïİn½+Ñ×mWƒ‹n².LábÆ§÷ŒFnCªã»û­x²Ø-od¶µ_]OR£bá<¾yœá«'Î¾ò}ì^›û;Œ3/(ÔGº÷¦ÈÕàBèÕ¥0i|aScTÕ½ŸÌ„­í!99Ñ?°«HÎk©FjB-Ér‡Fv°²ÖSmGáÃÂhÚ0·ÖÇØÒS¶N{ìÎ{(­`ª:€ìñÖÔı¾ÚlÆWÏ+Lô!WÏŒQ !ä!ä‚'µT#·®òL
+X¾p!×
+ÎùÊ_¯V
+v²u_N†òÌƒ‰Z=10JG×,ì™™G®Eh6<sko¬™¹(õ
+ñ-E„I™"ÌÌ±¸Vûx±~0ù¤®‡æAŞÀ„…MÓaï,dÇ;ÔÅ]]  	İÁĞ¬ê)áŸÑ¸±SB¶^rf}¬òıt Ô~:ÅæDjB=NŒjEjö“iwN`Óı?êĞˆÿ^!$ÚÔÓUªJÕöHœ+c{æş“ÔvÕ†‘oï3^YR˜™êı<Lv]¼gBÈBÈO ˆõZ˜’÷ş³ÀòSÙ>ˆÑj0&lfPD_«wÈˆ‚Œ¾–hÔRÓ"ö™-²P=<9—u¾•wî\èR×Ò¢[Ş{‘´=È¿{*®ÎW~]÷@•$úÍ=Æâ…‰éÎÿ¾‘9É'‚cPKM\ê\Ûjøõó
+ìå%H.W//×ŠÀ¾z¢¯T±÷ŞCmÇAã}¤v@Î3ëC}·¾åŠn#w€çÖƒ@¨Å¶ÄônÊ6hâ\e½äHïO•³¸Õ ¾¼®°8ÑûïË]ğ±1Zší!ä‚'…#ÊÖ›}rÌ®\xÛäZ7€â:€Ã@1éî¿±ši¢QKt0 óa:a½;aao¬–ÉÚIêbpJ­š8‡£D>©.'W÷Èö…ó
+£“Ô…[ÔR-„\ Ú d¹íZ/	ÀÔá·7níp×Ú¤¢OLµÆ­!ÿ¬j·õ–î¯¶ ç…ÜœÁ°>qçı‘,ô“zš´Ö»*'Î@Õâ·ğY=øZãÜpnY¡ŸÄ²,wPqà!!<1H´Ç¨¯^‘Ö“tÌùÉHî±ÅQSåSò–YM‡‚œë¹Rü¿©H~U®ªŞ­²qr_u	´ÎCS¹Ç Í€ú0·B³Ç‹Õ€D:è@Ğ&Æzæ%ÜÖ'ê„ßØÔ¸‘İúóZ)87 ãV5¢_U¬Z±²f´j)¥*“V‘rUË´‹÷N4ˆ¸³£×õÜl Ÿ[RØœëşk}Fk‘«„°/(˜f²u¥¥‹ª­l½x˜bš]õä½8TeDç}0lK¢‹«uÕå™;7(wõê÷Ç‹Ï¾Ôe9ÈÕ§ÎæV;ífî&â®.Ğ2níR~4ës
+Ÿš#l7¸ë™à¹zãVç+:GµQ¬Ìh™´ÕSöåöôËÕKß"şƒ ÎUÜË­=ıÖc<³®PïÃoÕÅ›Äu!<a 
+{Ğ¬÷ø3mK4š»ü A¦Õï|Ô€¤m®¢Ï";”*:èa*³ÕD¥9Ï•ËÕ
+vÅ$ßq Í%Î.æ×4L]	ybD®.]	yîPfœ½:Eøê†Âµ=F·¡ú ã…ë¹«¼¶Q¬'¿®uêcTk§üäu¸8ß†8W‰"YæpSœØj0^$|ü¬îóş†ÆI¢…:	„@;Í¹í”+L-Ø6kVµ[Aô«U#¢J6TÕ#®â˜ãÄô@œaøÂq‡¯zI›"UnÜ1j“Àò¹ÎÌ°ZÁH´‚Ğq@ è@FuTRŞ¥°º¨°>JhäİâÒÂ4›+—­WOÈ«"úŞ'õäŒV‘”Ÿ°¶st®¯º)Ş8WRÛõÛ}rõ½¸´¡êş®™;‡Ô(i¶„Ğ/)­ĞÌ{Ÿ’')aj‘ĞÜo_àËÆôôzU~Íƒ¢İauãnóÑ‚Rì•{>™¼­0‡qÖT-Áõ’Swf ±L­f–»rë I•vm‚'½·ŸWxe°Óì<P&4Qå>1#úZ¨ö23rJïÏò.™íÿúÅ ÿaç““üpİû¯Ù´À¦>s®¿é¸òÿÔˆ7Œ@¹àIı’ªàš[ßóURæÏ©M”"¸Š««ŠF"•KÛN`şRíB¦Ş®éa´‚¤½ß‚uÿÎVUÄ¹ò½µV|K÷36g¬?Õ½ç¶ı¡H ¢hdÖ•òsM€§×4rtëÏëXÏ*m P1%¯˜èEÓ´Ş_/ÇºCh/¥& ©Ö'j¸ó ‰sÕµ’ÁğŒ#×e l3>º©°8Ößïs1ç]öÇBÈO4L,4½ÊÖ“anC!Û{Ğuµ0©zš¸g5ˆ)y¿Dßº°Go:ì>iEP °'Õã¯hçª£Kz Î½7Êı¼ÁHÆ+;òÜyxfy@ (q÷FIãÖç×^œ ìæĞBé dëƒ#úı\×9†ct¬;D{õ½K˜£Jm@Ä¹ê©{ñy¾n#Fğ›—uŸ×d43‹Ô‘«„lh¥ JE¤ù‚k`lš@ Øü’‹jeë„Hô+>PŸDß:öåˆbbBi¯ ÇÅt|xÄ¹’_ÜÏ§4¶Õ§j]:ëÎy€;7=@p´nëe07JøÈšÂV£³l]Å†»­\¶ˆ¾€l½WãÖ £.öš»]?(·¬ëÍÀ•Áğ@åkXÅÇ¢*Î4w¡ï»æõÆÇÖ3ı½f ij©4ÛBÈOúUQìğúe]õÂÄÁ6ü9Šl¯êø3R˜3`?ËG¤{O¦DÁ.IÜg+;‰çø>«^/ƒÊ=-s]ï½=Æù—L—‚ÍÈ­‡¹º@ ”¯• R££)Y9òüÊSëh”È$ˆŸ|ÅD_µ¦ÆeIbf}È/Qs
+…#6éËÖK.†Õ½WÆ`äêà‘z¨);`g›ñGÏ›¾Ç¹sa%@Ôo!äAxö³52F˜Z%Ø¬}‘RMK*.® ê÷Ó{šèÇˆ3­TO…/D¡©°Pæ×Ä›W9q.&ÙªÚ:3J»ÁïİcÌ¬¦:?*gXï¥`AõÒô`Üº<Axz]áÚN7ÙzŒÖÄ4{ ²uUº)‘[¦—ßatøeÎÀ{_¹¬¼Eœ«º3ƒ@­æ!LÇŸ]Q8;£ú0€FfQKŒ$§„@ìî2zŞ³ªO¦ÖÙ~{ÖMwÍ|\/T    IDATõænUŠø¯2ıÌ¹EÚ‡„ÚhE„¬ÄÎ~1±q®òÀXK¾ÖÆ6ã©¨.<»p°V@ è½®%F—&äDÀo>£aŒNü•
+ãÖÊ§Ù¦d•}Eaõ©Š	·Ñ½“Lî¥Ô†¢ÔBœ‰*QÓñ£fn·wô¬Fjú>4 ‘;Ôû¾€@ „\ğ¸}YUˆ?ËK:²ÆèXÈÚv¶ıu²VmÑ.LeªŞOïNôÃŞxØ	ïwp qVj¸Ä¹‡Úzä3ïØĞØg8œùˆîxƒ\İ…&†ÈÕ GBjU±bUW.Î+|°Í¯«xr@ô«oâîŞ3¬çÕ£CŒhî:+œ÷¯ê²V$¾T]Û;h€›»Œ¥	ÂG–ú5GoæšB»@ „\ ˆHİ—Sèø”B}Šà,Cr	®jÙz$©ƒØ#ïDôî÷_ôˆ cTp?æ~·ˆ38÷ï¹ÜÔ€İ»Œç5Œ¡®¯5³µD¦ã@ĞÂj•*¤¢ğûÑ¸·\Æ;“Üj§Ùèc0	-Š5wciŠpbB›ç}Ç‰ü då…k»©¸¶;f¢CŸ7pcø——5ÆFúÿ]Ì¢Š\] „\ ¸¯ˆ(p”Qõ‚‰YÂèµ‡â^ı42n_±l½ÈúnwÀ’ş`jR™-ämù1Î¬Å§‡Eœ{=”4’ñhî›/jè.JµâP“
+!‚şêš"M¥“TŸZWX%ÜÙçckEáâ}õ
+¸Ê‰>ÂŞûq×,¤÷IIDÁLÏ:>ö,êeµŸ³‹;éUÇ‡9çüŒQ3À§ÖFúT›{fdÖ¡&ruràÁ"˜h…,w=‘çú8at†`›íÉñl½Ú×«[®èƒ úÆª/F©ÊÈ¬QaÒ~¿3+£ˆ%«~:>ˆzÑp)CÈ;Œ©EÂô¢ê˜­Î’¶Ô¨Êïƒ@ <)(\À]Æ­FşğYk[ÇWØ`»2€$•AıX¹ï¿®‹RõD«ÊÈ¬>Ô¹ÿ<å¼Íÿª‰³ç#.è•Õvpkøú†ÂÌDÿ¯¿™;¥*?‹BÈê©AÓÚÉóÔ¬‚w€wÇ“ıAuÑ+'úÅ~ú¡cˆóï8è*áàããõWÁ i qFõruçËí¤wõ—4Ò:u=	’6@ ôD+ ‹oÉQB¼¼® p¯Ñ¥ó dë½ÅöDô½V‰)FQåuQûä÷)œ÷hŠ‡ú®`æv¸yĞÌ]>ºª0Y?™\½–šjó\!ä‚Ç¦h—0k‡éB2ğ1?¦£IKÕäy ™¥E'86˜kƒÃè ŒÅ´Sòâ à ‚8€äGBnJìÃe`Ú³°¡`ÒÎÿ¶¸"W‚““Ã¢Î”©Ã`zŒğ4níò±¼IÑi• Hôy@D¿@nˆTå“åâ£àqp¦â¨¾DmØÔıĞkİË_š'œ]P'ºf±Š&t\ „\ 8¦`ÕFf{êLÏ,+è±ã%fJ@<˜(?ˆ)¹j5rë@
+}Eœ•EpuÄŸ™á‡¦Š¥gÎ®ƒ˜ºå&äÍ=ÆâE…ñéîï­•O*t@ 81££‘h¹&öXğçnåŒ½ìxâ¬¨ú˜2E4¢ßšèGƒV50bV©ßéâ*Ú ˆ³ˆ¢îàº¹®7€O¬*,Oöÿ»²Ü†‘ÔvràxÔS2K{¨„é(alZ!ß;şÇÉÄ4{ D_Ã¸bJ›èÁOiÖğÌ°áJîcŠ8÷ë|©kzìßc¬\Q›êî®ŞÈ$ŸT ªBjt‹–˜ŸTø­5…­}îP‡C¬ZÕÓìAì‘S$úÖ1rçãŞø`ï»VÁ%wÖ1TåîêáŞbâÿ@fWF	—ÖN6ÙŞ0Zší‚‡9I
+Ù¢¾µ¤ü×xv‰pëM˜Ğîim4¡™‡t•a­Ô²ª*Š6ÀÈ¬GjT ü<ØûNñ½	€8så1+hsë;Ó	yƒ1:E˜šíş¾rçâwQúš@PM­$hEÈCbt)"º0Aø­³ÿù}‹¹1 İQ1ÍöŒJw˜µRQbÏ•‘·‚èçÖÁhÕ2P4ˆ ]×Ó¤Úºæ|[}"‹VÅŞ=p«|yxzNğZ=œgŒ>„Fˆ@ „\ğÈ£4²ŞùÂ7”s{Â]T_1y6šĞÈ˜«{Às•Oö;!d¡‡×PÙûà}õñaÅ¤¥kó€ÃşøÂÂÌbI¹zªÅğE *D-1hd#i9’K –ç	OO»cªMî4Q„zfT¹<(¢×f.WY3 8_Tø~
+o˜*ËeË 6^Ôy`ÂÏ;µÉ¬o5†!äAWB®qg§	Ïå£·fV	”0œÔ1ÕSkçªŸf+£–ªv’rë ˆ†f(–Y
+Õüşb bøÒ`;øŒ1Ö í.WoæS£51|‚J	¹ÆN#ƒcFÙÍé33
+¯,+üŸ¿ô˜¨#·vµİ:VÕõQƒ	[µD¿0µ«¥z(qšÖù ‚KªùıÅp¿úÚ~àJÏ î6W&	Y9Ùt?·Z«ÊeûA'È·MğÈ"˜Œ²Ü•ş™´N˜˜UÈöÿ7ZûÊÕß…{lUÓƒa†(—R:®ì=97€|R„©».1ºp–Q›&,®—pbÍAšè	Áy0UáÙšå®t®àé5qdöøëŞZImWª²„Ï!o\k
+/DTÙdŞ{‰sÅruæVÎ<Øİ>sI£~‚Q£sA®ˆ\] „\ (B=º­÷‚åM…¬c÷­ƒ#kõ™äZÅÌÒ^Ö3Ç‚¡‡V°Â™U‡x
+î•çêãÎ¼’Çn{kÌ@s˜Z!L•«73_ä¯P ªFXI³=·>¿¦ğ™iÂV³}¥HÊİ j;øä†q!Î•‡Şì%o”`,wrRîù`/¾:2$ëÅèNƒ±œŸ=wÂé¸ó Cší!äAé¢Aa×,·®'óÅs6?¾GN±À:ç+Á'%úÌÜr?ûMÅUajÓ/\IâÜÏuU‰½5öÁa}í‚A·$7ÏŒÜºO*Œ\ ª'ä‰nM+ËbÄ —Î(4sÀ—¤¢ÂJZÕ
+¸*ˆ¾ó¡&§À(”ˆëøDg_¸«Ó Y|nï _º¤1‘öÿ{Š„V¢~!z.‚ZëV³k
+¬ —w¾nÓì‰¾‚=ùšóö€9E»MÅ~¶u' äÎCU>qf_ng?ÏªÎX½Ôı¾†Ìw%†/@0HB˜hì÷¨€{ySãbÙºVWŞ’­Ÿ ¶ç6Fœ–ó´&dÖ÷}¿x`ûãÜÚßßÉµœñµ+'S­yïa?ràÑú!5º§=r¥€¹U…Æw Ïƒ‘­+UäqöS,Î…îùiÌ‰V=eÇŞ_°™1˜|Ò29f`‹±vQ#éş²<š„Áà0’&hf¶'’»0FxvCáÃíãël˜’W«€+ˆ¾ï³æ6AuÊêŠ‰ùäıJ×[ê·ŠİÕÁ!+øğğÅKõôd¿Äùğù%FËŸ@¹@Ğ+²*_º«O)dûÜñß(¢Ê£Ä
+¢ßëu‹è­éÔìĞhtk}OëE£¡êı²ƒëv7’ñp°ùÑîN0ÁpÇÃ%ru@  ÒD…g®s=ıÜ—ŸÖ˜ğ@æ'Ïƒˆ	ÕJõLÈwPêtî-ÆPüz?·0såÍkæƒ˜¹¦ö3ÆWŸÖ8É`›š"$rur 2¨!³åŠ6°tQ£±Ç]¯[Lo«,nJõ>yÏ­èt˜èJj{tfuÌ•;°†‚Í(shl3Æç€¹5UîsÀéZ‚Ç3É{#äg[&\;F§cm÷ëÖê}’l]hb'úôNe^1ÜÓ=ó…ú­êf{tWWŠpm›ñkë
+kSt¢ßÃ+q„8h¥BDJIB&æ	:!äÍÎä™(¸W]Üz!úEÁN½¦Ä¨è[îqá”Zñ[óÌ  T¢BïŞc\x©\NŠmÅÉt\ JÇéÛzo<ğƒıÆqıáCZõJZf—]İ
+	%É#Ør¹2ÒËÖaE¨¼Ùî<Ã(Bæ€÷_úärõBPKŒüá	„ımÓã³"`q³ËyÜ{ªz¼¢ï}(!b‹Ï‚$a… ÌgÑ"ÎU;°z¨»‘LÖöõgºˆ¼ù°F‹\] L49+İp|—æÎÍ*ÜØm_‡ŒR’­—“Ã‰)æñ#! ‰Ö‘—y¡fV/WSz­¶ö/Î)lÎ©ËÕ³ÜÁœ’ôrà‘E¢{›Ì*MX¾¨‘íÇJsÜ¿SÔÊ»¬’´\—î<s8„­NåŞøñÍ°ƒ•å®ë}ó%‰soğ(³²·œyN£6Öıß:šâÀ*« i¢ÑìQ¶à_<§q{›¯Ã@õ™äZu­í@Ì»ÆAJÉ£ ¢ ‚ËmwÏÃÄ¹J8É)kÛŒ?º 0;vÂó3¹C-MäN „\ 8	Šıå¼d]i`ñ<aÇ£“…«ŠE»âšÜÖÑy‡-oå?z¦Z+hM­CÇqÄ™1˜|Ò2®íÌÀî–Çùi¨kc¹ó 3Rq`‚‡DC’J3ïÍmİ(àk
+ãuÂí=~ ïNT˜°À¸Uu&úÎ3<ãÔ%¦”k£BZ	â\5¼ghMØi2æG	gNºöí˜‘åõTj»@¹@pb¤FÇ¬îe›¨FÆ¨‹Û:Tí„ü0Ñ?î²aO‹[†Gî…îª…²Ä¹BDÿczQaj¡û=öÌ°Ö#Ã@ x¨*1Uºá^`¬Nø£Ë7wÛ÷İƒ¼¼ÿìğãÎªƒ¾ØU6Š*oF?ÜÏƒ:~ŞùÊ§ãŞ{(¥°Ó~gMamæä÷°™9ÔóÈ~!äÁ©B’èV®ãmÂÜY…f7Ù:…Èªeë öòbŞhz¤EéºóíåmÅ{¯Z®î˜K©
+öî1ÎB#©wÿıŞ32'¬@ğĞªŠ‚‰WŞ!I€/o*äÌØÉÚÔïh8VµOŒ:æšÌ!…„NybJ©ó–QÇF¡rõª›ía:®ĞÌ¦]U˜¨üwìg9ê©˜¹	„ÕˆB¶î|©w’/(äûùxˆHñ®Z¶NÅuùhÁv!L=ÑZZ©œY‹È™êTŞw?äMÀ[`ù)Sbm¬8t$"W‚‡{P%‚‰»Ë½Öáñ1ÂW74îì¶áã-ãÖª“TÂµïWëYïƒT]?úu¤0yËİƒªDëq®ºº[ç¡Ha'c|n–piEUrMç5‘«„Õ¡–˜Rfb  `zU!o0|‡Æ;E[ôª3KµR­œÎÎ{084“Ï¤˜ØC‡Ä¹jB^¸¶wœºĞØa,?­0RÂ†™ÑÌê‡"CAëHîz›’OÕ	Ÿ;£p'îOO+j…gT*[ÑSrçÎy¤æÑ\Ck†	 ÷7Ü÷•{ßx«ÂN<¿¢0?zòÙÈ,j‰Aäê!äA…„\³.·G>2F¨y“»_ñ”œ(tÒ¢ï<Ã:nMúÆçÙ¢“î=·Üæ«„sİ]]½š»Œµ+õñ„@3·"i‚a‘¿X­ímš­XŸ'|j.=ğ¿Ç¦p•²uBmÊQäÖÃhıH%¦”QG•‰>îä«Êk»‡V„ÌO)à¥sÕL´Y¨í²>.B.TYb¦gÙ]³ÚafM!Ïº”Š»â]3Me˜‘[öÆÃÌ…L`˜1¯>Ÿñºkyƒ1:E˜^T(ÓÄÏr×ŠrÁ°jˆBî|ÏjµÕ)…/­)\k ÷óùƒÕŠk{AôcmW
+Ğúñ«íD”ûjãt¼j‚ë<C‘Â=ÆÓ«
+ëS'ÿEAVÑBÈ‚ 4rWjš]fÖòF÷¢CŠªÏ,%öAMôhFœ•~¯ZAQh–xÏ•¿Wç}8\u©ÓÙ>0w^aj¾\AtÉ'‚a"5:˜ºŞê°&`sEa£ş l½ ÏU+àÑ?˜Çh­İı3ZÁ9kƒƒ|•(Ô`Ü2>IWr/›™Ej4”LÇ§ ¢Á<†„\cg?3w•D›ab`›ï¨cµQ&U6S‰Ğr[×D=Çº<j`tUŞA/òI;’ö°0F!)¿?>1’Ê–@ ‰QQaå‘ô8OzfIáó³„?¹Î¨'t„„)"80\é.q!['¦¥ö"Š¹Ê§ãÌPJáÃà…9…ç–ªiæ7s‡±ZRùêœ@ „\ ˆÄ91
+Ìb´Ş}²92F¨\.„œÛĞE¯êù]tåÃŞø“Q
+×õ2nè¥‰~”«w“Ùœ16OXX+WĞ™™«"W‚¡‚ˆDŸ˜4áö”œ?«ÁX8´Ö“"°¼ï|èµ&yfE¥T½R"äÎµb[«$úD
+Yƒñ•—TQ3ëZş6r`@¨§ûÍr„||Š0>Ohî0’İq¢ Í
+Sò“?ÄCÄ™GbÔ·ŸLDÈGJÕ4"\$÷.Å4÷€ÅË„é’ö"ŸTúç@0|Ôí½Ì¦çÎø‹ë
+ÏşøUÎ˜Ô³p c’
+s5ê-ë=@@j,Ã0R„Üz(ª¦áî|HN¹»Ï8;JøÌÙjÎJYî •ªÜ|N èÒ<¦EÛÀ9W"_tlZal‘º»aÌV°GÎ ¬s á±ŞïtU$åU¬í9ïaTwwufÆê92Û{†uµD_à4 ÑÌáÙÜ+fG/lhÜÙÃûâZÑ¦'¯HÎØã–˜RZŒ!dÎUb”çãêá{Àï=§+¹Ÿ­aˆV¥‰®@¹@pz¾ØDHF£ƒËı$Æf.CÇ<òâºà“›¿xÇğ^Ğz`4©¹;Ùns Úİ
+«m2jÓ„•‹%åê¹E¢uånğ@ èDaJŞÌû#|_¾¤±ÄŒ½ŒÛÔöQv2"Î´¢'vújâä9³'k¸3Bm¿×ÆRÂËgu%ruë‚é¯ÈÕBÈ‚‡Q´SƒFVÎ$mjFÁ$a‡¬Ûu•RAÖwÁ>ˆy’åRclœçeÀwuÕqêÍ4v€¥Úh¹{ŞÌ\œ!‚Ó‚zš ™¹¾ÈŞÒ8á…³7wüßtI*¹sPJ=ñ1™F«`âz‚†;ÇÏâÆğõË“#ÕÔâÜùV\›@ „\ 0R£ù-Q¦éD˜\wƒVßg‘	R)†"Tjzò¨B«»n½ï[uà<CéÎŞ¸ìëgŸ-'?·ÎÃ±Gb4dÅL NÙ3AYVDŠõŠß½¢Á»ü@&¹Ö!I¥ßZ”;ß2i}âÉ’¸â×o“Ã3c§	ì1ğçj¸^…\øà$rurà!€T­7KLÉ'’)‚-±G®ˆÀ ¾ärÅn™Ñ²—Ü:\)}¨˜CÌJ·ºº¿ÍŸ#Ì­—{äe¹ƒQZ
+¶@ œ¶Ú €kfıòÍ…Ë«
+Ü»_¶Š]ò^k{hş§ÒÄ=hp(‚Vëzorp\¸½|íœÆÌx5tÎE^bä&B.<œ¢M„Ä(4­-ño©‚m†ij·Ó€Rëz«0Å´>1J
+ö}÷>Ñ
+.F¡õzRD³cØßa\xÑ ¬B-³‰!q`‚SˆzjĞÌm_ä9ÑÀ×ŸÓØÚçvÆµ¦ã˜Üº`&%ãL¼!½6ÜŒ¦eÜÍ_=¯0]‘\İy#‘ıqrà!=GVp’uÃÜª&"İ¯«z:0y2­Å$¬ÍƒH…}òÌºî«÷Aşß‰7ÛpX¿R^®î9|w„Ái$z
+Z©¾dëŠ€—VÎŒnîñ‘v®Qöå[Œ+EĞ"Uğ¼¥ë¾Gé:3°µÇøü’Âìt5÷•£\=Ñw&B.<ThEĞšJí¹5JPªÙÙe'º™u H:Ç°t8`å%Y}K®Ş¹°îÜeœ¹¢Q+W€së (LJ@p‰PKË%©´CšşøYk÷NÉ‰¤¨Td*LËAå%ã¢¥ëyÉ†{hr0îä„/QXœ¨æÎ†ıq‡41ò¡„»$Z#·®+Ñ˜%$£@Şì^0Eå¦äÖE‰”ñ¤œÀ(gÄç}˜ltâãì½{ŒK/P‰ÛÏQM¡cs@ §õÔ’×‡iXª—Ö4ê	áŞ}5¿¬Ûº÷ëFS«I/8®¶«¸êW¢ÑÁŒİŒqa\áÂ²BRQ)¶áÁHE®.B.§wóÎ…€0·¬ĞÜ-![§ĞIïvpQ¦äÏR°»6:b~¼+!ocæ0Íèp_÷·“„©E*%?wŞÇÏK@pª°Q&ŞÌû›’OŒÿâ¢Âí]>R”¢–ahÎãKIš·%‘hrÚ»œÅ¬nì3¾¸¬pa¡:¹z3·ÑtOÎb!äÁC‡ÖÁDÍºî²õ¥Mÿÿ·wßÏq¥w¾ßßÏ‰ĞsÃpÈÉ9+®´Ò†ë»¶ËµU®ò?à²]şü›«l—o•ï½Ş•·Vº’v$fFšÈ0Ì9gL IäF‡ÿp$È!95Cß—ª…@‚˜>}Îs>Oø>3\’U[¿ó(¹nq›ª4*fşºÚ¦—ém¡¦Şµ
+ºŠFÇç®1±¬™½şA‚F*°
+!ÄN¡pm‹Ú=n–rë;FBEyÚ+S½wêÖ4:ø5²íë/mGá];Üë¾&g,è0pïSS¬‰vO‰92]]H â»	ä^ôhĞ»º{L¼@Ïx¹Rw^G>U…]zÏï-”«»T²Ÿ:>w[?îU!ô }¡‰iÏ ÁÖ/¯¯wBñ <?g¼æûæ@-yƒ7ÚU}Ó×MCE´·MU£ıĞå0|í¶}ª€ëíî³B#•µIƒU]÷¯cÜ÷£­×élÈ…øî8¦1£iĞ‰œ"–RÔ'g°¼±géí¦¶¡&ÔÑÔg™uo7ZÑR}Û›¢PEuuÕqMÛb“ø‹¹…eÒ`!Ä,¹‰Ú¡Ãïéï·¦¯t\©j¦´_Ÿ¶~Kjœê¸µMS*uß£©-Şmf-¡¦RW,ê5HØ÷ïß¬Ö}È…ø®Ù–M!ÿŠ^t¥ ¥Ç VY‘ÃP„š›ípÚTuCFZïıâÔèI÷C}Ó,­Ûİeæ¡ZÖt,1p3œ®ŞX?îØÈ…b6µu?¸çŸÑV2XQT¼é£äQû=½?Xu?ÄPQRqo¢-iÕmkûLÖ5½â©Şû×‡ZSó\GÚv!\ˆïö>5mİÿêië­óLêµ™ÿÜ©8Å÷C²¶ì~0…¡¢Ê¬S¯±Öôİ§«×'5ñŒ"ßb`Ì Ö<_Öû!Ä¬
+w*êp:Tïm”¼§`°®h0RåúhJEmL8ígúûÛ”`÷Í[tOæ7:Üµ†qÍÊ“¶ôık‡=?%µa„r!®mâù!w›µ®{<wSL5ÚÑ
+¶l«qßD[¡q}vC¨5Ê¸ûvgÕ2´,2Hfv4S=è2¥M!f“©[Ï¿·@î°°Ë ©`ú@»jnÕzjÇ”°Q¥[^óûÒ¶7:Àı0ºošô4É Ş^rÛáJcºº6!\ˆ![&aŞ±PË”XR9Emr†'‘¡®OS÷m²­Æ}¤”Â¶‚@7Š÷hÌ»l*xzšæN'>³#úÙ®LWBˆÙÈ§Ö$ƒiëµ›¬Ì*†«ú¦¢¡
+ÕhÛÃë{i‹ûÊ§¶¥CÆCV´tgïßkjMİ“õãbœòˆG+Ø™Ôı û.½ÜÊP´Î3¸x$$>ƒiS¦¡ğ|Mİ£Ÿ‹šQ•vñ5
+ËPÔı 1ÕíÎÇÅ¯kR%E¡uæıu/À±¤HBÌ¾ö!
+v5Ï'Ã{ÚÙ$aÃc=›v„	0EC•‚º4Â¸A(mû_àŞÌ`¢06ªøÙËÖ}P÷LÃ¥hB¹’˜c2QñHÄ4ê˜”­#?³+h4õ33µ7éWÀ‹{£§şï.‡dª˜[ç|“|Ë§«k¨z>É˜-/²BÌB¶eP­GÛŞkù–æY¼¿7`¨™Ø´´OTô3¬ÏŞ4®ïÖ¦Îôïèi÷:!!ø=4„:*t;}9¿ÒÓ>†ÑG¥Á£‡´‚å-š¹…û»3M­Í|S2a]H âÁáÚ£5‚ Ä¸CÃ€¦n…W×„_YÌB”RÄ]S¦ªÿÅï*4u?ÄóÃÛ®Óƒh&D©Óœq_JFÓ][.‡B©ÿÑ†    IDAT1+of[ŒúA€c›÷¿Ò.,ŸkòËc>i7Úv351ÛÄø¶‹´êXë[òõïMõPë›şÜ—~†OG!Úo„h¿¢£]bY+LÀP:ú¨ÁĞ
+Sk,ÀÁ³P¦Â²À²¶1b¶"á@Â¸­HØŠ„q¶"iCÒV$lHÙ`7šë±Jß¯¡µ{_î¥B­©û¹˜+ëş…r!¸PîXTêş]+nZ–"W2¨–5‰ŒºK˜Ó×÷®–éÎß‚Æzòº`„_®ˆî{šXJsf~óT©ûQº>!„˜µÛ¤î„¡¾ç)Ê¯-0xï0Ô:ÄhTŸA~¦±È´A¦}]ß.POûºÖ×ÃsØuöÃ(HnT€Gƒ	X
+l¥ÁQ`=œéF€ÆÃQ˜f#D[à4BtÌ†˜¥pmˆ7Çmˆ[Qx[Q v-¾^‡‡ºë§×,‡¡±
+åªG*î|ã÷Cİ°LÙ~VH âw-FË5´¾s¥nÓ‚RŸÁ…Ã‰¬ºí´.­!BL)ôò­º¾?yb¨AZ‡P€îùÆŒÖşO©Õ}Ò	W^X!„˜Å\Û¤Ró	ÃÓ¸·=9ƒ•&_hNhË@yQXMzLÿ|jÔÙ'
+Ïº‘<Õõà1\C3ô´çà7®‚˜Š>7À e*+š­g5F¤KáØàX‡©ˆYàZàZÑóè¡pgI­RC)2	—ÑrÛ2¿q‘ÕšÕ’Á!\ˆm™}§£©m·=1lE±ÏàÔ`Ú„°›ùa´øÉ2d³‚o›i„ºQùÖ2¢cB 5=_cË”©mğd›:!„˜ıí‚jlf™÷6ëÉPğ½ÅğÅåègÄMEÜ„„	q“èsãÆçSMÕĞ†Š¦sQ€6F[`™`›ªñ1zî˜4
+Ç×ûnÛ$·)Wë˜†‹uKÂP!®ãÈRB!\ˆ‘"*îV©ûwä†	™&4ø^4b>]´'i£÷\®õßş1TÑÍLİŠè™F´¼ Õ¤(tÌ¼¯Ö}bRğE!
+1Ç¤Vˆ¹Ö=]×ƒ0¤+åñ¿½lãØ&fc´Ú4¦iËˆ¶©°ÏÅıw,<?d¢R'“tïi„»î(#ÚE	äB<Àü¡ñ*™¤{Ç&Ûq![RÔ'5ñiëÈµ/°C¦B}§¡<jl½0ZçW€eë-¾ÎLÅjİ'“t¤SE!†@n[ŒOÖ	Ca~Í»ÖŒMÖˆ9&ËóHGíwÖ¶'b6cåÕšOâv@©û¦R÷´ßy§ŠG’iXFTìNœ˜¢ĞmàÕon—½ ¼¾Yü…é}›‡aT&C¼PÓûøÌÓxİ09BñĞÜÔ
+Û2ïÚ¶ßÉDÕh“0ş]²MƒdÌ¦êùxş×;–AUÇ·e£˜Ed„\<’”ŠÖ*U¶oÈŠ|—âÜ¾h;©0®µşÆÅF† ¬oÎ·>½Ûş¦·ù^‚¢µàa¨Ñ!×a£¢Îjµ
+5íw¨V¡})Ø_£0kÍ°MCÖ—	!ÄCdjIZÜµgÈªuŸjİ'—Šİs…vq¿£…„”«éÄÌG»ı ªc™¦¼ˆB¹v W¸¶Éèä«­$³QÁ°Àei|?˜=ûUOÛƒTOÈZß&TëÛ„å©mX¦¾6}tzZXş½[ƒºRD*z®¥4ºñ‚G•h5ZEÅtSaZÑš}ÓT˜vTÇ´–¶}´l…ÙøhÙÑ±1›ªÔƒ€˜ùÕÇGëhK”¤kË²!„x˜‚œm16Y‹¶?›Á´u?ˆÖ+ÇK¦8?`®ÍĞx…ÉšO*6³åe~Fufdq¿@.ÄƒÏ4£}¬ëëÜşTˆ'É‚¢^Ó„Ñß¤÷\İ˜ov¯‡[@k}sĞ½åùôïéğÆÇëßAsc„ÿÖ |½¬Êœú\]ß³tês}ıû†ÑØ†eZÙ©mYQ ¶ìF˜¶ÛBuô½ÆsûÆsËæÏ¬ÔbLTêØ¦ñ•ûÆz~€¡À”[!*†¡pm‹jİ#ùûYk­™¬yØ–ùµFÔÅ·w,3I—±r×2ïXˆwJ6N,È…˜z¥°M“šÜ1'2ŠL«Áå“IG¡´"ğn)n„æë£Å·†å›şì´éØ¯«iá\©F V7B²aNíAª®ïE:ı£ºş\İxnrıg·„hÓTÑGëæ0mLJO=·¦ßµVp~¦·ŒMÖÉ¦î^™5Z?nÈÔD!„xÅ‹‰Jı®\•º„dî7ël1eFEŞ&ëäRwß
+-Ô/Ô$m	äB¹³‚R
+Û2˜¬y„Zß6ÀÅ’Štİ¤©˜†Æ0ô=F!Ùœ6êkÚÛø|êûÆ´QbÃ¾p•¡0ÔToLİ>
+m6Bu#Hßôü¦Ç¯=šÇ1‡Ñr•rµN:îŞ±ÁöƒÆlBˆ‡m™×¯õw
+p¾0YóHÆ)îù€‹»626Y#ŸŠİ¶ö‹¦1ûäx
+	äBÌª QÔËóÃÛjóÃ€Ò‚×ş·ñg¹åMï¾>¢İÒ7mÚ´p#
+ÍSß÷—i(’1‡r¥NÍ
+nLƒ­e}™B<¬¥p-‹jİoTM¿Y¨5åª‡c™Äl¹~Ğ)¢ê÷Q‡»wÛcªµ¦æİyÆ£È…x€œ¡ÿåğ„QƒÎ¤Úly±f	×6	‹Éª‡y›mÍü %=èBñĞ8®c2Q­)¼iåª‡ÖšTÜ•ÎñYt¿–»Œ•«X¦Aì–à­u´-wäÅ³Ü‘ŠG¼Ñ¦­ûA´oå»f²ê†š„+a|¶‰¹QC]®FË¦„Zãû!¶iÈtu!„xˆY¦"š7]Íó™¬z¤®´³ğ˜Æ]›‰J=ê\¿é¸X¦!íB¹³‘mèÆZ³)Rõ|R	G
+½ÌÆ›R¤â^P÷‚<Ôøaˆ#X…âán3¤jıkA¨¯ÔI'\	n³RQWÛ2™¬yÓv¤jİûÒ¨¹È…˜%,3
+g~r?¯ÔIÆl	n³˜mÑzòª‡Ü8¶²~\!\¥p,ƒºuÊ†Z3>YÃµMâÜfïq5‰˜„Tëºql£Z@r\…r!f%¥À±<?ŒÂødË4dªúC îXØ–Áx¹†„Ôı Ç2n[¡U!ÄÃej¼î”+Ñ¦TÜ‘uã³œİ¸G›¬yx^@µîc[²•©@.Ä¬æØ~2Q©†–¢ TÌA•:u/t!„xD˜†iŒOF×ÿTÌ‘uã‰˜ca›&“UÉšGÌ‘A1{É©DS˜µÖ”«>qÇ¢\­Ë‹òĞˆöy/W=lËÀ–eBñH0…e(Æ&=b¶EÕó©yÑ®Õb¶·íZk*uŸPk
+iiÛ…r!f½tÂÁ®Ò{ş0^èL“TÜÀµM™ª(„×±È&İF„S×Ãœ˜ıÃ ³±L%x…r!ŠFÛ¶¤ˆÛÃNÒ¸B<Z7º¦!ËĞşÆ]ºX„r!¼&—t!„BÚv!„øvHQ7!„B!„B¹B!„Bñh)ëß@Pàø™«ŒTptvvÒYˆ}‡¿Ñ('_¦–édIGò¬§	)^åÔ…2İíRî|Bj•1†'ùæ,®ÌJ_÷œ9t‘¡ŠO ÁJfèéj§”z0¶O	ü2çÎsa¸†I²Pb^w3	ók¼ÑukWGQ©<¹¸ıÕ½°ÇÄØ0+Cs:vo×]gèÚ($²äôü
+ñhû*Cœ<~ñ :K•a`…îEÌ+Üæ¬Óïê\3èœÛCñ—U{å1Î=Ëxª‡…íâ÷p'9z¹Ÿ3C!st’Aí–°^ah¬Œ›Ê“I­ñUª\¸Hÿå2Ö(Ã"Sle^Wo£š@8|ƒšd¦››¸ÂÑsCØs™“6©ŸçXÿ(_c¦šX<§…tL¢Ù£Hî“îU}€›6òûİTı*×ÏsêòØÌOÖ‘~¶ì8À©òıÜzã[?úœÃ=Æ¯åİöpy¤ú-¾¨Ã—O²uß9F+ÁÿXy=»örhÄC£ı{yoÛ	+ò¶_×[?úŒ_ïÄ«sl×ŞÛukµ Œ{uNnßÈ¯?İÍ‰Ñ	Æ‡Oó§>çıç¨†w>Áu0ÜˆmÏ2P»ÊŞ-›ù¢?üê×¯MrlÛF¶ºÂŒÏ~R½rŠÍ{s©Ô‡8°}ÏNPä]&Äı§¢ÿé€Ph=ÊŸñ??M ôÏÓzÿ.~ññ~ÎßsÓî3|å$şÛø¿7clÒ»·»•S‡øÕ‡û¹æw¸]çä¾½l?=h&GÙôùvN^-ÊÁ_i’3GwğÏŸd¬Zcbà ¿ıÓv|ó-mıñËìİ±ŸS•ÚŞ‹uÎìÛÎ¾åİ=ÖÏ§ÚÀ®k5ªc'ùèÏ›ØrzŒĞãĞéŒ•eËİG•tÃÜsöígû‘2‹ô*OµÅ	½:ù¨Zxå8n¾Æ‹½K™›¼´aX÷¥›ÅÀ2o¹ne+—òÁ¾f:»ÛÈÆïĞ>z-›÷Ó^\È¢ŒC®c9o,rRDUÜÓ¶i™³ˆõkóÌiòù×-ı.ê¦©ô’ëÚÈ!ş¼k˜îç^æå…Ylí±²øÿaÃNZz;xªhİöìÔaÀ•Ã»ùtl.íK{ÈÙM<¾şi‚Xk§³é&é[ı,İnjæ#	:¤~á ïïó×óæÓÏ±|íÓønGº}…ø‹òX²ÀâÇshçv±ÏHòÒëë˜›»Ë²šjÛïQ}’‘K—É.^Ä’òyNLÌ§Éòu¯–ê«~=Ä-»¸´¸•5s2Ä2%z&…›‰K5m1Ã÷˜"ÕŞËšÇ\ú§Íœ¬²²å›İ,V¯]bë†C,èë¥;î~yds¢Ÿ§=V¼ÖCÊ0¾tŞš¦AˆwáÛ‡Òüğoàñ´fyÅ'æºrà$‹¯%_¤#«Ù·y½¯®gQ>Ilü[ßÛÉĞâ'y~N»r˜w×OiõZÒç>ãóÓU‚Dß_¦Ù´õ8çj|øû?a<û4OFØ²e{/T!ÙÂË¯®¥£¼‡_}1L¶”gôÔYÂ¾Çy!9ÈÆ£ƒL9Ö¿ô<kZoa©NŒ²õ£O¸êæ0ë×8=’áÅ—Ú¹¸õ('Æ gÙ*^}<Í‰­[Ø[Î+08Z%Ó½˜w^Zx£ÁS@0Æ/¶²áÄ•dÉª5<ßá±mãN.åÔÎ_a¨ê²xírb'¶³õR@ïê'yiy7Y5ÊşM[ØxjßIóØš5<S*³qÃ^®$Œ^¥ì;,Y¿šéó¼ÿÁIÎMöóŸß­ò7?zãÄf>Ü?ÄDÒ=y}^œã;÷³ïÒ0§~ÿáëX¯öñÇ‘^f9¥ñS|¶iGëh;É¢•«yaaŒ“»·°uĞÁªM2<\&»`5õL	Ù·R 0Ë²‰%’8áŒŸæÓ‡8ã%ğ*}ë^a¥s‚??Lÿ„‘)ñâO²¸˜ ˜`Û'[Ù5PE{ùÁÓËi	ÏòÑÆÃœH;xæ¹µÌSƒlÛ¶ƒg+(§Ä+?YKşÔv~»í2“A‚Ç_Íúùí$ Âê™ÓeÛxcq‘¤àP\2—9_|Æásc¬°Çùó{¨§2˜c×8[µYõÂ‹ô^ù‚_í¼Ê¹ú8¿ÎeøQ_’£{÷á¯xg/îåŸ¶Ò>/ËÅ}I,\Ââx•cGO1¨3<ıÆ+,M²kÃfô¢>2ÕkìÜ9@ExÚ¢}ÑJŞYÕÄñ-Ÿ±å\/4™³ö^qñŸ>=ÇÅ!ÅoßÏà,Éréä1ÊKã¥“ı;yoã®ÖâÅN^|jóbx÷ı}T‹íTÏö3j¦ybıZìkB&¤
+1£Ä¡L¨_bÏ¾£u¯ágİ9lBÊCılúl¯ùà¤Xóü3¬íHL\cï–Øpv»g	?~jÅ„ÉÀ‘MünÛeÊAd^Y·œ9ù›Bu²ÊÉ‹>½+gşÙ=ì>=ÁãÅ4:äãw¿àR¼@vü2§jizõiV·¥¹²ïŞŸjÇ»çóÚS5¶×xŞE>xï á‚õ¼µ¼‰±ş£|´û4å¡!öõPı„_†ËX»ĞfóçxâÙ'È4°mãN¶ŸG%<ñÔzÃ³|¼á(«šüÒgøùš6\KÚ÷G»e‡ ^abbœÚ•“\4Ò<]LN^aß®l96FİN±ò…çY×j1px#ØuŠ©Ş¥ühı
+qÅ¥ÃyoÇ ã:Å‚öõáSì¹2ÆÙ_¾ÇÄK?ä­>‡é·’OöÓŸèæ¿ÎÇ¸ã-¦R¥Š•ìÜ}ŒÖ'Ó–td7€G˜Œ]Ü«Xo½ó$½~~õ‹_òÏŸf$æà$«<4L¥â3rğ'ª&é`'M°îõ·ùÇ­eÎâuüÕ“]”šJ¼ôú<YœäÀ–/8•\À~ğ+İ‹¼ûé&«#>9Œ›ëà…5]Œmÿˆß4ñæk+i;Ë}'ï8¥T£Ns*È°ò‰eÌQıüâ×ÇÉ®{†·ìÜ‚SW*ãWÙyªÊâ§æo_™ËÄáİ|¼wğúvÍJiÎîØÂûıq^ó¾·Òeï¶ı9?Iyø<»’¼øÂãôxı|ğçÔ¬ãÍÇ“ìÚqœ‘Ñ2§·lâÃËiŞzûyŞZf°cÛ!_¬0ví<û‡ó¼úÚÓ¬O³}Çij­xñ…nZº—ó³7ÖĞ•tÉ´ôòÚÛ¯ñ“—–cÜÏ±ZŠuO,das†u¯¿ÂK2ø×87\Á¿È¦Ï6³K÷ğã¾ÎWÆÙ³q[OW¨—¯±ıT……kŸäËß½‡İ£ZŞÇ´Æ÷jLŒÑğõÖ"ÙŒÅÈµAeyû­X•½À{ïîd²ó1şî§/±.;Ìo>ÜÍp¹ÌşÌæ±o¼ó,ÏôÆÑÃ‡øÓG{»–Ÿ¾ı4*'Ù¸k'»ÏfÓÅ&^}ãş›Ÿ®§GçÃOûÉ-‘ÿîo_åÙ¹­Ä§~%4Ã£U©4ùéİ¦v–æ¤I­R#ê\9y+vO¾õ"/÷„|şşªä­%Yº-ã—Ğ•¨04x…¡Z@XãØù+ÔœŞx¶›ÁŸòÉµ$Ï½¼‚Rå"Ÿïî'|F*'XôØÓüÃß¿ÃÏÈR÷-zõ°º–¬æ'?~ƒWûbØºŸÑ¶ül]‰æ®>Şzù	†¹Z¨ìæ8Š¹h=ÿğã§YfŸåß¶œáêh™+—¯pôšÃKo=ËSÉ69MyBÌP•Ó°åBšwšCÆ5¨W‡ÙöÇO9îöòWı*o.0Ùô‡œ,W	Ñ”=È”–ğÎ3}ø{÷²ot‚ÑS›ù§û)>ñÿğı'™[9Ä»»Ï28ı|Ôå‰SôW“$³m´å²Œ>AÙóC¡ş‹\ñb¬zåIV®òÑÎKTë!©éíø©ƒœ¸t•zã&ÃPMtÆG9râ,W)sáÒIÎ[sxù‡«YÖ’fşêgøÁSóˆ×+\¼4JÍåÀæ/øğŒÉ³¯½ÈÖ¤93ÀÑíû¨÷.çç?ÿ>?[İ‚#a\(ƒÊñ½ü¿ÿú.ÿ×§c¬}óÖ7MpâàV6yù×x­Óãó·q)„li>¯ïu~şLÚÇşñ2å3›ù§O.Ò´êşúùEÛÛXºr‹óy^øÁ+¼ÜkßºıK9}…¥óI8Ö»
+”2ˆåó·?\
+G¶ğş§wùìøÀ]—£‰‡›Œƒ¾·i!?üù:±“ÿòçí|–}u]óI|~’‘rœS'&hü)z›®Ğæïdó[Q«–±¸»×6Q†íØT+5ŸèçXXcü¤¡MS>dHä
+”Ú{è3&éÌ¦p—w’Ë'y¬7Á{Õ5àNeä´•dNKÖö"İÍö'úX]Êá%{hÚ?D­Eï’Et
+¤Ë‹û866ù©şÅK==ÀÅsŠß¿wC‡8Ù¿†Ö.}½ídòÍ<Ö›eßù´?3F»}’ èçÈ©A.\æw¸:ÄÍwc5ÀeŞâJ¹<M½iŞİ5ÁDİÂq”aâ:6¦®1q­Ÿ÷ï¥^«pæZ@+
+Ó21Ûvp¬ğzocùÚç/™¬ûq/ÅB_É‚ï2xù 4g>]…"Í±"Ù/14Jã¿S<Òy<8³ışÃé8±æNŞX?öä%´†ÎiŠ»T/œâ¬QâõE(f¡° “m‡ÏrÄÏrüœ¦ïÅÕ,lIQÎ¨ÿ‚3¯qul#×í'hëp‰¥´×wóÁ–:Ï®]ÆÜæ<=í6[ölâSc9O,ì¡9aÕkS$â&“—' ß2Öõ®–Cr¹¨	È4³´»“ÎlÎ¾V>Ù‘aÓ"c)LÓÄ17—”ˆÅ³tÎé¦Õ×Ì-eqæhjkaIû.ÎV*@öú5Î2-ôğAş¸cŒe/¾Éúf“ <Î¹cûÙy¡Feè
+ƒ^'a‘²LÃÄ±¦/¬>}kN;o¯î"g@oß6o:Ou2‰2ºæ/¥3¢æd©®Q©2kOˆ™\½¨œcÏót­•¹ù¦
+©úç9x%É’õKèÎÄ`A7í{wrl( C+2ù&zçvÑë{Ì-zœ8s‰Éü\^ZÔLÆ¬Ó·¸‡Û¯2Yî×näq±ã'8tŞgâ·ƒQÁÈÅÎ±Õ<—í$˜ÓŞÎœR‘Éæ"şÉaB¯Lù–v¼-	£X‚iZt¯œ‡õŞ%N/R¹XcÁ²&òÙ	,CaÚ6İX£T/súâ«~Ì¢Ö†Î³6}™+f{÷ò™Y¿d¹¸Œ6>ò}í!©¥Oñ/ºlşàdM&ÅÀñs½4DmğV’)*ÔPWOóñ¾a¼Ê('Cº9yòõæ>^YÚNÚ÷ÈãÇ1•í8Ø·X-Ÿ¿Ì¹É&ïHàÜqª—I"®0L—¦¹Oòÿ~>Gwlâ_?ÜFKî–22Z*\ÌXu‚«UH¦\
+Y×~ŠceâËJ,L`ÛÑ=œËñƒy²Éf~ò7%îÙÎ¿ıê}®şÍ÷yÎ01Ğ„!Ø†ÂMæX·òy^[ÑI,(3<	jp¨©À	
+—TÒ@Q»ôÕ…Û¢à
+…RŠx25PjúŸ ¯6I Ct}Œ¡*ØL4ş„CÌ1)-YÅ¿{}y+d²RÃœäÜRêúÏ·İ	¢¯Ğ€KÌ1i[¶–ÿêÕydMŸÉª‡5~C¡¥¢ÿAâyŠ˜21tˆVNæ7>C×Û?áÕ¦k|øÛÏ	µÃÄPš œşŸ¢±Û…ñ±AsHX§ì[dâ	˜ˆş½F«ÖuOŞÆ”aÒ³æ9şñÙNb±FEğ2×;zP ì$1€jµB¨Æ'«T$YåââS›¬P	âX†Â‰Ç±Ï¼õ:/uæĞ^…ÉºA&é2ï§MÙ·ßüóïxâïÿ7ßù>}'÷ñÑçŸğÿ<Çß=³¢ÊPdæÌ!³û{Ğ´(V¹rğ(§t‘ïu»àƒ
+|&=Ÿ€€É‰*Ue“Tà˜Ö·¿D(nÌ€±]R†‰u»jJáUØöÙq˜·ŠWd0UËçvòá™4?ıÁ+¤Ïlàÿù¢W¦:üR;á ‰ñ:mP«”	c	Ëjü3×Xi<?º&
+!¾ZPæà¡½‰Íçï{²Ä€ 8IË£R­âáLV™l:Ü[J…Tkš„k¡ı:•€tÜ§21‰/b]/J£©ÕÇØuVñò›oòêÂš2»ßÿ;^cıZuã|nÜwxu`ôÀ—Ûñ›®3&±ÜBÖ4á‹­GÈ¦
+<“ËS“X†"‚ë¿îÔm«©jåQ*~’”QÇJ·2ïÉWøo»N²áã­üï'Æø¾†œ+·¸|û®Vª—WŸäÿøıN¶´­%K²tíZ~úÔ"òªÆğ„‡S?Íüğ"óß~›³øÕ¯w 5Äl…_¯31é‘p£åmqCaš ¼¥İÔœ½8€î^D>qk­Ö>££eÆušÖ„"œa(pÈ¦²ÌíícÑÁ½\¬{ôRI¹˜©¡Ó|°õébXu˜#|¼•´“aI_İ>
++Şd«©Œ\àØ¹	£Ô^ ­LŒB+mê4‡`î‚<Ë•ø/{÷cWG(„Æ—òt2ÄóÃè¦Zk‚ Œ) ÃÿKw®š0ñÃhÊk„ZGÏÃ êö|êg(Í¥GÙ™©‘,Ÿà0]¼3¯ˆ¿Šh]`ñ²>¼÷¶Õ˜çø”µËÂ®$:®ßôkâ‡ú¦ßUëKWÌåè§[yoÛ$s­:e3Å’6†„ºQ€R‡xAH¨cä’Í4UO³ûp‘Äü¥´fàÜ	ö\áä¨Ï­![ %rêàª.R¿ï6µ²bq–Û¼“Øµ6Â¡ÓŒ¶,ä™Ş&®í	ğ¯O
+	üèß"C”'î:7uğ„A@êè†±ik».²sÃF¼¾OÑ¹úqúb­Ä×¶òûó~m.®éòXg‰Õ±Ö  ¾IDATÏóÁG;H,mÁ÷Ê…NVgÏ£íùbl0Ä‰£#Lz¹bËuoFR&±Ò2^_=ÌÛ>â7]4ûW9pV<µ¥)“ÉĞ•=DÎKpbßeŠ¯fmSïlÆûø<û]!‹–°„Z£utM	uÔ¡a£oO‡sDC„Páè®‹|x`ŒU¯NrèàQ‰$i7O6äè‘Ã8—.sµ–C+…Yl£0~”GÎÓÙì]?Ç³s—²öÔ&>üpc]6gÏ]eñ’uäÒƒøAÀËRˆ†Èi)Ä„u†úñş'ç1—d8|ô §´F™ùÎy¬y,ÉGÛ7`–Û¨;‡5	Ëæå¨½¼ŞQ;Ş±h]ØÂ/?‰±¦àsº¿ÆÒÇºÉ'§¦çÔöp°šç®b.@œÅİş´y/gW,#ğÃèš9uO„`6ÑrK;¾lêZÔø=l'Îü…Íüî_NPxıšò.P ·Õaß™£8«È+Mà„±–/ŸËñ›ø“?Ÿ×ÇÊÏ¡×áâ„ÂMd˜“HÈèø#/jS¢Á·cÏ¶à³ı§y~~µ½ÙVi‰W8ùŞÒ$ms§O²-6À‰aŸ5@çÂå,9·ùÈdUÁ!V*±¤%CsÖçÈ£t>¾‚Mf4¸52Ä©‹æ¯I“¼%Q“cœ=yˆÏvö[º‚>ÛÄ;³—9PgaGŠñ‹ç¹\ìå™t[İ#ÉüŸşçÿåıúoò(à¦…k?¢åwl—dÌÁ1lâ©K–.dAW®aª_cÏ‰	V¼´¾”‰_çÚHßMÓ»p!ËÛ²Ä’iZ›óä\“x¾DWGYCkŒD3s»ZÈ¥Ót¶¶ÒYÌt-ÒÍEÚšdl'‘¡½µD)›˜V É$+Ñ×ÑLsÚ%ÓÜDG[‰|2†›ÈĞÓÚD)Ã4c”ŠE:òWû3ëca1A,]bÅòE,jMbšímEZKyšZŠt”òÄµ;N©­•¶BŠt¡DWK‘¦„OÓÑV¢%—Ä¶,šKJÍyš[‹´—òÄ´FÙ	ZÚÚhÉ'É4µĞÕÒL!nc:I:ÛÛèlÎQH¦hkNbZ.M­ô´æI›Šx¦ÈÒ%sè,5‘Éäh.4QŒ)ìT–æ&ºZ[hk.ĞVl¦#ë‰B'+—õÑs±ãæ´iÉÅp,—æ–væ´ÈÅ¤Ñ~Ä/¤ó%úÚ‹4¥íiÅ-’¹z[‹4§,l+NK{‘BÌB)—–>Ö,î í:äJ-´çS8Ê"ÍÓÚÖIW{‰ö´M€"*ĞİÙ„íO2<ZÅ³s,\¼ˆe&£W'¨h›\Û\V-h¥0mC_Ã´È·¶ÑÓœ!a»$²%–.[ÂšùElê•aö¼LsW7=Ù…®¹<±¬‡|ÌÆJçhÏ¥H:q2¹Í­ó-¦³£®b”c’nj¢¥X ãÚ8‰İm%Jùéæf:JYÉ}sÛ)4®óf,E[G']YÓpiïîbÙüÚ›s$’9ÚR1‡L6O±½®–fš²Ít·ÈÇL0ã´öÎgÕÜé˜K¶¹¹­Mâ&¦›¦»¥D{S
+Ù†ufê~Hø˜¦‰aßxŠ®Öš @¸¶%S~è´!ùî9ô5gˆ[6íàØ.é¦æÎi¥%åbh“\k7«ë£³1œ$íít6eHØ&‰B]-EŠÅº[óäl…²tÎ_Äc=ERö´÷€gÑÒÕIOKšXcà<LÑRÌ“-4ÓÙZ¢«½™\ÒÅr“ôv”hkë ½åËíx!“¡§³D[s˜eP×eNŸª±tÕræ7¹€K¾£5Ãr47åéhm¦µT¢µ½Dg1ƒ«ìdöæ4ª6Îh%$İÒÁªeó(%,äíû(S¸±sÛŠ´æØ–KS)O¡P¤½s.‹Û
+'ÍœîvJé&ÚZRÄ,“Ls‰Å‹{é.5‘/”èiÉ“wML7N±T¤©)GSsSáfš($5.9Âöá,O.é%ïŞ<é\ûå:©–Ö.›C>nc¸1Òƒm¸äK¬Z>\SŞ·æ;¶Z÷¿Ö€ÄTƒíyuL;F:.}9Ó^Bo‚c_|Æï¯tğïßYN³k=¸[tÔ.³éOä3÷şûçºÈÉºM!f‰ñ¡“üâ?ocÁ«¯ñâÒ¢¼$ ‰ª‡_¯bÛ¦i~ã †!õz‹tÂÅD#¾«YuŒ£{6ğé@‰ï½¾†Né(³Oy|„Q/NS.‰+‹ÀÅ×$ã÷õîh½[6ñîÙß{³‚c=àûe6¶{šÑzt!ÄƒuúF•’“W1;ş56ışvÖR¬q1íÆÅ,SÉt3Iy!Ä½ŞÒÉù}¤¼º‡§¨Jøƒ¾Çµñ<ŸhélÉ-Ä,ºÜ„µºiÙØ–tÇ?Šd„\<2jµ:¡2°mKnD„ !¿Ÿ”‰íš³§ ƒ2°W
+H1/7†I,fÊ!„˜Í2ÜXL^!Ä#M†U„B!„B	äB!„B!„r!„B!„BH B!„B!$!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!$!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!\!„B!„È…B!„B	äB!„B!„@.„B!„BH B!„B!„r!„B!„B¹B!„B!$!„B!„ß¥ÿÆ»½!…Ñ‡    IEND®B`‚
+```
+---
 
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  define: {
-    'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version),
-  },
-  resolve: {
-    alias: {
-      react: 'react',
-      'react-dom': 'react-dom',
-    },
-  },
-  // âœ… Relaxed Headers for Dev Server
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'unsafe-none',
-      'Cross-Origin-Embedder-Policy': 'unsafe-none',
-    },
-  },
-  optimizeDeps: {
-    include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-    chunkSizeWarningLimit: 1500,
-    commonjsOptions: {
-      include: [/mermaid/, /node_modules/],
-      transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // 1. Core React + Recharts
-          if (id.includes('node_modules/react') || 
-              id.includes('node_modules/react-dom') || 
-              id.includes('node_modules/react-router-dom') ||
-              id.includes('node_modules/scheduler') ||
-              id.includes('node_modules/recharts') || 
-              id.includes('node_modules/d3')) {
-            return 'vendor-react';
-          }
-          // 2. Firebase
-          if (id.includes('node_modules/firebase')) {
-            return 'vendor-firebase';
-          }
-          // 3. Mermaid
-          if (id.includes('node_modules/mermaid') || 
-              id.includes('node_modules/khroma') || 
-              id.includes('node_modules/cytoscape')) {
-            return 'vendor-mermaid';
-          }
-          // 4. Animation
-          if (id.includes('node_modules/framer-motion')) {
-            return 'vendor-animation';
-          }
-        },
-      },
-    },
-  },
-  pool: 'forks',
-  poolOptions: {
-    forks: {
-      singleFork: true,
-    },
-  },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.js',
-    css: true,
-    testTimeout: 10000,
-  },
-})
+## FILE: public/robots.txt
+```txt
+User-agent: *
+Allow: /
+Sitemap: https://ryandouglas-resume.web.app/sitemap.xml
 
 ```
 ---
 
-## FILE: firebase.json
-```json
+## FILE: public/sitemap.xml
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://ryandouglas-resume.web.app/</loc>
+    <lastmod>2026-01-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>
+
+```
+---
+
+## FILE: public/vite.svg
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+```
+---
+
+## FILE: scripts/deploy_feature.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# ğŸš€ DEPLOYMENT PROTOCOL: PHASE 16.1
+# ==========================================
+
+BRANCH_NAME="feature/phase-16-firestore"
+COMMIT_MSG="feat(db): initialize firestore schema, seeding tool, and vite fix"
+
+echo "ğŸ” Checking Git Status..."
+if [ -n "$(git status --porcelain)" ]; then 
+    echo "âš ï¸  Uncommitted changes detected. Staging them now..."
+else
+    echo "âœ… Working directory clean."
+fi
+
+# 1. Create/Switch Branch
+echo "ğŸŒ¿ Switching to branch: $BRANCH_NAME"
+git checkout -b $BRANCH_NAME 2>/dev/null || git checkout $BRANCH_NAME
+
+# 2. Stage & Commit
+echo "ğŸ“¦ Staging files..."
+git add .
+
+echo "ğŸ’¾ Committing changes..."
+git commit -m "$COMMIT_MSG"
+
+# 3. Push to Origin
+echo "ğŸš€ Pushing to origin..."
+git push -u origin $BRANCH_NAME
+
+# 4. Instructions
+echo ""
+echo "=========================================="
+echo "âœ… Feature Branch Pushed Successfully!"
+echo "=========================================="
+echo "ğŸ‘‰ Next Steps:"
+echo "1. Go to GitHub and open a Pull Request for '$BRANCH_NAME'."
+echo "2. Wait for the 'Deploy to Preview Channel' action to pass."
+echo "3. Verify the Preview URL provided by the bot."
+echo "4. If stable, merge to 'main' to deploy to Production."
+echo "=========================================="
+```
+---
+
+## FILE: scripts/generate-context.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# ğŸš€ FRESH NEST: UNIVERSAL CONTEXT GENERATOR
+# ==========================================
+
+OUTPUT_FILE="docs/FULL_CODEBASE_CONTEXT.md"
+
+echo "ğŸ”„ Generating Universal Context Dump..."
+echo "# FRESH NEST: CODEBASE DUMP" > "$OUTPUT_FILE"
+echo "**Date:** $(date)" >> "$OUTPUT_FILE"
+echo "**Description:** Complete codebase context." >> "$OUTPUT_FILE"
+echo "" >> "$OUTPUT_FILE"
+
+# Define the ingest function
+ingest_file() {
+    local filepath="$1"
+    
+    # 1. Skip if file does not exist (safety check)
+    if [ ! -f "$filepath" ]; then return; fi
+
+    # 2. Skip the Output File itself (prevent recursion loop)
+    if [[ "$filepath" == "$OUTPUT_FILE" ]]; then return; fi
+
+    echo "Processing: $filepath"
+    
+    # Markdown Header for the file
+    echo "## FILE: $filepath" >> "$OUTPUT_FILE"
+    
+    # Determine syntax highlighting based on extension
+    local ext="${filepath##*.}"
+    echo "\`\`\`$ext" >> "$OUTPUT_FILE"
+    
+    # Cat the content
+    cat "$filepath" >> "$OUTPUT_FILE"
+    
+    echo "" >> "$OUTPUT_FILE"
+    echo "\`\`\`" >> "$OUTPUT_FILE"
+    echo "---" >> "$OUTPUT_FILE"
+    echo "" >> "$OUTPUT_FILE"
+}
+
+# ==========================================
+# ğŸ” THE UNIVERSAL SCANNER
+# ==========================================
+# Finds ALL files (.)
+# -type f: Only files
+# -not -path: Exclude .git folder
+# -not -path: Exclude node_modules (root and sub-project)
+# -not -path: Exclude .env files (Security)
+# -not -path: Exclude .DS_Store (Mac junk)
+# -not -path: Exclude dist/build folders
+# -not -path: Exclude package-lock.json (Too noisy)
+# sort: Alphabetical order for consistency
+
+find . -type f \
+    -not -path '*/.git/*' \
+    -not -path '*/node_modules/*' \
+    -not -path '*/dist/*' \
+    -not -path '*/.firebase/*' \
+    -not -name '.DS_Store' \
+    -not -name 'package-lock.json' \
+    -not -name '*.lock' \
+    -not -name '.env*' \
+    -not -name 'service-account*' \
+    | sort | while read file; do
+        # Strip leading ./ for cleaner headers
+        clean_path="${file#./}"
+        ingest_file "$clean_path"
+    done
+
+echo "âœ… Context Generated at: $OUTPUT_FILE"
+```
+---
+
+## FILE: scripts/update_data.sh
+```sh
+#!/bin/bash
+
+# ==========================================
+# ğŸ’¾ Data Restore Script (Source of Truth)
+# ==========================================
+# Run this to reset src/data/*.json to the Gold Master state.
+
+DATA_DIR="src/data"
+mkdir -p "$DATA_DIR"
+
+echo "Restoring profile.json..."
+cat << 'JSON' > "$DATA_DIR/profile.json"
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firebase-debug.*.log",
-        "*.local"
-      ]
-    }
-  ],
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "headers": [
+  "basics": {
+    "name": "Ryan Douglas",
+    "label": "Management Consultant & Power BI Developer",
+    "email": "rpdouglas@gmail.com",
+    "phone": "613.936.6341",
+    "location": "Cornwall, Ontario",
+    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
+    "website": "https://ryandouglas-resume.web.app",
+    "github": "https://github.com/rpdouglas",
+    "linkedin": "https://linkedin.com/in/ryandouglas"
+  },
+  "metrics": {
+    "yearsExperience": 15,
+    "projectsDelivered": 40,
+    "certifications": 2
+  }
+}
+JSON
+
+echo "Restoring skills.json..."
+cat << 'JSON' > "$DATA_DIR/skills.json"
+[
+  {
+    "id": "strategy",
+    "label": "Business Strategy",
+    "data": [
+      { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
+      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
+      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
+      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
+      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
+    ]
+  },
+  {
+    "id": "technical",
+    "label": "Technical Stack",
+    "data": [
+      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
+      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
+      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
+      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
+      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
+    ]
+  }
+]
+JSON
+
+echo "Restoring experience.json (Nested Project Schema)..."
+cat << 'JSON' > "$DATA_DIR/experience.json"
+[
+  {
+    "id": "job_pwc",
+    "role": "Manager (Data & Analytics)",
+    "company": "PwC Canada LLP",
+    "date": "2012 - 2024",
+    "logo": "ğŸ’¼",
+    "summary": "Senior management consultant leading data-driven transformation projects and advising government leaders while engineering hands-on analytics solutions.",
+    "skills": ["Digital Strategy", "Leadership", "Stakeholder Mgmt"],
+    "projects": [
       {
-        "source": "**",
-        "headers": [
-          {
-            "key": "Cross-Origin-Opener-Policy",
-            "value": "unsafe-none"
-          },
-          {
-            "key": "Cross-Origin-Embedder-Policy",
-            "value": "unsafe-none"
-          },
-          {
-            "key": "Cache-Control",
-            "value": "no-cache, no-store, must-revalidate"
-          }
-        ]
-      }
-    ],
-    "rewrites": [
+        "id": "pwc_proj_1",
+        "title": "Public Sector Digital Transformation",
+        "skills": ["Power BI", "SQL", "Change Management"],
+        "par": {
+          "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
+          "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
+          "result": "Delivered sustainable digital transformation, aligning technical execution with strategic business objectives."
+        }
+      },
       {
-        "source": "**",
-        "destination": "/index.html"
+        "id": "pwc_proj_2",
+        "title": "Omnichannel Contact Center Modernization",
+        "skills": ["Data Modeling", "Azure", "Risk Assessment"],
+        "par": {
+          "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
+          "action": "Led the design and deployment of modern BI solutions, integrating data from multiple channels for a unified view.",
+          "result": "Enhanced operational efficiency and enabled real-time reporting for high-stakes regulatory environments."
+        }
       }
     ]
   },
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
+  {
+    "id": "job_biond",
+    "role": "Business Intelligence Developer",
+    "company": "Biond Consulting",
+    "date": "2011 - 2012",
+    "logo": "ğŸ“Š",
+    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
+    "skills": ["Microsoft BI Stack", "Consulting"],
+    "projects": [
+      {
+        "id": "biond_proj_1",
+        "title": "Retail Analytics Platform Migration",
+        "skills": ["SSIS", "Data Warehousing", "ETL"],
+        "par": {
+          "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
+          "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
+          "result": "Successfully transitioned client to a modern analytics platform, significantly enhancing strategic insight capabilities."
+        }
+      },
+      {
+        "id": "biond_proj_2",
+        "title": "Distributor Reporting Solution",
+        "skills": ["SSRS", "SQL", "KPI Definition"],
+        "par": {
+          "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
+          "action": "Collaborated with clients to define critical KPIs and delivered a custom SSRS reporting solution.",
+          "result": "Strengthened executive decision-making and improved business responsiveness post-implementation."
+        }
+      }
+    ]
+  },
+  {
+    "id": "job_tele",
+    "role": "Manager, Data and Analytics",
+    "company": "Teleperformance",
+    "date": "2005 - 2011",
+    "logo": "ğŸŒ",
+    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
+    "skills": ["Team Leadership", "Process Improvement"],
+    "projects": [
+      {
+        "id": "tp_proj_1",
+        "title": "Global Contact Center Automation",
+        "skills": ["C#", "SharePoint", "Automation"],
+        "par": {
+          "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
+          "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
+          "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
+        }
+      },
+      {
+        "id": "tp_proj_2",
+        "title": "Executive Dashboard Suite",
+        "skills": ["SSRS", "Visual Studio", "SQL Server"],
+        "par": {
+          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
+          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
+          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
+        }
+      }
+    ]
   }
-}
+]
+JSON
 
-```
----
+chmod +x scripts/update_data.sh
 
-## FILE: .firebaserc
-```firebaserc
-{
-  "projects": {
-    "default": "ryandouglas-resume"
-  }
-}
+echo "=========================================="
+echo "âœ… Codebase Cleaned & Secured."
+echo "ğŸ‘‰ Deleted: src/App.css, src/assets/react.svg"
+echo "ğŸ‘‰ Secured: scripts/update_data.sh now contains REAL data."
+echo "=========================================="
 
 ```
 ---
@@ -3520,3932 +5483,264 @@ afterEach(() => {
 ```
 ---
 
-## FILE: docs/AI_WORKFLOW.md
-```md
-# ğŸ¤– AI Development Framework
+## FILE: update_docs.py
+```py
+import os
+import datetime
+import re
 
-**Version:** 2.1
-**Purpose:** Standard Operating Procedure for AI-Assisted Development.
+# ==========================================
+# ğŸ“ DOCUMENTATION PRESERVATION PROTOCOL
+# ==========================================
 
----
+def read_file(path):
+    """Safely reads a file, returns content or empty string if missing."""
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
+    print(f"âš ï¸ Warning: File not found: {path}")
+    return ""
 
-## 1. The Product Manager ("The Vision")
-* **Trigger:** User has a raw idea or vague requirement.
-* **Goal:** Clarify the "What" and "Why". Map requirements to User Personas (The Skimmer, The Candidate).
-* **Action:** Analyze the `PROMPT_FEATURE_REQUEST.md` input.
-* **Output:** A structured Feature Request with clear constraints.
+def write_file(path, content):
+    """Writes content to file with UTF-8 encoding."""
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    print(f"âœ… Updated: {path}")
 
-## 2. The Architect ("The Strategy")
-* **Trigger:** A defined Feature Request.
-* **Goal:** Determine the "How". Analyze Security, Performance, and Data Integrity.
-* **Action:** Propose **3 Distinct Implementation Options** (e.g., Client-Heavy vs. Server-Secure).
-* **Output:** A decision table recommending the best path. **Wait for user approval.**
+# ==========================================
+# PHASE 1: STATUS & LOGS
+# ==========================================
 
-## 3. The Builder ("The Execution")
-* **Trigger:** User uses `PROMPT_APPROVAL.md` (Decision Made).
-* **Goal:** Implement the approved option with zero regressions.
-* **Action:** Generate "One-Shot" installation scripts (Bash/Python) to create files and install dependencies.
-* **Constraint:** strictly adhere to `docs/CONTEXT_DUMP.md` (Stack rules, React 19 patterns).
-* **Output:** `install_feature.sh` or specific file writes.
+# 1. Update PROJECT_STATUS.md
+# ------------------------------------------
+status_path = 'docs/PROJECT_STATUS.md'
+status_content = read_file(status_path)
 
-## 4. The QA Engineer ("The Skeptic")
-* **Trigger:** Code is written but not verified.
-* **Goal:** Prove it works (Happy Path) and prove it fails gracefully (Edge Cases).
-* **Action:** Use `docs/PROMPT_TESTING.md` to generate Vitest specifications.
-* **Constraint:** **Environment Mocking** is mandatory. Never hit live Firebase in tests.
-* **Output:** `src/__tests__/FeatureName.test.jsx`.
+if status_content:
+    # 1. Update Phase Name if needed
+    status_content = status_content.replace(
+        "Phase 17 - The Application Manager (Job Matcher)",
+        "Phase 17 - Application Manager"
+    )
+    
+    # 2. Mark Sprint 17.1 as Complete
+    # Using simple replace for robustness
+    if "[ ] Sprint 17.1: The Job Input Interface" in status_content:
+        status_content = status_content.replace(
+            "[ ] Sprint 17.1: The Job Input Interface (Admin UI).",
+            "[x] Sprint 17.1: The Job Input Interface (Admin UI)."
+        )
+    
+    # 3. Update Overall Status Line
+    if "**Status:** ğŸ› ï¸ Active Development" in status_content:
+        status_content = status_content.replace(
+            "**Status:** ğŸ› ï¸ Active Development",
+            "**Status:** ğŸŸ¢ Phase 17.1 Complete (Ready for AI)"
+        )
 
-## 5. The Maintainer ("The Scribe")
-* **Trigger:** Feature passed tests and is live.
-* **Goal:** Ensure documentation reflects reality.
-* **Action:** Use `docs/PROMPT_POST_FEATURE.md` to audit the repo.
-* **Output:** Updates to `PROJECT_STATUS`, `CHANGELOG`, `DEPLOYMENT`, and `CONTEXT_DUMP`.
+    write_file(status_path, status_content)
 
-## 6. The Security Auditor ("The Gatekeeper")
-* **Trigger:** Any changes to `/admin`, Authentication logic, or Environment Variables.
-* **Goal:** Ensure "Least Privilege" and prevent leakage.
-* **Action:** Review `firestore.rules`, `firebase.json` headers, and `.env` handling.
-* **Output:** Security patches (e.g., `unsafe-none` for Google Auth) and Rule updates.
+# 2. Update CHANGELOG.md
+# ------------------------------------------
+changelog_path = 'docs/CHANGELOG.md'
+changelog_content = read_file(changelog_path)
+today_str = datetime.date.today().strftime("%Y-%m-%d")
 
----
-
-## ğŸ”„ The Feedback Loop
-1.  **Product** defines.
-2.  **Architect** plans.
-3.  **Builder** codes.
-4.  **QA** breaks it.
-5.  **Security** locks it.
-6.  **Maintainer** records it.
-
-```
----
-
-## FILE: docs/CHANGELOG.md
-```md
-# ğŸ“œ Changelog
-
-All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
-
-## [v2.3.0-beta] - 2026-01-26
+if changelog_content:
+    new_entry = f"""## [v2.3.0-beta] - {today_str}
 ### Added
 - **Admin:** New `JobTracker` module for inputting raw job descriptions.
 - **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
 - **Security:** Restricted `applications` to Admin-Write/Read only.
 - **Testing:** Added environment-mocked unit tests for Admin components.
 
-## [v2.3.0-beta] - 2026-01-26
-### Added
-- **Admin:** New `JobTracker` module for inputting raw job descriptions.
-- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
-- **Security:** Locked down `applications` collection (Strict Admin Write / No Public Read).
-- **Testing:** Added environment-mocked unit tests for Admin components.
-
-## [v2.2.0-beta] - 2026-01-25
-### Added
-- **Data Layer:** Implemented `ResumeContext` and `useResumeData` hook for global state management.
-- **Offline-First:** Added robust `try/catch` failover. If Firestore is unreachable (or quotas exceeded), the app seamlessly loads local JSON.
-- **UX:** Added `LoadingSkeleton` to prevent layout shifts during asynchronous data fetching.
-- **Testing:** Added "Indestructible" integration tests verifying the database fallback logic.
-
-## [v2.1.0-beta] - 2026-01-25
-### Added
-- **Database:** Initialized Cloud Firestore architecture with `profile`, `experience`, `skills`, and `sectors` collections.
-- **Security:** Deployed strict `firestore.rules` (Public Read / Admin Write).
-- **CMS:** Added `DataSeeder` utility to migrate local JSON data to the cloud.
-- **Backend:** configured `firebase.json` for Cloud Functions and Hosting headers.
-### Fixed
-- **Build:** Fixed critical "Split-React" bundling issue in `vite.config.js` by forcing a singleton React chunk.
-- **Auth:** Relaxed COOP/COEP headers to allow Google OAuth popups to function in production.
-
-## [v2.0.0-alpha] - 2026-01-23
-### Added
-- **Routing:** Implemented `react-router-dom` to bifurcate the app into Public (`/`) and Admin (`/admin`) zones.
-- **Security Perimeter:** Integrated Firebase Authentication with strict Email Whitelisting.
-- **Admin UI:** Created the `AdminDashboard` shell and `ProtectedRoute` components.
-- **Analytics:** Integrated Firebase Analytics for tracking interactions.
-
-## [v1.5.0] - 2026-01-20
-### Changed
-- **Visualization:** Stabilized `Recharts` implementation for the Skill Radar.
-- **Performance:** Optimized `framer-motion` animations for mobile devices.
-- **Print Styles:** Added "White Paper" CSS overrides for clean PDF export (`print:hidden`, high-contrast text).
-
-## [v1.0.0] - 2026-01-15 (Gold Master)
-### Released
-- **Core Platform:** Initial release of the Static Interactive Resume.
-- **Tech Stack:** React 19, Vite, Tailwind CSS v4.
-- **Features:**
-    - Interactive "PAR" Timeline.
-    - Skill Radar Chart.
-    - Sector Impact Grid.
-    - Responsive "Mobile-First" Design.
-
-```
----
-
-## FILE: docs/CONTEXT_DUMP.md
-```md
-# Interactive Resume: Platform Context
-**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
-**Environment:** GitHub Codespaces
-**Version:** v2.2.0-beta
-
-## ğŸ§  Coding Standards (The Brain)
-
-### 1. Data & State (SSOT)
-* **Public View:** `ResumeContext` is the Single Source of Truth.
-* **Hybrid Strategy:** Firestore (Primary) -> JSON (Fallback).
-* **Deep Fetch:** We strictly use Recursive Fetching for nested sub-collections (`projects`).
-
-### 2. React 19 Patterns
-* **Hooks:** Hooks must strictly follow the rules.
-* **Bundling:** We manually chunk `react`, `recharts`, and `react-dom` together in `vite.config.js` to prevent `forwardRef` errors.
-
-### 3. Security & Headers
-* **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
-* **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
-
-### 4. AI Isolation
-* **Server-Side AI:** Gemini logic resides in `functions/`. Keys are never exposed to the client.
-
-## Directory Structure
-* `src/components/admin` -> CMS specific UI.
-    * `JobTracker.jsx`: Input for AI Analysis.
-* `src/context` -> Data Providers (`ResumeContext`).
-* `src/hooks` -> Logic Consumers (`useResumeData`).
-* `src/data` -> **Indestructible Fallback** (Do not delete).
-* `src/lib` -> Firebase services.
-
-```
----
-
-## FILE: docs/DEPLOYMENT.md
-```md
-# â˜ï¸ Deployment & Infrastructure Manual
-
-**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
-**Stack:** Vite + React 19 + Tailwind v4
-
-## 1. Secrets Management (The 2-File System)
-Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
-
-### A. Development (`.env.local`)
-* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
-* **Status:** Ignored by Git.
-* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
-
-### B. Testing (`.env.test`)
-* **Purpose:** Runs `npm run test`. Used by Vitest.
-* **Status:** Committed to Git.
-* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
-
-## 2. CLI Authentication (Headless Mode)
-In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
-
-```bash
-# 1. Request login link
-firebase login --no-localhost
-
-# 2. Open the URL provided in a separate tab.
-# 3. Authenticate with Google.
-# 4. Copy the Authorization Code.
-# 5. Paste code back into the terminal.
-```
-
-## 3. Database Security
-Rules: Defined in firestore.rules.
-
-Deploy: firebase deploy --only firestore:rules
-
-## 4. Header Policy (Critical)
-To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
-
-Cross-Origin-Opener-Policy: unsafe-none
-
-Cross-Origin-Embedder-Policy: unsafe-none
-
-Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
-
-```
----
-
-## FILE: docs/PERSONAS.md
-```md
-# ğŸ‘¥ Persona-Based Development Model
-
-Our development strategy is guided by specific user archetypes. Features must pass the "Persona Check" before implementation.
-
----
-
-## ğŸŒ External Audiences (The Public View)
-*Goal: Conversion (Booking an Interview)*
-
-### 1. "The Skimmer" (Technical Recruiter)
-* **Goal:** Match keywords to a Job Description in < 10 seconds.
-* **Behavior:** Opens link, scans for "Power BI", "React", "15 Years", then leaves.
-* **UX Constraint:** **The "Above the Fold" Dashboard.**
-    * *Rule:* Key metrics must be visible immediately without scrolling.
-    * *Rule:* Zero layout shift. No spinners for critical text.
-
-### 2. "The Narrator" (Hiring Manager / Director)
-* **Goal:** Understand the *context* of your career. "Why did he move from Dev to Consulting?"
-* **Behavior:** Scrolls down. Reads the bullet points. Looks for business impact.
-* **UX Constraint:** **The PAR Timeline.**
-    * *Rule:* Experience must be framed as Problem/Action/Result.
-    * *Rule:* "Click to expand" interaction to keep the initial view clean.
-
-### 3. "The Skeptic" (Lead Developer / CTO)
-* **Goal:** Verify technical competence. "Is this a template or did he build it?"
-* **Behavior:** Inspects Element. Looks at the source code. Tests the interactivity.
-* **UX Constraint:** **The "Live" Matrix.**
-    * *Rule:* Clicking "React" should filter the entire timeline. This proves state management expertise.
-    * *Rule:* Code must be clean, typed, and commented (in case they check the repo).
-
----
-
-## ğŸ” Internal Actors (The Admin View)
-*Goal: Productivity & Strategy*
-
-### 4. "The Candidate" (The Super Admin - You)
-* **Goal:** Manage the job hunt campaign with high velocity and high quality.
-* **Pain Point:** Repetitive data entry. rewriting cover letters. losing track of applications.
-* **Behavior:** Pastes a JD into the system, expects an instant analysis and tailored assets.
-* **UX Constraint:** **Zero Friction Input.**
-    * *Rule:* If it takes more than 2 clicks to generate a Cover Letter, the feature has failed.
-    * *Rule:* Data Seeding must be idempotent (running it twice shouldn't break things).
-
-### 5. "The Staff Engineer" (The AI Agent)
-* **Role:** Gemini 3.0 Integration.
-* **Goal:** Act as a strategic career coach and copywriter.
-* **Behavior:** Analyzes the gap between *Stored Experience* (Firestore) and *Target Job* (Input).
-* **Constraint:** **Hallucination Control.**
-    * *Rule:* The AI must strictly cite actual projects from the database. It cannot invent experience.
-
----
-
-## ğŸ“± Hardware Contexts
-
-### 6. "The Mobile User" (LinkedIn Traffic)
-* **Context:** 60% of traffic will come from the LinkedIn mobile app browser.
-* **Constraint:** **Thumb-Friendly UI.**
-    * *Rule:* Charts must be readable vertically (Adaptive Density).
-    * *Rule:* No hover-only tooltips (must be click/tap accessible).
-
-```
----
-
-## FILE: docs/PROJECT_STATUS.md
-```md
-# ğŸŸ¢ Project Status: Platform Expansion
-
-**Current Phase:** Phase 17 - Application Manager
-**Version:** v2.2.0-beta
-**Status:** ğŸŸ¢ Phase 17.1 Complete
-
-## ğŸ¯ Current Objectives
-* [x] Sprint 17.1: The Job Input Interface (Admin UI).
-* [ ] Sprint 17.2: Vector Matching Logic (Gemini).
-
-## âœ… Completed Roadmap
-* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
-    * Sprint 16.1: Schema & Seeding.
-    * Sprint 16.2: Data Hook Layer & Offline Fallback.
-* **Phase 15:** [x] Chart Stabilization & Visual Polish.
-* **v2.1.0-beta:** [x] Phase 14 - CMS Scaffolding.
-* **v1.0.0:** [x] Gold Master Release.
-
-```
----
-
-## FILE: docs/PROMPT_APPROVAL.md
-```md
-# âœ… AI Approval & Execution Prompt (Builder Mode v2.1)
-
-**Instructions:**
-Use this prompt **after** the AI has presented the 3 Architectural Options.
-
----
-
-### **Prompt Template**
-
-**Decision:** I approve **Option [INSERT OPTION NUMBER]: [INSERT OPTION NAME]**. Proceed with implementation.
-
-**Strict Technical Constraints (The "Builder" Standard):**
-1.  **Execution First:** Output a single **Bash Script** (`install_feature.sh`) that:
-    * Creates/Updates all necessary files.
-    * Installs dependencies.
-    * Uses `cat << 'EOF'` patterns.
-2.  **Data Strategy (The "Backbone" Check):**
-    * **Deep Fetching:** Remember that Firestore queries are *shallow*. If fetching a document with sub-collections, you MUST explicitly fetch the sub-collection and merge it.
-    * **Failover Logic:** Wrap all critical fetches in `try/catch`. If the DB fails, return Local JSON.
-3.  **Environment Awareness:**
-    * **Secrets:** Never hardcode keys. Use `import.meta.env.VITE_VAR`.
-    * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
-4.  **UI Resilience:**
-    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
-
-
-**Persona Validation:**
-* **The Skimmer:** Is data visible immediately? (Use Skeletons).
-* **The Mobile User:** Will this overflow on 320px?
-
-**Output Requirements:**
-1.  **The "One-Shot" Installer:** A single bash script block.
-2.  **Manual Verification Steps:** Specific steps to verify the feature (e.g., "Disconnect Internet to test fallback").
-
-*Please generate the installation script now.*
-
-```
----
-
-## FILE: docs/PROMPT_FEATURE_REQUEST.md
-```md
-# ğŸ“ AI Feature Request Prompt (Architect Mode v2.0)
-
-**Instructions:**
-1.  Copy your current codebase context.
-2.  Fill in the feature details in the bracketed sections `[ ... ]`.
-3.  Send the *entire* text below to the AI.
-
----
-
-### **Prompt Template**
-
-**Role:** You are the Senior Lead Developer & UI Architect for my Interactive Resume (React 19 + Firebase).
-**Task:** Analyze the requirements for a new feature and propose architectural solutions.
-
-**Feature Request:** [INSERT FEATURE NAME]
-
-**Context:**
-I need to add a module that [DESCRIBE FUNCTION].
-*Current State:* [Briefly describe relevant existing code.]
-
-**Core Requirements:**
-
-1.  **ğŸ‘¥ The Persona Check (Select Relevant):**
-    * **The Candidate (Admin):** Maximize velocity. Is input zero-friction? Is the UI dense and data-rich?
-    * **The Staff Engineer (AI):** Is the prompt engineering robust? Are we hallucinating data?
-    * **The Mobile User (Public):** Touch targets 44px+? No horizontal scrolling on 320px?
-    * **The Skimmer (Public):** Value delivered in < 5 seconds?
-
-2.  **Constraints & Tech Strategy:**
-    * **Data Source:** **Firestore is the SSOT.**
-        * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
-        * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.
-    * **Security:** Does this require a change to `firestore.rules`?
-    * **State:** Prefer React 19 `Suspense` and URL-based state over complex `useEffect` chains.
-    * **Styling:** Tailwind v4 (Mobile-First).
-
-**ğŸ›‘ STOP & THINK: Architectural Options**
-Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approaches**:
-
-1.  **The "Client-Heavy" Approach:** fast UI, relies on client-side SDK. Good for real-time interactivity.
-2.  **The "Server-Secure" Approach:** Offloads logic to Cloud Functions. Mandatory for AI/LLM operations and sensitive data writes.
-3.  **The "Balanced/Hybrid" Approach:** Optimistic UI updates with background server validation.
-
-**Your Output Deliverable:**
-1.  **Analysis:** A brief breakdown of the UX and Security challenges.
-2.  **The Options Table:** Compare approaches based on:
-    * *Security Risk*
-    * *Latency/Performance*
-    * *Maintenance Cost*
-3.  **Recommendation:** Select one approach and explain *why* it fits our "Secure Productivity" philosophy.
-4.  **Wait:** End your response by asking for approval to proceed.
-
----
-
-**Codebase Context:**
-[PASTE_CODEBASE_HERE]
-
-```
----
-
-## FILE: docs/PROMPT_INITIALIZATION.md
-```md
-# ğŸ¤– AI Session Initialization Prompt (v2.0)
-
-**Role:** Senior Fullstack Architect & AI Integration Engineer.
-
-**Core Context:**
-* We are building a Resume CMS with Gemini AI integration.
-* **Security:** Firebase Auth is the entry point for `/admin`.
-* **Data:** Transitioning to Firestore. Components must handle 'Loading' and 'Empty' database states.
-
-**Critical Rules:**
-1. **Never Hardcode Keys:** Use `import.meta.env.VITE_*` and check for existence.
-2. **Complete Files Only:** Maintain the existing pattern of full-file delivery.
-3. **Modular AI:** Prompts sent to Gemini should be versioned and kept in `src/lib/ai/prompts.js`.
-
-**Reply 'Platform Architecture Loaded. Ready for Phase 14.'**
-```
----
-
-## FILE: docs/PROMPT_POST_FEATURE.md
-```md
-# ğŸ“ AI Documentation Audit Prompt (The Maintainer v2.3)
-
-**Instructions:**
-Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and verified.
-
----
-
-### **Prompt Template**
-
-**Role:** You are the Lead Technical Writer and Open Source Maintainer.
-**Task:** Perform a comprehensive documentation audit, synchronization, and process retrospective.
-
-**Trigger:** We have just completed: **[INSERT FEATURE NAME]**.
-
-**The "Preservation Protocol" (CRITICAL RULES):**
-1.  **Never Truncate History:** When updating logs or status files, preserve all previous entries. Use `read()` + `append/insert` logic.
-2.  **No Placeholders:** Output full, compilable files only.
-3.  **Holistic Scan:** You must evaluate **ALL** files in `/docs`, not just the status trackers.
-
-**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following updates:
-
-### Phase 1: Status & Logs
-1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version. **Keep** the "Completed Roadmap".
-2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top. **Keep** all older versions.
-
-### Phase 2: Technical Context
-3.  **`docs/CONTEXT_DUMP.md`**: Update stack details, new libraries, or architectural decisions.
-4.  **`docs/DEPLOYMENT.md`**: Did we add new Secrets or Config? Update the instructions.
-5.  **`docs/SECURITY_MODEL.md`**: Did we change headers or rules? Update the policy.
-
-### Phase 3: The "Continuous Improvement" Loop (CRITICAL)
-*Did we encounter recurring errors or discover new best practices during this sprint?*
-6.  **`docs/PROMPT_FEATURE_REQUEST.md`**: If a new requirement type emerged (e.g., "Mobile-First"), add it to the "Persona Check".
-7.  **`docs/PROMPT_APPROVAL.md`**: If we fixed a deployment bug (e.g., "Missing Headers"), add a **Strict Technical Constraint** to the Builder's list to prevent recurrence.
-8.  **`docs/PROMPT_TESTING.md`**: If a test crashed (e.g., "Env vars missing"), add a constraint to the QA Engineer's list.
-
-**Output Requirement:**
-* Provide a single, robust **Python Script**.
-* The script must handle UTF-8 encoding.
-* The script must explicitly reconstruct file content to ensure no data loss.
-
-**Wait:** Ask me for the feature name and **"Were there any specific errors we fixed that should be added to the process constraints?"**
-
-```
----
-
-## FILE: docs/PROMPT_TESTING.md
-```md
-# ğŸ§ª AI Testing Prompt (The QA Engineer)
-
-**Instructions:**
-Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Done".
-
----
-
-### **Prompt Template**
-
-**Role:** You are the Senior SDET (Software Development Engineer in Test).
-**Task:** Write a robust Unit Test for the provided component using Vitest.
-
-**Input:**
-* Component Code: [PASTE CODE]
-* Data Context: [PASTE JSON SNIPPET]
-
-**Constraints & Best Practices:**
-1.  **Environment Mocking (CRITICAL):**
-    * The Firebase SDK will crash instantly if `VITE_API_KEY` is undefined.
-    * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
-    * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
-    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
+"""
+    # Insert new entry after the main header or first known version
+    # Strategy: Find the first "## [" line and insert before it
+    match = re.search(r'## \[v', changelog_content)
+    if match:
+        insert_pos = match.start()
+        new_changelog = changelog_content[:insert_pos] + new_entry + changelog_content[insert_pos:]
+        write_file(changelog_path, new_changelog)
+    else:
+        # Fallback if file is empty or formatted differently
+        new_changelog = "# ğŸ“œ Changelog\n\n" + new_entry + changelog_content
+        write_file(changelog_path, new_changelog)
+
+
+# ==========================================
+# PHASE 2: TECHNICAL CONTEXT
+# ==========================================
+
+# 3. Update CONTEXT_DUMP.md
+# ------------------------------------------
+context_path = 'docs/CONTEXT_DUMP.md'
+context_content = read_file(context_path)
+
+if context_content and "JobTracker.jsx" not in context_content:
+    # Locate the admin component line
+    target_line = "* `src/components/admin` -> CMS specific UI."
+    replacement = "* `src/components/admin` -> CMS specific UI.\n    * `JobTracker.jsx`: Input for AI Analysis (Async Trigger Pattern)."
+    
+    if target_line in context_content:
+        context_content = context_content.replace(target_line, replacement)
+        write_file(context_path, context_content)
+
+# 4. Update SECURITY_MODEL.md
+# ------------------------------------------
+security_path = 'docs/SECURITY_MODEL.md'
+security_content = read_file(security_path)
+
+if security_content and "`applications`" not in security_content:
+    # Find the table rows and append
+    # Looking for the last row usually projects
+    target_row = "| `projects` | ğŸŒ Public | ğŸ” Auth Only |"
+    new_row = "\n| `applications` | â›” None | ğŸ” Admin Only |"
+    
+    if target_row in security_content:
+        security_content = security_content.replace(target_row, target_row + new_row)
+        write_file(security_path, security_content)
+
+
+# ==========================================
+# PHASE 3: CONTINUOUS IMPROVEMENT (PROCESS)
+# ==========================================
+
+# 5. Update PROMPT_TESTING.md
+# ------------------------------------------
+testing_prompt_path = 'docs/PROMPT_TESTING.md'
+testing_content = read_file(testing_prompt_path)
+
+if testing_content:
+    # We want to add new constraints to item 1 (Environment Mocking) or create a new item.
+    # Let's append to the Constraints section generally.
+    
+    new_constraints = """    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
     * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
-
-2.  **Testing Strategy:**
-    * **Happy Path:** Does it render data correctly?
-    * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
-    * **Error State:** Does it degrade gracefully to the Fallback JSON?
-3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
-
-**Output Requirements:**
-* A complete `.test.jsx` file.
-* **Do not** reference real database paths. Use mocks.
-
-**Wait:** Ask me to paste the Component Code to begin.
-
-```
----
-
-## FILE: docs/SCHEMA_ARCHITECTURE.md
-```md
-# ğŸ—„ï¸ Schema Architecture & Data Graph
-
-**Storage Engine:** Cloud Firestore (NoSQL)
-**Pattern:** Collection-Centric with Sub-Collections.
-
-## 1. High-Level Topology
-```mermaid
-graph TD
-    root[ğŸ”¥ Firestore Root]
+"""
     
-    %% Top Level Collections
-    root --> profile[ğŸ“‚ profile]
-    root --> skills[ğŸ“‚ skills]
-    root --> sectors[ğŸ“‚ sectors]
-    root --> experience[ğŸ“‚ experience]
+    # Hook into the existing list. Looking for "Constraints & Best Practices:"
+    # We will append these as sub-bullets under rule #1 or just add them to the list logic.
+    # A safe place is to replace the "Constraints & Best Practices:" block or append to the end of Rule 1.
     
-    %% Relationships
-    experience --> job[ğŸ“„ Job Document]
-    job --> projects[ğŸ“‚ projects (Sub-Collection)]
-    projects --> project[ğŸ“„ Project Document]
-```
-
-## 2. The "Deep Fetch" Strategy (CRITICAL)
-**Firestore queries are shallow.** Fetching a Job document **DOES NOT** automatically fetch its `projects` sub-collection.
-
-### The Client-Side Join Pattern
-Any component displaying Experience (e.g., `ResumeContext`) **MUST** implement this recursive logic:
-1.  Fetch all `experience` documents.
-2.  Map over the results.
-3.  For *each* job, perform a second `getDocs` call to its `projects` sub-collection.
-4.  Merge the `projects` array into the parent job object.
-5.  Return the hydrated tree.
-
-**âŒ BAD (Will Result in Empty Projects):**
-```javascript
-const jobs = await getDocs(collection(db, 'experience'));
-return jobs.docs.map(d => d.data());
-```
-
-**âœ… GOOD (Hydrated):**
-```javascript
-const jobs = await Promise.all(snapshot.docs.map(async (doc) => {
-  const projects = await getDocs(collection(doc.ref, 'projects'));
-  return { ...doc.data(), projects: projects.docs.map(p => p.data()) };
-}));
-```
-
-## 3. The "Indestructible" Fallback
-We implement a **Hybrid Data Strategy**:
-1.  **Attempt:** Fetch from Firestore.
-2.  **Catch:** If *any* error occurs (Quota, Offline, Rules), swallow the error and return `src/data/*.json`.
-3.  **Result:** The app never crashes, even if the database is down.
-
-```
----
-
-## FILE: docs/SECURITY_MODEL.md
-```md
-# ğŸ›¡ï¸ Security Model & Access Control
-
-**Auth Provider:** Firebase Authentication (Google OAuth)
-**Strategy:** Zero Trust Client / Strict Server-Side Rules
-
-## 1. Authentication Layer
-### The Whitelist Gate
-* **Location:** Client-Side (`src/context/AuthContext.jsx`) & Server-Side (`firestore.rules`).
-* **Mechanism:**
-  1. User signs in via Google.
-  2. App checks `user.email` against `import.meta.env.VITE_ADMIN_EMAIL`.
-  3. If no match, the user is signed out immediately or redirected to Public View.
-
-## 2. Authorization (Firestore Rules)
-We utilize a **"Public Read / Admin Write"** policy.
-
-| Collection | Read Permission | Write Permission |
-| :--- | :--- | :--- |
-| `profile` | ğŸŒ Public | ğŸ” Auth Only |
-| `skills` | ğŸŒ Public | ğŸ” Auth Only |
-| `experience` | ğŸŒ Public | ğŸ” Auth Only |
-| `projects` | ğŸŒ Public | ğŸ” Auth Only |
-| `applications` | â›” None | ğŸ” Admin Only |
-
-**Current Rule Implementation:**
-```javascript
-allow read: if true;
-allow write: if request.auth != null; // Relies on UI Whitelisting for now
-```
-> âš ï¸ **Note:** In Phase 17, we will upgrade the Write rule to strictly check `request.auth.token.email == 'YOUR_EMAIL'` for backend-level enforcement.
-
-## 3. API Key Exposure Strategy
-It is standard practice to expose the `VITE_API_KEY` in the frontend bundle. This key **does not** grant administrative access. It simply identifies the Firebase project.
-
-**Defense in Depth:**
-1. **Security Rules:** Prevent unauthorized writes even if someone steals the API Key.
-2. **App Check:** (Planned Phase 18) Verify traffic comes from your specific domain.
-3. **Cloud Functions:** Sensitive AI logic (Gemini) runs on the server, keeping the LLM API Key strictly hidden from the browser.
-
-## 4. Header Security (COOP/COEP)
-To support high-performance `SharedArrayBuffer` (potential future use) and Google Identity Services, we enforce:
-* `Cross-Origin-Opener-Policy: same-origin-allow-popups`
-* `Cross-Origin-Embedder-Policy: unsafe-none`
-
-```
----
-
-## FILE: scripts/deploy_feature.sh
-```sh
-#!/bin/bash
-
-# ==========================================
-# ğŸš€ DEPLOYMENT PROTOCOL: PHASE 16.1
-# ==========================================
-
-BRANCH_NAME="feature/phase-16-firestore"
-COMMIT_MSG="feat(db): initialize firestore schema, seeding tool, and vite fix"
-
-echo "ğŸ” Checking Git Status..."
-if [ -n "$(git status --porcelain)" ]; then 
-    echo "âš ï¸  Uncommitted changes detected. Staging them now..."
-else
-    echo "âœ… Working directory clean."
-fi
-
-# 1. Create/Switch Branch
-echo "ğŸŒ¿ Switching to branch: $BRANCH_NAME"
-git checkout -b $BRANCH_NAME 2>/dev/null || git checkout $BRANCH_NAME
-
-# 2. Stage & Commit
-echo "ğŸ“¦ Staging files..."
-git add .
-
-echo "ğŸ’¾ Committing changes..."
-git commit -m "$COMMIT_MSG"
-
-# 3. Push to Origin
-echo "ğŸš€ Pushing to origin..."
-git push -u origin $BRANCH_NAME
-
-# 4. Instructions
-echo ""
-echo "=========================================="
-echo "âœ… Feature Branch Pushed Successfully!"
-echo "=========================================="
-echo "ğŸ‘‰ Next Steps:"
-echo "1. Go to GitHub and open a Pull Request for '$BRANCH_NAME'."
-echo "2. Wait for the 'Deploy to Preview Channel' action to pass."
-echo "3. Verify the Preview URL provided by the bot."
-echo "4. If stable, merge to 'main' to deploy to Production."
-echo "=========================================="
-```
----
-
-## FILE: scripts/generate-context.sh
-```sh
-#!/bin/bash
-
-# ==========================================
-# ğŸš€ FRESH NEST: DEEP CONTEXT GENERATOR
-# ==========================================
-
-OUTPUT_FILE="docs/FULL_CODEBASE_CONTEXT.md"
-
-echo "ğŸ”„ Generating Context Dump..."
-echo "# FRESH NEST: CODEBASE DUMP" > "$OUTPUT_FILE"
-echo "**Date:** $(date)" >> "$OUTPUT_FILE"
-echo "**Description:** Complete codebase context." >> "$OUTPUT_FILE"
-echo "" >> "$OUTPUT_FILE"
-
-ingest_file() {
-    local filepath="$1"
+    # Searching for Rule 1's end
+    rule_1_marker = "* *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls."
     
-    # SECURITY CHECK: Skip if file matches sensitive patterns
-    if [[ "$filepath" == *".env"* ]] || [[ "$filepath" == *"service-account"* ]] || [[ "$filepath" == *".DS_Store"* ]]; then
-        return
-    fi
+    if rule_1_marker in testing_content and "Path Verification" not in testing_content:
+        testing_content = testing_content.replace(rule_1_marker, rule_1_marker + "\n" + new_constraints)
+        write_file(testing_prompt_path, testing_content)
 
-    if [ -f "$filepath" ]; then
-        echo "Processing: $filepath"
-        
-        # Markdown Header for the file
-        echo "## FILE: $filepath" >> "$OUTPUT_FILE"
-        echo "\`\`\`${filepath##*.}" >> "$OUTPUT_FILE" # Use extension for syntax highlighting
-        
-        # Cat the content
-        cat "$filepath" >> "$OUTPUT_FILE"
-        
-        echo "" >> "$OUTPUT_FILE"
-        echo "\`\`\`" >> "$OUTPUT_FILE"
-        echo "---" >> "$OUTPUT_FILE"
-        echo "" >> "$OUTPUT_FILE"
-    fi
-}
 
-# Root Configs
-ingest_file "package.json"
-ingest_file "vite.config.js"
-ingest_file "tailwind.config.js"
-ingest_file "firebase.json"
-ingest_file ".firebaserc"
+# 6. Update PROMPT_APPROVAL.md
+# ------------------------------------------
+approval_prompt_path = 'docs/PROMPT_APPROVAL.md'
+approval_content = read_file(approval_prompt_path)
 
-# Source Code
-find src -type f -not -path "*/.*" | sort | while read file; do ingest_file "$file"; done
+if approval_content:
+    # Add constraint to "Strict Technical Constraints"
+    # We'll look for the last item in that list (usually item 3 Environment Awareness)
+    
+    new_constraint = """4.  **UI Resilience:**
+    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
+"""
+    
+    # Find the end of item 3
+    # Matches: * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
+    item_3_marker = "* **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`)."
+    
+    if item_3_marker in approval_content and "UI Resilience" not in approval_content:
+        approval_content = approval_content.replace(item_3_marker, item_3_marker + "\n" + new_constraint)
+        write_file(approval_prompt_path, approval_content)
 
-# Documentation
-find docs -type f -name "*.md" -not -name "FULL_CODEBASE_CONTEXT.md" | sort | while read file; do ingest_file "$file"; done
-
-# Scripts
-find scripts -type f \( -name "*.js" -o -name "*.cjs" -o -name "*.sh" \) | sort | while read file; do ingest_file "$file"; done
-
-# CI/CD Workflows
-find .github/workflows -type f -name "*.yml" | sort | while read file; do ingest_file "$file"; done
-
-# -----------------------------------------------------------
-# âœ… NEW: Cloud Functions (Backend Logic)
-# -----------------------------------------------------------
-# We explicitly find files in 'functions' but exclude node_modules
-find functions -type f -not -path "*/node_modules/*" -not -path "*/.*" | sort | while read file; do ingest_file "$file"; done
-
-echo "âœ… Context Generated at: $OUTPUT_FILE"
+print("\nğŸ‰ Documentation Audit Complete. All files synchronized for Sprint 17.2.")
 ```
 ---
 
-## FILE: scripts/update_data.sh
-```sh
-#!/bin/bash
-
-# ==========================================
-# ğŸ’¾ Data Restore Script (Source of Truth)
-# ==========================================
-# Run this to reset src/data/*.json to the Gold Master state.
-
-DATA_DIR="src/data"
-mkdir -p "$DATA_DIR"
-
-echo "Restoring profile.json..."
-cat << 'JSON' > "$DATA_DIR/profile.json"
-{
-  "basics": {
-    "name": "Ryan Douglas",
-    "label": "Management Consultant & Power BI Developer",
-    "email": "rpdouglas@gmail.com",
-    "phone": "613.936.6341",
-    "location": "Cornwall, Ontario",
-    "summary": "A results-driven Data & Analytics Leader with 15 years of experience bridging the gap between high-level business strategy and granular technical execution. Proven expertise in leading cross-functional teams through complex digital transformations and building enterprise-grade BI solutions from the ground up.",
-    "website": "https://ryandouglas-resume.web.app",
-    "github": "https://github.com/rpdouglas",
-    "linkedin": "https://linkedin.com/in/ryandouglas"
-  },
-  "metrics": {
-    "yearsExperience": 15,
-    "projectsDelivered": 40,
-    "certifications": 2
-  }
-}
-JSON
-
-echo "Restoring skills.json..."
-cat << 'JSON' > "$DATA_DIR/skills.json"
-[
-  {
-    "id": "strategy",
-    "label": "Business Strategy",
-    "data": [
-      { "subject": "Change Mgmt", "A": 95, "fullMark": 100 },
-      { "subject": "Stakeholder Mgmt", "A": 90, "fullMark": 100 },
-      { "subject": "Digital Strategy", "A": 95, "fullMark": 100 },
-      { "subject": "Process Opt", "A": 85, "fullMark": 100 },
-      { "subject": "Risk Mitigation", "A": 80, "fullMark": 100 }
-    ]
-  },
-  {
-    "id": "technical",
-    "label": "Technical Stack",
-    "data": [
-      { "subject": "Power BI / DAX", "A": 95, "fullMark": 100 },
-      { "subject": "SQL / T-SQL", "A": 90, "fullMark": 100 },
-      { "subject": "ETL (SSIS)", "A": 85, "fullMark": 100 },
-      { "subject": "Data Modeling", "A": 90, "fullMark": 100 },
-      { "subject": "C# / VB.NET", "A": 75, "fullMark": 100 }
-    ]
-  }
-]
-JSON
-
-echo "Restoring experience.json (Nested Project Schema)..."
-cat << 'JSON' > "$DATA_DIR/experience.json"
-[
-  {
-    "id": "job_pwc",
-    "role": "Manager (Data & Analytics)",
-    "company": "PwC Canada LLP",
-    "date": "2012 - 2024",
-    "logo": "ğŸ’¼",
-    "summary": "Senior management consultant leading data-driven transformation projects and advising government leaders while engineering hands-on analytics solutions.",
-    "skills": ["Digital Strategy", "Leadership", "Stakeholder Mgmt"],
-    "projects": [
-      {
-        "id": "pwc_proj_1",
-        "title": "Public Sector Digital Transformation",
-        "skills": ["Power BI", "SQL", "Change Management"],
-        "par": {
-          "problem": "Government clients struggled with fragmented data ecosystems, preventing executive visibility into critical operations.",
-          "action": "Architected target operating models and deployed advanced Power BI dashboards to track customer journeys.",
-          "result": "Delivered sustainable digital transformation, aligning technical execution with strategic business objectives."
-        }
-      },
-      {
-        "id": "pwc_proj_2",
-        "title": "Omnichannel Contact Center Modernization",
-        "skills": ["Data Modeling", "Azure", "Risk Assessment"],
-        "par": {
-          "problem": "Legacy contact center infrastructure lacked integration, leading to poor customer insights and operational inefficiencies.",
-          "action": "Led the design and deployment of modern BI solutions, integrating data from multiple channels for a unified view.",
-          "result": "Enhanced operational efficiency and enabled real-time reporting for high-stakes regulatory environments."
-        }
-      }
-    ]
-  },
-  {
-    "id": "job_biond",
-    "role": "Business Intelligence Developer",
-    "company": "Biond Consulting",
-    "date": "2011 - 2012",
-    "logo": "ğŸ“Š",
-    "summary": "Specialized in end-to-end Microsoft BI solutions, from architecting data warehouses to building robust reporting dashboards.",
-    "skills": ["Microsoft BI Stack", "Consulting"],
-    "projects": [
-      {
-        "id": "biond_proj_1",
-        "title": "Retail Analytics Platform Migration",
-        "skills": ["SSIS", "Data Warehousing", "ETL"],
-        "par": {
-          "problem": "A major Canadian clothing retailer relied on legacy systems that could not scale with their growing data volume.",
-          "action": "Built and optimized complex ETL pipelines using SSIS and architected a new enterprise-grade data warehouse.",
-          "result": "Successfully transitioned client to a modern analytics platform, significantly enhancing strategic insight capabilities."
-        }
-      },
-      {
-        "id": "biond_proj_2",
-        "title": "Distributor Reporting Solution",
-        "skills": ["SSRS", "SQL", "KPI Definition"],
-        "par": {
-          "problem": "A major distributor lacked the reporting infrastructure to make timely inventory and sales decisions.",
-          "action": "Collaborated with clients to define critical KPIs and delivered a custom SSRS reporting solution.",
-          "result": "Strengthened executive decision-making and improved business responsiveness post-implementation."
-        }
-      }
-    ]
-  },
-  {
-    "id": "job_tele",
-    "role": "Manager, Data and Analytics",
-    "company": "Teleperformance",
-    "date": "2005 - 2011",
-    "logo": "ğŸŒ",
-    "summary": "Managed the data and analytics team driving strategy and transformation across international operations.",
-    "skills": ["Team Leadership", "Process Improvement"],
-    "projects": [
-      {
-        "id": "tp_proj_1",
-        "title": "Global Contact Center Automation",
-        "skills": ["C#", "SharePoint", "Automation"],
-        "par": {
-          "problem": "International operations relied on manual reporting processes, causing data latency and high operational costs.",
-          "action": "Managed the full SDLC of automated reporting solutions using C#, SharePoint, and SQL.",
-          "result": "Implemented automated processes that resulted in significant time and cost savings across multiple departments."
-        }
-      },
-      {
-        "id": "tp_proj_2",
-        "title": "Executive Dashboard Suite",
-        "skills": ["SSRS", "Visual Studio", "SQL Server"],
-        "par": {
-          "problem": "Leadership lacked clear visibility into performance metrics and operational health across regions.",
-          "action": "Developed custom dashboards and scorecards to standardize performance tracking globally.",
-          "result": "Provided leadership with real-time visibility, enabling faster resolution of operational incidents."
-        }
-      }
-    ]
-  }
-]
-JSON
-
-chmod +x scripts/update_data.sh
-
-echo "=========================================="
-echo "âœ… Codebase Cleaned & Secured."
-echo "ğŸ‘‰ Deleted: src/App.css, src/assets/react.svg"
-echo "ğŸ‘‰ Secured: scripts/update_data.sh now contains REAL data."
-echo "=========================================="
-
-```
----
-
-## FILE: .github/workflows/deploy-preview.yml
-```yml
-name: Deploy to Preview Channel
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-# âœ… FIX: Grant permissions to write checks and PR comments
-permissions:
-  checks: write
-  contents: read
-  pull-requests: write
-
-jobs:
-  build_and_preview:
-    if: '${{ github.event.pull_request.head.repo.full_name == github.repository }}'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Dependencies
-        run: npm ci
-
-      # âœ… FIX: Inject VITE_ vars during build
-      - name: Build
-        run: npm run build
-        env:
-          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
-          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
-          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
-          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
-          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
-          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
-          # We don't need the Admin Email for public preview builds usually, 
-          # but if you have logic relying on it, you can add it here.
-
-      - name: Deploy to Firebase Preview
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
-
-```
----
-
-## FILE: .github/workflows/deploy-prod.yml
-```yml
-name: Deploy to Live Production
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build_and_deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Dependencies
-        run: npm ci
-
-      # âœ… FIX: Inject VITE_ vars during build
-      - name: Build
-        run: npm run build
-        env:
-          VITE_API_KEY: ${{ secrets.VITE_API_KEY }}
-          VITE_AUTH_DOMAIN: ${{ secrets.VITE_AUTH_DOMAIN }}
-          VITE_PROJECT_ID: ${{ secrets.VITE_PROJECT_ID }}
-          VITE_STORAGE_BUCKET: ${{ secrets.VITE_STORAGE_BUCKET }}
-          VITE_MESSAGING_SENDER_ID: ${{ secrets.VITE_MESSAGING_SENDER_ID }}
-          VITE_APP_ID: ${{ secrets.VITE_APP_ID }}
-          VITE_MEASUREMENT_ID: ${{ secrets.VITE_MEASUREMENT_ID }}
-
-      - name: Deploy to Live
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}'
-          projectId: '${{ secrets.FIREBASE_PROJECT_ID }}'
-          channelId: live
-
-```
----
-
-## FILE: functions/check_models.js
+## FILE: vite.config.js
 ```js
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
+import packageJson from './package.json'
 
-async function listModels() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    console.error("âŒ Error: GEMINI_API_KEY environment variable is missing.");
-    process.exit(1);
-  }
-
-  try {
-    const genAI = new GoogleGenerativeAI(key);
-    // Note: The SDK doesn't always expose listModels directly on the client 
-    // depending on version, so we fallback to the raw REST endpoint if needed,
-    // but let's try a direct fetch which is 100% reliable for debugging.
-    
-    console.log("ğŸ“¡ Querying Google AI API for available models...");
-    
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
-    );
-    
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    console.log("\nâœ… AVAILABLE MODELS FOR YOUR KEY:");
-    console.log("===================================");
-    
-    const models = data.models || [];
-    const generateModels = models.filter(m => m.supportedGenerationMethods.includes("generateContent"));
-    
-    generateModels.forEach(m => {
-      console.log(`ğŸ”¹ ${m.name.replace('models/', '')}`);
-      // console.log(`   Description: ${m.description.substring(0, 60)}...`);
-    });
-    
-    console.log("===================================");
-
-  } catch (error) {
-    console.error("ğŸ”¥ Failed to list models:", error.message);
-  }
-}
-
-listModels();
-
-```
----
-
-## FILE: functions/index.js
-```js
-/**
- * ğŸ§  The Vector Matching Engine
- * Sprint 17.2 - Gemini 2.5 Flash Integration
- */
-
-const { onDocumentWritten } = require("firebase-functions/v2/firestore");
-const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-initializeApp();
-const db = getFirestore();
-
-// ğŸ” Initialize Gemini
-// Ensure GOOGLE_API_KEY is set in Firebase Secrets or Environment Variables
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-
-/**
- * Helper: Deep Fetch Resume Context
- * Retrieves Profile, Skills, and Experience (with nested Projects)
- */
-async function getResumeContext() {
-  // 1. Profile
-  const profileSnap = await db.doc('profile/primary').get();
-  const profile = profileSnap.data();
-
-  // 2. Skills
-  const skillsSnap = await db.collection('skills').get();
-  const skills = skillsSnap.docs.map(d => d.data());
-
-  // 3. Experience & Projects (The "Deep Read")
-  const expSnap = await db.collection('experience').get();
-  const experience = await Promise.all(expSnap.docs.map(async (doc) => {
-    const jobData = doc.data();
-    // Fetch sub-collection 'projects'
-    const projectsSnap = await doc.ref.collection('projects').get();
-    const projects = projectsSnap.docs.map(p => ({ id: p.id, ...p.data() }));
-    return { ...jobData, projects };
-  }));
-
-  return { profile, skills, experience };
-}
-
-/**
- * âš¡ Trigger: Analyze Application
- * Listens for new/updated documents in 'applications' collection.
- */
-exports.analyzeApplication = onDocumentWritten("applications/{docId}", async (event) => {
-  const snapshot = event.data;
-  if (!snapshot) return; // Deletion event
-
-  const newData = snapshot.after.data();
-  const previousData = snapshot.before.data();
-
-  // ğŸ›‘ GUARDRAIL: Infinite Loop Prevention
-  // Only run if status is 'pending' AND strictly different from before
-  if (newData.ai_status !== 'pending') return;
-  if (previousData && previousData.ai_status === 'pending') return;
-
-  console.log(`ğŸš€ Starting analysis for Application: ${newData.company}`);
-
-  try {
-    // 1. Set status to 'processing' (Optional safety, but good practice)
-    await snapshot.after.ref.update({ ai_status: 'processing' });
-
-    // 2. Fetch The Full Context
-    const resumeContext = await getResumeContext();
-
-    // 3. Construct the Prompt
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
-      generationConfig: { responseMimeType: "application/json" } // Force strict JSON
-    });
-
-    const systemPrompt = `
-      You are a Senior Technical Recruiter and Career Strategist.
-      
-      YOUR GOAL:
-      Analyze the provided Job Description (JD) against the Candidate's Resume Context.
-      Identify alignment gaps, keyword mismatches, and strategic angles.
-
-      RESUME CONTEXT:
-      ${JSON.stringify(resumeContext)}
-
-      OUTPUT REQUIREMENTS:
-      Return strictly a JSON object with this schema:
-      {
-        "match_score": Integer (0-100),
-        "keywords_missing": Array of Strings (Critical tech/skills in JD not in Resume),
-        "suggested_projects": Array of Strings (IDs of the 3 most relevant projects from Resume),
-        "tailored_summary": String (A 2-sentence professional summary tailored to this JD),
-        "gap_analysis": String (Brief explanation of why the score is what it is)
-      }
-    `;
-
-    const userPrompt = `
-      JOB DESCRIPTION FOR: ${newData.company} (${newData.role})
-      
-      ${newData.raw_text}
-    `;
-
-    // 4. Generate Content
-    const result = await model.generateContent([systemPrompt, userPrompt]);
-    const response = await result.response;
-    const analysis = JSON.parse(response.text());
-
-    // 5. Write Result back to Firestore
-    await snapshot.after.ref.update({
-      ...analysis,
-      ai_status: 'complete',
-      updated_at: new Date() // Use server timestamp logic if preferred
-    });
-
-    console.log(`âœ… Analysis complete for ${newData.company}. Score: ${analysis.match_score}`);
-
-  } catch (error) {
-    console.error("ğŸ’¥ AI Analysis Failed:", error);
-    
-    await snapshot.after.ref.update({
-      ai_status: 'error',
-      error_log: error.message
-    });
-  }
-});
-
-```
----
-
-## FILE: functions/package-lock.json
-```json
-{
-  "name": "functions",
-  "lockfileVersion": 3,
-  "requires": true,
-  "packages": {
-    "": {
-      "name": "functions",
-      "dependencies": {
-        "@google/generative-ai": "^0.21.0",
-        "firebase-admin": "^12.7.0",
-        "firebase-functions": "^7.0.3"
-      },
-      "engines": {
-        "node": "20"
-      }
-    },
-    "node_modules/@fastify/busboy": {
-      "version": "3.2.0",
-      "resolved": "https://registry.npmjs.org/@fastify/busboy/-/busboy-3.2.0.tgz",
-      "integrity": "sha512-m9FVDXU3GT2ITSe0UaMA5rU3QkfC/UXtCU8y0gSN/GugTqtVldOBWIB5V6V3sbmenVZUIpU6f+mPEO2+m5iTaA==",
-      "license": "MIT"
-    },
-    "node_modules/@firebase/app-check-interop-types": {
-      "version": "0.3.2",
-      "resolved": "https://registry.npmjs.org/@firebase/app-check-interop-types/-/app-check-interop-types-0.3.2.tgz",
-      "integrity": "sha512-LMs47Vinv2HBMZi49C09dJxp0QT5LwDzFaVGf/+ITHe3BlIhUiLNttkATSXplc89A2lAaeTqjgqVkiRfUGyQiQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@firebase/app-types": {
-      "version": "0.9.2",
-      "resolved": "https://registry.npmjs.org/@firebase/app-types/-/app-types-0.9.2.tgz",
-      "integrity": "sha512-oMEZ1TDlBz479lmABwWsWjzHwheQKiAgnuKxE0pz0IXCVx7/rtlkx1fQ6GfgK24WCrxDKMplZrT50Kh04iMbXQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@firebase/auth-interop-types": {
-      "version": "0.2.3",
-      "resolved": "https://registry.npmjs.org/@firebase/auth-interop-types/-/auth-interop-types-0.2.3.tgz",
-      "integrity": "sha512-Fc9wuJGgxoxQeavybiuwgyi+0rssr76b+nHpj+eGhXFYAdudMWyfBHvFL/I5fEHniUM/UQdFzi9VXJK2iZF7FQ==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/@firebase/component": {
-      "version": "0.6.9",
-      "resolved": "https://registry.npmjs.org/@firebase/component/-/component-0.6.9.tgz",
-      "integrity": "sha512-gm8EUEJE/fEac86AvHn8Z/QW8BvR56TBw3hMW0O838J/1mThYQXAIQBgUv75EqlCZfdawpWLrKt1uXvp9ciK3Q==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "@firebase/util": "1.10.0",
-        "tslib": "^2.1.0"
-      }
-    },
-    "node_modules/@firebase/database": {
-      "version": "1.0.8",
-      "resolved": "https://registry.npmjs.org/@firebase/database/-/database-1.0.8.tgz",
-      "integrity": "sha512-dzXALZeBI1U5TXt6619cv0+tgEhJiwlUtQ55WNZY7vGAjv7Q1QioV969iYwt1AQQ0ovHnEW0YW9TiBfefLvErg==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "@firebase/app-check-interop-types": "0.3.2",
-        "@firebase/auth-interop-types": "0.2.3",
-        "@firebase/component": "0.6.9",
-        "@firebase/logger": "0.4.2",
-        "@firebase/util": "1.10.0",
-        "faye-websocket": "0.11.4",
-        "tslib": "^2.1.0"
-      }
-    },
-    "node_modules/@firebase/database-compat": {
-      "version": "1.0.8",
-      "resolved": "https://registry.npmjs.org/@firebase/database-compat/-/database-compat-1.0.8.tgz",
-      "integrity": "sha512-OpeWZoPE3sGIRPBKYnW9wLad25RaWbGyk7fFQe4xnJQKRzlynWeFBSRRAoLE2Old01WXwskUiucNqUUVlFsceg==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "@firebase/component": "0.6.9",
-        "@firebase/database": "1.0.8",
-        "@firebase/database-types": "1.0.5",
-        "@firebase/logger": "0.4.2",
-        "@firebase/util": "1.10.0",
-        "tslib": "^2.1.0"
-      }
-    },
-    "node_modules/@firebase/database-types": {
-      "version": "1.0.5",
-      "resolved": "https://registry.npmjs.org/@firebase/database-types/-/database-types-1.0.5.tgz",
-      "integrity": "sha512-fTlqCNwFYyq/C6W7AJ5OCuq5CeZuBEsEwptnVxlNPkWCo5cTTyukzAHRSO/jaQcItz33FfYrrFk1SJofcu2AaQ==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "@firebase/app-types": "0.9.2",
-        "@firebase/util": "1.10.0"
-      }
-    },
-    "node_modules/@firebase/logger": {
-      "version": "0.4.2",
-      "resolved": "https://registry.npmjs.org/@firebase/logger/-/logger-0.4.2.tgz",
-      "integrity": "sha512-Q1VuA5M1Gjqrwom6I6NUU4lQXdo9IAQieXlujeHZWvRt1b7qQ0KwBaNAjgxG27jgF9/mUwsNmO8ptBCGVYhB0A==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "tslib": "^2.1.0"
-      }
-    },
-    "node_modules/@firebase/util": {
-      "version": "1.10.0",
-      "resolved": "https://registry.npmjs.org/@firebase/util/-/util-1.10.0.tgz",
-      "integrity": "sha512-xKtx4A668icQqoANRxyDLBLz51TAbDP9KRfpbKGxiCAW346d0BeJe5vN6/hKxxmWwnZ0mautyv39JxviwwQMOQ==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "tslib": "^2.1.0"
-      }
-    },
-    "node_modules/@google-cloud/firestore": {
-      "version": "7.11.6",
-      "resolved": "https://registry.npmjs.org/@google-cloud/firestore/-/firestore-7.11.6.tgz",
-      "integrity": "sha512-EW/O8ktzwLfyWBOsNuhRoMi8lrC3clHM5LVFhGvO1HCsLozCOOXRAlHrYBoE6HL42Sc8yYMuCb2XqcnJ4OOEpw==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "@opentelemetry/api": "^1.3.0",
-        "fast-deep-equal": "^3.1.1",
-        "functional-red-black-tree": "^1.0.1",
-        "google-gax": "^4.3.3",
-        "protobufjs": "^7.2.6"
-      },
-      "engines": {
-        "node": ">=14.0.0"
-      }
-    },
-    "node_modules/@google-cloud/paginator": {
-      "version": "5.0.2",
-      "resolved": "https://registry.npmjs.org/@google-cloud/paginator/-/paginator-5.0.2.tgz",
-      "integrity": "sha512-DJS3s0OVH4zFDB1PzjxAsHqJT6sKVbRwwML0ZBP9PbU7Yebtu/7SWMRzvO2J3nUi9pRNITCfu4LJeooM2w4pjg==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "arrify": "^2.0.0",
-        "extend": "^3.0.2"
-      },
-      "engines": {
-        "node": ">=14.0.0"
-      }
-    },
-    "node_modules/@google-cloud/projectify": {
-      "version": "4.0.0",
-      "resolved": "https://registry.npmjs.org/@google-cloud/projectify/-/projectify-4.0.0.tgz",
-      "integrity": "sha512-MmaX6HeSvyPbWGwFq7mXdo0uQZLGBYCwziiLIGq5JVX+/bdI3SAq6bP98trV5eTWfLuvsMcIC1YJOF2vfteLFA==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "engines": {
-        "node": ">=14.0.0"
-      }
-    },
-    "node_modules/@google-cloud/promisify": {
-      "version": "4.0.0",
-      "resolved": "https://registry.npmjs.org/@google-cloud/promisify/-/promisify-4.0.0.tgz",
-      "integrity": "sha512-Orxzlfb9c67A15cq2JQEyVc7wEsmFBmHjZWZYQMUyJ1qivXyMwdyNOs9odi79hze+2zqdTtu1E19IM/FtqZ10g==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/@google-cloud/storage": {
-      "version": "7.18.0",
-      "resolved": "https://registry.npmjs.org/@google-cloud/storage/-/storage-7.18.0.tgz",
-      "integrity": "sha512-r3ZwDMiz4nwW6R922Z1pwpePxyRwE5GdevYX63hRmAQUkUQJcBH/79EnQPDv5cOv1mFBgevdNWQfi3tie3dHrQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "@google-cloud/paginator": "^5.0.0",
-        "@google-cloud/projectify": "^4.0.0",
-        "@google-cloud/promisify": "<4.1.0",
-        "abort-controller": "^3.0.0",
-        "async-retry": "^1.3.3",
-        "duplexify": "^4.1.3",
-        "fast-xml-parser": "^4.4.1",
-        "gaxios": "^6.0.2",
-        "google-auth-library": "^9.6.3",
-        "html-entities": "^2.5.2",
-        "mime": "^3.0.0",
-        "p-limit": "^3.0.1",
-        "retry-request": "^7.0.0",
-        "teeny-request": "^9.0.0",
-        "uuid": "^8.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/@google-cloud/storage/node_modules/uuid": {
-      "version": "8.3.2",
-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-8.3.2.tgz",
-      "integrity": "sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==",
-      "license": "MIT",
-      "optional": true,
-      "bin": {
-        "uuid": "dist/bin/uuid"
-      }
-    },
-    "node_modules/@google/generative-ai": {
-      "version": "0.21.0",
-      "resolved": "https://registry.npmjs.org/@google/generative-ai/-/generative-ai-0.21.0.tgz",
-      "integrity": "sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==",
-      "license": "Apache-2.0",
-      "engines": {
-        "node": ">=18.0.0"
-      }
-    },
-    "node_modules/@grpc/grpc-js": {
-      "version": "1.14.3",
-      "resolved": "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.14.3.tgz",
-      "integrity": "sha512-Iq8QQQ/7X3Sac15oB6p0FmUg/klxQvXLeileoqrTRGJYLV+/9tubbr9ipz0GKHjmXVsgFPo/+W+2cA8eNcR+XA==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "@grpc/proto-loader": "^0.8.0",
-        "@js-sdsl/ordered-map": "^4.4.2"
-      },
-      "engines": {
-        "node": ">=12.10.0"
-      }
-    },
-    "node_modules/@grpc/grpc-js/node_modules/@grpc/proto-loader": {
-      "version": "0.8.0",
-      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.8.0.tgz",
-      "integrity": "sha512-rc1hOQtjIWGxcxpb9aHAfLpIctjEnsDehj0DAiVfBlmT84uvR0uUtN2hEi/ecvWVjXUGf5qPF4qEgiLOx1YIMQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "lodash.camelcase": "^4.3.0",
-        "long": "^5.0.0",
-        "protobufjs": "^7.5.3",
-        "yargs": "^17.7.2"
-      },
-      "bin": {
-        "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js"
-      },
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/@grpc/proto-loader": {
-      "version": "0.7.15",
-      "resolved": "https://registry.npmjs.org/@grpc/proto-loader/-/proto-loader-0.7.15.tgz",
-      "integrity": "sha512-tMXdRCfYVixjuFK+Hk0Q1s38gV9zDiDJfWL3h1rv4Qc39oILCu1TRTDt7+fGUI8K4G1Fj125Hx/ru3azECWTyQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "lodash.camelcase": "^4.3.0",
-        "long": "^5.0.0",
-        "protobufjs": "^7.2.5",
-        "yargs": "^17.7.2"
-      },
-      "bin": {
-        "proto-loader-gen-types": "build/bin/proto-loader-gen-types.js"
-      },
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/@js-sdsl/ordered-map": {
-      "version": "4.4.2",
-      "resolved": "https://registry.npmjs.org/@js-sdsl/ordered-map/-/ordered-map-4.4.2.tgz",
-      "integrity": "sha512-iUKgm52T8HOE/makSxjqoWhe95ZJA1/G1sYsGev2JDKUSS14KAgg1LHb+Ba+IPow0xflbnSkOsZcO08C7w1gYw==",
-      "license": "MIT",
-      "optional": true,
-      "funding": {
-        "type": "opencollective",
-        "url": "https://opencollective.com/js-sdsl"
-      }
-    },
-    "node_modules/@opentelemetry/api": {
-      "version": "1.9.0",
-      "resolved": "https://registry.npmjs.org/@opentelemetry/api/-/api-1.9.0.tgz",
-      "integrity": "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "engines": {
-        "node": ">=8.0.0"
-      }
-    },
-    "node_modules/@protobufjs/aspromise": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/@protobufjs/aspromise/-/aspromise-1.1.2.tgz",
-      "integrity": "sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/base64": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/@protobufjs/base64/-/base64-1.1.2.tgz",
-      "integrity": "sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/codegen": {
-      "version": "2.0.4",
-      "resolved": "https://registry.npmjs.org/@protobufjs/codegen/-/codegen-2.0.4.tgz",
-      "integrity": "sha512-YyFaikqM5sH0ziFZCN3xDC7zeGaB/d0IUb9CATugHWbd1FRFwWwt4ld4OYMPWu5a3Xe01mGAULCdqhMlPl29Jg==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/eventemitter": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@protobufjs/eventemitter/-/eventemitter-1.1.0.tgz",
-      "integrity": "sha512-j9ednRT81vYJ9OfVuXG6ERSTdEL1xVsNgqpkxMsbIabzSo3goCjDIveeGv5d03om39ML71RdmrGNjG5SReBP/Q==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/fetch": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@protobufjs/fetch/-/fetch-1.1.0.tgz",
-      "integrity": "sha512-lljVXpqXebpsijW71PZaCYeIcE5on1w5DlQy5WH6GLbFryLUrBD4932W/E2BSpfRJWseIL4v/KPgBFxDOIdKpQ==",
-      "license": "BSD-3-Clause",
-      "dependencies": {
-        "@protobufjs/aspromise": "^1.1.1",
-        "@protobufjs/inquire": "^1.1.0"
-      }
-    },
-    "node_modules/@protobufjs/float": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/@protobufjs/float/-/float-1.0.2.tgz",
-      "integrity": "sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/inquire": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@protobufjs/inquire/-/inquire-1.1.0.tgz",
-      "integrity": "sha512-kdSefcPdruJiFMVSbn801t4vFK7KB/5gd2fYvrxhuJYg8ILrmn9SKSX2tZdV6V+ksulWqS7aXjBcRXl3wHoD9Q==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/path": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/@protobufjs/path/-/path-1.1.2.tgz",
-      "integrity": "sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/pool": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@protobufjs/pool/-/pool-1.1.0.tgz",
-      "integrity": "sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@protobufjs/utf8": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/@protobufjs/utf8/-/utf8-1.1.0.tgz",
-      "integrity": "sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/@tootallnate/once": {
-      "version": "2.0.0",
-      "resolved": "https://registry.npmjs.org/@tootallnate/once/-/once-2.0.0.tgz",
-      "integrity": "sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">= 10"
-      }
-    },
-    "node_modules/@types/body-parser": {
-      "version": "1.19.6",
-      "resolved": "https://registry.npmjs.org/@types/body-parser/-/body-parser-1.19.6.tgz",
-      "integrity": "sha512-HLFeCYgz89uk22N5Qg3dvGvsv46B8GLvKKo1zKG4NybA8U2DiEO3w9lqGg29t/tfLRJpJ6iQxnVw4OnB7MoM9g==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/connect": "*",
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/caseless": {
-      "version": "0.12.5",
-      "resolved": "https://registry.npmjs.org/@types/caseless/-/caseless-0.12.5.tgz",
-      "integrity": "sha512-hWtVTC2q7hc7xZ/RLbxapMvDMgUnDvKvMOpKal4DrMyfGBUfB1oKaZlIRr6mJL+If3bAP6sV/QneGzF6tJjZDg==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/@types/connect": {
-      "version": "3.4.38",
-      "resolved": "https://registry.npmjs.org/@types/connect/-/connect-3.4.38.tgz",
-      "integrity": "sha512-K6uROf1LD88uDQqJCktA4yzL1YYAK6NgfsI0v/mTgyPKWsX1CnJ0XPSDhViejru1GcRkLWb8RlzFYJRqGUbaug==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/cors": {
-      "version": "2.8.19",
-      "resolved": "https://registry.npmjs.org/@types/cors/-/cors-2.8.19.tgz",
-      "integrity": "sha512-mFNylyeyqN93lfe/9CSxOGREz8cpzAhH+E93xJ4xWQf62V8sQ/24reV2nyzUWM6H6Xji+GGHpkbLe7pVoUEskg==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/express": {
-      "version": "4.17.25",
-      "resolved": "https://registry.npmjs.org/@types/express/-/express-4.17.25.tgz",
-      "integrity": "sha512-dVd04UKsfpINUnK0yBoYHDF3xu7xVH4BuDotC/xGuycx4CgbP48X/KF/586bcObxT0HENHXEU8Nqtu6NR+eKhw==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/body-parser": "*",
-        "@types/express-serve-static-core": "^4.17.33",
-        "@types/qs": "*",
-        "@types/serve-static": "^1"
-      }
-    },
-    "node_modules/@types/express-serve-static-core": {
-      "version": "4.19.8",
-      "resolved": "https://registry.npmjs.org/@types/express-serve-static-core/-/express-serve-static-core-4.19.8.tgz",
-      "integrity": "sha512-02S5fmqeoKzVZCHPZid4b8JH2eM5HzQLZWN2FohQEy/0eXTq8VXZfSN6Pcr3F6N9R/vNrj7cpgbhjie6m/1tCA==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/node": "*",
-        "@types/qs": "*",
-        "@types/range-parser": "*",
-        "@types/send": "*"
-      }
-    },
-    "node_modules/@types/http-errors": {
-      "version": "2.0.5",
-      "resolved": "https://registry.npmjs.org/@types/http-errors/-/http-errors-2.0.5.tgz",
-      "integrity": "sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==",
-      "license": "MIT"
-    },
-    "node_modules/@types/jsonwebtoken": {
-      "version": "9.0.10",
-      "resolved": "https://registry.npmjs.org/@types/jsonwebtoken/-/jsonwebtoken-9.0.10.tgz",
-      "integrity": "sha512-asx5hIG9Qmf/1oStypjanR7iKTv0gXQ1Ov/jfrX6kS/EO0OFni8orbmGCn0672NHR3kXHwpAwR+B368ZGN/2rA==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/ms": "*",
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/long": {
-      "version": "4.0.2",
-      "resolved": "https://registry.npmjs.org/@types/long/-/long-4.0.2.tgz",
-      "integrity": "sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/@types/mime": {
-      "version": "1.3.5",
-      "resolved": "https://registry.npmjs.org/@types/mime/-/mime-1.3.5.tgz",
-      "integrity": "sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==",
-      "license": "MIT"
-    },
-    "node_modules/@types/ms": {
-      "version": "2.1.0",
-      "resolved": "https://registry.npmjs.org/@types/ms/-/ms-2.1.0.tgz",
-      "integrity": "sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==",
-      "license": "MIT"
-    },
-    "node_modules/@types/node": {
-      "version": "22.19.7",
-      "resolved": "https://registry.npmjs.org/@types/node/-/node-22.19.7.tgz",
-      "integrity": "sha512-MciR4AKGHWl7xwxkBa6xUGxQJ4VBOmPTF7sL+iGzuahOFaO0jHCsuEfS80pan1ef4gWId1oWOweIhrDEYLuaOw==",
-      "license": "MIT",
-      "dependencies": {
-        "undici-types": "~6.21.0"
-      }
-    },
-    "node_modules/@types/qs": {
-      "version": "6.14.0",
-      "resolved": "https://registry.npmjs.org/@types/qs/-/qs-6.14.0.tgz",
-      "integrity": "sha512-eOunJqu0K1923aExK6y8p6fsihYEn/BYuQ4g0CxAAgFc4b/ZLN4CrsRZ55srTdqoiLzU2B2evC+apEIxprEzkQ==",
-      "license": "MIT"
-    },
-    "node_modules/@types/range-parser": {
-      "version": "1.2.7",
-      "resolved": "https://registry.npmjs.org/@types/range-parser/-/range-parser-1.2.7.tgz",
-      "integrity": "sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==",
-      "license": "MIT"
-    },
-    "node_modules/@types/request": {
-      "version": "2.48.13",
-      "resolved": "https://registry.npmjs.org/@types/request/-/request-2.48.13.tgz",
-      "integrity": "sha512-FGJ6udDNUCjd19pp0Q3iTiDkwhYup7J8hpMW9c4k53NrccQFFWKRho6hvtPPEhnXWKvukfwAlB6DbDz4yhH5Gg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "@types/caseless": "*",
-        "@types/node": "*",
-        "@types/tough-cookie": "*",
-        "form-data": "^2.5.5"
-      }
-    },
-    "node_modules/@types/send": {
-      "version": "1.2.1",
-      "resolved": "https://registry.npmjs.org/@types/send/-/send-1.2.1.tgz",
-      "integrity": "sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/serve-static": {
-      "version": "1.15.10",
-      "resolved": "https://registry.npmjs.org/@types/serve-static/-/serve-static-1.15.10.tgz",
-      "integrity": "sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/http-errors": "*",
-        "@types/node": "*",
-        "@types/send": "<1"
-      }
-    },
-    "node_modules/@types/serve-static/node_modules/@types/send": {
-      "version": "0.17.6",
-      "resolved": "https://registry.npmjs.org/@types/send/-/send-0.17.6.tgz",
-      "integrity": "sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/mime": "^1",
-        "@types/node": "*"
-      }
-    },
-    "node_modules/@types/tough-cookie": {
-      "version": "4.0.5",
-      "resolved": "https://registry.npmjs.org/@types/tough-cookie/-/tough-cookie-4.0.5.tgz",
-      "integrity": "sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/abort-controller": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/abort-controller/-/abort-controller-3.0.0.tgz",
-      "integrity": "sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "event-target-shim": "^5.0.0"
-      },
-      "engines": {
-        "node": ">=6.5"
-      }
-    },
-    "node_modules/accepts": {
-      "version": "1.3.8",
-      "resolved": "https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz",
-      "integrity": "sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==",
-      "license": "MIT",
-      "dependencies": {
-        "mime-types": "~2.1.34",
-        "negotiator": "0.6.3"
-      },
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/agent-base": {
-      "version": "7.1.4",
-      "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-7.1.4.tgz",
-      "integrity": "sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">= 14"
-      }
-    },
-    "node_modules/ansi-regex": {
-      "version": "5.0.1",
-      "resolved": "https://registry.npmjs.org/ansi-regex/-/ansi-regex-5.0.1.tgz",
-      "integrity": "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=8"
-      }
-    },
-    "node_modules/ansi-styles": {
-      "version": "4.3.0",
-      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-4.3.0.tgz",
-      "integrity": "sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "color-convert": "^2.0.1"
-      },
-      "engines": {
-        "node": ">=8"
-      },
-      "funding": {
-        "url": "https://github.com/chalk/ansi-styles?sponsor=1"
-      }
-    },
-    "node_modules/array-flatten": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz",
-      "integrity": "sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg==",
-      "license": "MIT"
-    },
-    "node_modules/arrify": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/arrify/-/arrify-2.0.1.tgz",
-      "integrity": "sha512-3duEwti880xqi4eAMN8AyR4a0ByT90zoYdLlevfrvU43vb0YZwZVfxOgxWrLXXXpyugL0hNZc9G6BiB5B3nUug==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=8"
-      }
-    },
-    "node_modules/async-retry": {
-      "version": "1.3.3",
-      "resolved": "https://registry.npmjs.org/async-retry/-/async-retry-1.3.3.tgz",
-      "integrity": "sha512-wfr/jstw9xNi/0teMHrRW7dsz3Lt5ARhYNZ2ewpadnhaIp5mbALhOAP+EAdsC7t4Z6wqsDVv9+W6gm1Dk9mEyw==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "retry": "0.13.1"
-      }
-    },
-    "node_modules/asynckit": {
-      "version": "0.4.0",
-      "resolved": "https://registry.npmjs.org/asynckit/-/asynckit-0.4.0.tgz",
-      "integrity": "sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/base64-js": {
-      "version": "1.5.1",
-      "resolved": "https://registry.npmjs.org/base64-js/-/base64-js-1.5.1.tgz",
-      "integrity": "sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==",
-      "funding": [
-        {
-          "type": "github",
-          "url": "https://github.com/sponsors/feross"
-        },
-        {
-          "type": "patreon",
-          "url": "https://www.patreon.com/feross"
-        },
-        {
-          "type": "consulting",
-          "url": "https://feross.org/support"
-        }
-      ],
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/bignumber.js": {
-      "version": "9.3.1",
-      "resolved": "https://registry.npmjs.org/bignumber.js/-/bignumber.js-9.3.1.tgz",
-      "integrity": "sha512-Ko0uX15oIUS7wJ3Rb30Fs6SkVbLmPBAKdlm7q9+ak9bbIeFf0MwuBsQV6z7+X768/cHsfg+WlysDWJcmthjsjQ==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": "*"
-      }
-    },
-    "node_modules/body-parser": {
-      "version": "1.20.4",
-      "resolved": "https://registry.npmjs.org/body-parser/-/body-parser-1.20.4.tgz",
-      "integrity": "sha512-ZTgYYLMOXY9qKU/57FAo8F+HA2dGX7bqGc71txDRC1rS4frdFI5R7NhluHxH6M0YItAP0sHB4uqAOcYKxO6uGA==",
-      "license": "MIT",
-      "dependencies": {
-        "bytes": "~3.1.2",
-        "content-type": "~1.0.5",
-        "debug": "2.6.9",
-        "depd": "2.0.0",
-        "destroy": "~1.2.0",
-        "http-errors": "~2.0.1",
-        "iconv-lite": "~0.4.24",
-        "on-finished": "~2.4.1",
-        "qs": "~6.14.0",
-        "raw-body": "~2.5.3",
-        "type-is": "~1.6.18",
-        "unpipe": "~1.0.0"
-      },
-      "engines": {
-        "node": ">= 0.8",
-        "npm": "1.2.8000 || >= 1.4.16"
-      }
-    },
-    "node_modules/buffer-equal-constant-time": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/buffer-equal-constant-time/-/buffer-equal-constant-time-1.0.1.tgz",
-      "integrity": "sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==",
-      "license": "BSD-3-Clause"
-    },
-    "node_modules/bytes": {
-      "version": "3.1.2",
-      "resolved": "https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz",
-      "integrity": "sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/call-bind-apply-helpers": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz",
-      "integrity": "sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==",
-      "license": "MIT",
-      "dependencies": {
-        "es-errors": "^1.3.0",
-        "function-bind": "^1.1.2"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/call-bound": {
-      "version": "1.0.4",
-      "resolved": "https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz",
-      "integrity": "sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==",
-      "license": "MIT",
-      "dependencies": {
-        "call-bind-apply-helpers": "^1.0.2",
-        "get-intrinsic": "^1.3.0"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/cliui": {
-      "version": "8.0.1",
-      "resolved": "https://registry.npmjs.org/cliui/-/cliui-8.0.1.tgz",
-      "integrity": "sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==",
-      "license": "ISC",
-      "optional": true,
-      "dependencies": {
-        "string-width": "^4.2.0",
-        "strip-ansi": "^6.0.1",
-        "wrap-ansi": "^7.0.0"
-      },
-      "engines": {
-        "node": ">=12"
-      }
-    },
-    "node_modules/color-convert": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/color-convert/-/color-convert-2.0.1.tgz",
-      "integrity": "sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "color-name": "~1.1.4"
-      },
-      "engines": {
-        "node": ">=7.0.0"
-      }
-    },
-    "node_modules/color-name": {
-      "version": "1.1.4",
-      "resolved": "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz",
-      "integrity": "sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/combined-stream": {
-      "version": "1.0.8",
-      "resolved": "https://registry.npmjs.org/combined-stream/-/combined-stream-1.0.8.tgz",
-      "integrity": "sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "delayed-stream": "~1.0.0"
-      },
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/content-disposition": {
-      "version": "0.5.4",
-      "resolved": "https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz",
-      "integrity": "sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==",
-      "license": "MIT",
-      "dependencies": {
-        "safe-buffer": "5.2.1"
-      },
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/content-type": {
-      "version": "1.0.5",
-      "resolved": "https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz",
-      "integrity": "sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/cookie": {
-      "version": "0.7.2",
-      "resolved": "https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz",
-      "integrity": "sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/cookie-signature": {
-      "version": "1.0.7",
-      "resolved": "https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz",
-      "integrity": "sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==",
-      "license": "MIT"
-    },
-    "node_modules/cors": {
-      "version": "2.8.6",
-      "resolved": "https://registry.npmjs.org/cors/-/cors-2.8.6.tgz",
-      "integrity": "sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==",
-      "license": "MIT",
-      "dependencies": {
-        "object-assign": "^4",
-        "vary": "^1"
-      },
-      "engines": {
-        "node": ">= 0.10"
-      },
-      "funding": {
-        "type": "opencollective",
-        "url": "https://opencollective.com/express"
-      }
-    },
-    "node_modules/debug": {
-      "version": "2.6.9",
-      "resolved": "https://registry.npmjs.org/debug/-/debug-2.6.9.tgz",
-      "integrity": "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==",
-      "license": "MIT",
-      "dependencies": {
-        "ms": "2.0.0"
-      }
-    },
-    "node_modules/delayed-stream": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/delayed-stream/-/delayed-stream-1.0.0.tgz",
-      "integrity": "sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=0.4.0"
-      }
-    },
-    "node_modules/depd": {
-      "version": "2.0.0",
-      "resolved": "https://registry.npmjs.org/depd/-/depd-2.0.0.tgz",
-      "integrity": "sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/destroy": {
-      "version": "1.2.0",
-      "resolved": "https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz",
-      "integrity": "sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8",
-        "npm": "1.2.8000 || >= 1.4.16"
-      }
-    },
-    "node_modules/dunder-proto": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz",
-      "integrity": "sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==",
-      "license": "MIT",
-      "dependencies": {
-        "call-bind-apply-helpers": "^1.0.1",
-        "es-errors": "^1.3.0",
-        "gopd": "^1.2.0"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/duplexify": {
-      "version": "4.1.3",
-      "resolved": "https://registry.npmjs.org/duplexify/-/duplexify-4.1.3.tgz",
-      "integrity": "sha512-M3BmBhwJRZsSx38lZyhE53Csddgzl5R7xGJNk7CVddZD6CcmwMCH8J+7AprIrQKH7TonKxaCjcv27Qmf+sQ+oA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "end-of-stream": "^1.4.1",
-        "inherits": "^2.0.3",
-        "readable-stream": "^3.1.1",
-        "stream-shift": "^1.0.2"
-      }
-    },
-    "node_modules/ecdsa-sig-formatter": {
-      "version": "1.0.11",
-      "resolved": "https://registry.npmjs.org/ecdsa-sig-formatter/-/ecdsa-sig-formatter-1.0.11.tgz",
-      "integrity": "sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "safe-buffer": "^5.0.1"
-      }
-    },
-    "node_modules/ee-first": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz",
-      "integrity": "sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==",
-      "license": "MIT"
-    },
-    "node_modules/emoji-regex": {
-      "version": "8.0.0",
-      "resolved": "https://registry.npmjs.org/emoji-regex/-/emoji-regex-8.0.0.tgz",
-      "integrity": "sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/encodeurl": {
-      "version": "2.0.0",
-      "resolved": "https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz",
-      "integrity": "sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/end-of-stream": {
-      "version": "1.4.5",
-      "resolved": "https://registry.npmjs.org/end-of-stream/-/end-of-stream-1.4.5.tgz",
-      "integrity": "sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "once": "^1.4.0"
-      }
-    },
-    "node_modules/es-define-property": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz",
-      "integrity": "sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/es-errors": {
-      "version": "1.3.0",
-      "resolved": "https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz",
-      "integrity": "sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/es-object-atoms": {
-      "version": "1.1.1",
-      "resolved": "https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.1.tgz",
-      "integrity": "sha512-FGgH2h8zKNim9ljj7dankFPcICIK9Cp5bm+c2gQSYePhpaG5+esrLODihIorn+Pe6FGJzWhXQotPv73jTaldXA==",
-      "license": "MIT",
-      "dependencies": {
-        "es-errors": "^1.3.0"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/es-set-tostringtag": {
-      "version": "2.1.0",
-      "resolved": "https://registry.npmjs.org/es-set-tostringtag/-/es-set-tostringtag-2.1.0.tgz",
-      "integrity": "sha512-j6vWzfrGVfyXxge+O0x5sh6cvxAog0a/4Rdd2K36zCMV5eJ+/+tOAngRO8cODMNWbVRdVlmGZQL2YS3yR8bIUA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "es-errors": "^1.3.0",
-        "get-intrinsic": "^1.2.6",
-        "has-tostringtag": "^1.0.2",
-        "hasown": "^2.0.2"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/escalade": {
-      "version": "3.2.0",
-      "resolved": "https://registry.npmjs.org/escalade/-/escalade-3.2.0.tgz",
-      "integrity": "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/escape-html": {
-      "version": "1.0.3",
-      "resolved": "https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz",
-      "integrity": "sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==",
-      "license": "MIT"
-    },
-    "node_modules/etag": {
-      "version": "1.8.1",
-      "resolved": "https://registry.npmjs.org/etag/-/etag-1.8.1.tgz",
-      "integrity": "sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/event-target-shim": {
-      "version": "5.0.1",
-      "resolved": "https://registry.npmjs.org/event-target-shim/-/event-target-shim-5.0.1.tgz",
-      "integrity": "sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=6"
-      }
-    },
-    "node_modules/express": {
-      "version": "4.22.1",
-      "resolved": "https://registry.npmjs.org/express/-/express-4.22.1.tgz",
-      "integrity": "sha512-F2X8g9P1X7uCPZMA3MVf9wcTqlyNp7IhH5qPCI0izhaOIYXaW9L535tGA3qmjRzpH+bZczqq7hVKxTR4NWnu+g==",
-      "license": "MIT",
-      "dependencies": {
-        "accepts": "~1.3.8",
-        "array-flatten": "1.1.1",
-        "body-parser": "~1.20.3",
-        "content-disposition": "~0.5.4",
-        "content-type": "~1.0.4",
-        "cookie": "~0.7.1",
-        "cookie-signature": "~1.0.6",
-        "debug": "2.6.9",
-        "depd": "2.0.0",
-        "encodeurl": "~2.0.0",
-        "escape-html": "~1.0.3",
-        "etag": "~1.8.1",
-        "finalhandler": "~1.3.1",
-        "fresh": "~0.5.2",
-        "http-errors": "~2.0.0",
-        "merge-descriptors": "1.0.3",
-        "methods": "~1.1.2",
-        "on-finished": "~2.4.1",
-        "parseurl": "~1.3.3",
-        "path-to-regexp": "~0.1.12",
-        "proxy-addr": "~2.0.7",
-        "qs": "~6.14.0",
-        "range-parser": "~1.2.1",
-        "safe-buffer": "5.2.1",
-        "send": "~0.19.0",
-        "serve-static": "~1.16.2",
-        "setprototypeof": "1.2.0",
-        "statuses": "~2.0.1",
-        "type-is": "~1.6.18",
-        "utils-merge": "1.0.1",
-        "vary": "~1.1.2"
-      },
-      "engines": {
-        "node": ">= 0.10.0"
-      },
-      "funding": {
-        "type": "opencollective",
-        "url": "https://opencollective.com/express"
-      }
-    },
-    "node_modules/extend": {
-      "version": "3.0.2",
-      "resolved": "https://registry.npmjs.org/extend/-/extend-3.0.2.tgz",
-      "integrity": "sha512-fjquC59cD7CyW6urNXK0FBufkZcoiGG80wTuPujX590cB5Ttln20E2UB4S/WARVqhXffZl2LNgS+gQdPIIim/g==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/farmhash-modern": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/farmhash-modern/-/farmhash-modern-1.1.0.tgz",
-      "integrity": "sha512-6ypT4XfgqJk/F3Yuv4SX26I3doUjt0GTG4a+JgWxXQpxXzTBq8fPUeGHfcYMMDPHJHm3yPOSjaeBwBGAHWXCdA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=18.0.0"
-      }
-    },
-    "node_modules/fast-deep-equal": {
-      "version": "3.1.3",
-      "resolved": "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz",
-      "integrity": "sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/fast-xml-parser": {
-      "version": "4.5.3",
-      "resolved": "https://registry.npmjs.org/fast-xml-parser/-/fast-xml-parser-4.5.3.tgz",
-      "integrity": "sha512-RKihhV+SHsIUGXObeVy9AXiBbFwkVk7Syp8XgwN5U3JV416+Gwp/GO9i0JYKmikykgz/UHRrrV4ROuZEo/T0ig==",
-      "funding": [
-        {
-          "type": "github",
-          "url": "https://github.com/sponsors/NaturalIntelligence"
-        }
-      ],
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "strnum": "^1.1.1"
-      },
-      "bin": {
-        "fxparser": "src/cli/cli.js"
-      }
-    },
-    "node_modules/faye-websocket": {
-      "version": "0.11.4",
-      "resolved": "https://registry.npmjs.org/faye-websocket/-/faye-websocket-0.11.4.tgz",
-      "integrity": "sha512-CzbClwlXAuiRQAlUyfqPgvPoNKTckTPGfwZV4ZdAhVcP2lh9KUxJg2b5GkE7XbjKQ3YJnQ9z6D9ntLAlB+tP8g==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "websocket-driver": ">=0.5.1"
-      },
-      "engines": {
-        "node": ">=0.8.0"
-      }
-    },
-    "node_modules/finalhandler": {
-      "version": "1.3.2",
-      "resolved": "https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz",
-      "integrity": "sha512-aA4RyPcd3badbdABGDuTXCMTtOneUCAYH/gxoYRTZlIJdF0YPWuGqiAsIrhNnnqdXGswYk6dGujem4w80UJFhg==",
-      "license": "MIT",
-      "dependencies": {
-        "debug": "2.6.9",
-        "encodeurl": "~2.0.0",
-        "escape-html": "~1.0.3",
-        "on-finished": "~2.4.1",
-        "parseurl": "~1.3.3",
-        "statuses": "~2.0.2",
-        "unpipe": "~1.0.0"
-      },
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/firebase-admin": {
-      "version": "12.7.0",
-      "resolved": "https://registry.npmjs.org/firebase-admin/-/firebase-admin-12.7.0.tgz",
-      "integrity": "sha512-raFIrOyTqREbyXsNkSHyciQLfv8AUZazehPaQS1lZBSCDYW74FYXU0nQZa3qHI4K+hawohlDbywZ4+qce9YNxA==",
-      "license": "Apache-2.0",
-      "peer": true,
-      "dependencies": {
-        "@fastify/busboy": "^3.0.0",
-        "@firebase/database-compat": "1.0.8",
-        "@firebase/database-types": "1.0.5",
-        "@types/node": "^22.0.1",
-        "farmhash-modern": "^1.1.0",
-        "jsonwebtoken": "^9.0.0",
-        "jwks-rsa": "^3.1.0",
-        "node-forge": "^1.3.1",
-        "uuid": "^10.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      },
-      "optionalDependencies": {
-        "@google-cloud/firestore": "^7.7.0",
-        "@google-cloud/storage": "^7.7.0"
-      }
-    },
-    "node_modules/firebase-functions": {
-      "version": "7.0.3",
-      "resolved": "https://registry.npmjs.org/firebase-functions/-/firebase-functions-7.0.3.tgz",
-      "integrity": "sha512-DiIjIUv0OS4KEAA3jqyIc7ymZKdcmMcaXy7FCCkrDQo/1CVMbDDWMdZIslmsgSjldA2nhau1dTE/6JQI8Urjjw==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/cors": "^2.8.5",
-        "@types/express": "^4.17.21",
-        "cors": "^2.8.5",
-        "express": "^4.21.0",
-        "protobufjs": "^7.2.2"
-      },
-      "bin": {
-        "firebase-functions": "lib/bin/firebase-functions.js"
-      },
-      "engines": {
-        "node": ">=18.0.0"
-      },
-      "peerDependencies": {
-        "@apollo/server": "^5.2.0",
-        "@as-integrations/express4": "^1.1.2",
-        "firebase-admin": "^11.10.0 || ^12.0.0 || ^13.0.0"
-      },
-      "peerDependenciesMeta": {
-        "@apollo/server": {
-          "optional": true
-        },
-        "@as-integrations/express4": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/form-data": {
-      "version": "2.5.5",
-      "resolved": "https://registry.npmjs.org/form-data/-/form-data-2.5.5.tgz",
-      "integrity": "sha512-jqdObeR2rxZZbPSGL+3VckHMYtu+f9//KXBsVny6JSX/pa38Fy+bGjuG8eW/H6USNQWhLi8Num++cU2yOCNz4A==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "asynckit": "^0.4.0",
-        "combined-stream": "^1.0.8",
-        "es-set-tostringtag": "^2.1.0",
-        "hasown": "^2.0.2",
-        "mime-types": "^2.1.35",
-        "safe-buffer": "^5.2.1"
-      },
-      "engines": {
-        "node": ">= 0.12"
-      }
-    },
-    "node_modules/forwarded": {
-      "version": "0.2.0",
-      "resolved": "https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz",
-      "integrity": "sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/fresh": {
-      "version": "0.5.2",
-      "resolved": "https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz",
-      "integrity": "sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/function-bind": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz",
-      "integrity": "sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==",
-      "license": "MIT",
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/functional-red-black-tree": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/functional-red-black-tree/-/functional-red-black-tree-1.0.1.tgz",
-      "integrity": "sha512-dsKNQNdj6xA3T+QlADDA7mOSlX0qiMINjn0cgr+eGHGsbSHzTabcIogz2+p/iqP1Xs6EP/sS2SbqH+brGTbq0g==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/gaxios": {
-      "version": "6.7.1",
-      "resolved": "https://registry.npmjs.org/gaxios/-/gaxios-6.7.1.tgz",
-      "integrity": "sha512-LDODD4TMYx7XXdpwxAVRAIAuB0bzv0s+ywFonY46k126qzQHT9ygyoa9tncmOiQmmDrik65UYsEkv3lbfqQ3yQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "extend": "^3.0.2",
-        "https-proxy-agent": "^7.0.1",
-        "is-stream": "^2.0.0",
-        "node-fetch": "^2.6.9",
-        "uuid": "^9.0.1"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/gaxios/node_modules/uuid": {
-      "version": "9.0.1",
-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz",
-      "integrity": "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
-      "license": "MIT",
-      "optional": true,
-      "bin": {
-        "uuid": "dist/bin/uuid"
-      }
-    },
-    "node_modules/gcp-metadata": {
-      "version": "6.1.1",
-      "resolved": "https://registry.npmjs.org/gcp-metadata/-/gcp-metadata-6.1.1.tgz",
-      "integrity": "sha512-a4tiq7E0/5fTjxPAaH4jpjkSv/uCaU2p5KC6HVGrvl0cDjA8iBZv4vv1gyzlmK0ZUKqwpOyQMKzZQe3lTit77A==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "gaxios": "^6.1.1",
-        "google-logging-utils": "^0.0.2",
-        "json-bigint": "^1.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/get-caller-file": {
-      "version": "2.0.5",
-      "resolved": "https://registry.npmjs.org/get-caller-file/-/get-caller-file-2.0.5.tgz",
-      "integrity": "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg==",
-      "license": "ISC",
-      "optional": true,
-      "engines": {
-        "node": "6.* || 8.* || >= 10.*"
-      }
-    },
-    "node_modules/get-intrinsic": {
-      "version": "1.3.0",
-      "resolved": "https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz",
-      "integrity": "sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==",
-      "license": "MIT",
-      "dependencies": {
-        "call-bind-apply-helpers": "^1.0.2",
-        "es-define-property": "^1.0.1",
-        "es-errors": "^1.3.0",
-        "es-object-atoms": "^1.1.1",
-        "function-bind": "^1.1.2",
-        "get-proto": "^1.0.1",
-        "gopd": "^1.2.0",
-        "has-symbols": "^1.1.0",
-        "hasown": "^2.0.2",
-        "math-intrinsics": "^1.1.0"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/get-proto": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz",
-      "integrity": "sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==",
-      "license": "MIT",
-      "dependencies": {
-        "dunder-proto": "^1.0.1",
-        "es-object-atoms": "^1.0.0"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/google-auth-library": {
-      "version": "9.15.1",
-      "resolved": "https://registry.npmjs.org/google-auth-library/-/google-auth-library-9.15.1.tgz",
-      "integrity": "sha512-Jb6Z0+nvECVz+2lzSMt9u98UsoakXxA2HGHMCxh+so3n90XgYWkq5dur19JAJV7ONiJY22yBTyJB1TSkvPq9Ng==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "base64-js": "^1.3.0",
-        "ecdsa-sig-formatter": "^1.0.11",
-        "gaxios": "^6.1.1",
-        "gcp-metadata": "^6.1.0",
-        "gtoken": "^7.0.0",
-        "jws": "^4.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/google-gax": {
-      "version": "4.6.1",
-      "resolved": "https://registry.npmjs.org/google-gax/-/google-gax-4.6.1.tgz",
-      "integrity": "sha512-V6eky/xz2mcKfAd1Ioxyd6nmA61gao3n01C+YeuIwu3vzM9EDR6wcVzMSIbLMDXWeoi9SHYctXuKYC5uJUT3eQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "@grpc/grpc-js": "^1.10.9",
-        "@grpc/proto-loader": "^0.7.13",
-        "@types/long": "^4.0.0",
-        "abort-controller": "^3.0.0",
-        "duplexify": "^4.0.0",
-        "google-auth-library": "^9.3.0",
-        "node-fetch": "^2.7.0",
-        "object-hash": "^3.0.0",
-        "proto3-json-serializer": "^2.0.2",
-        "protobufjs": "^7.3.2",
-        "retry-request": "^7.0.0",
-        "uuid": "^9.0.1"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/google-gax/node_modules/uuid": {
-      "version": "9.0.1",
-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz",
-      "integrity": "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
-      "license": "MIT",
-      "optional": true,
-      "bin": {
-        "uuid": "dist/bin/uuid"
-      }
-    },
-    "node_modules/google-logging-utils": {
-      "version": "0.0.2",
-      "resolved": "https://registry.npmjs.org/google-logging-utils/-/google-logging-utils-0.0.2.tgz",
-      "integrity": "sha512-NEgUnEcBiP5HrPzufUkBzJOD/Sxsco3rLNo1F1TNf7ieU8ryUzBhqba8r756CjLX7rn3fHl6iLEwPYuqpoKgQQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/gopd": {
-      "version": "1.2.0",
-      "resolved": "https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz",
-      "integrity": "sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/gtoken": {
-      "version": "7.1.0",
-      "resolved": "https://registry.npmjs.org/gtoken/-/gtoken-7.1.0.tgz",
-      "integrity": "sha512-pCcEwRi+TKpMlxAQObHDQ56KawURgyAf6jtIY046fJ5tIv3zDe/LEIubckAO8fj6JnAxLdmWkUfNyulQ2iKdEw==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "gaxios": "^6.0.0",
-        "jws": "^4.0.0"
-      },
-      "engines": {
-        "node": ">=14.0.0"
-      }
-    },
-    "node_modules/has-symbols": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz",
-      "integrity": "sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/has-tostringtag": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/has-tostringtag/-/has-tostringtag-1.0.2.tgz",
-      "integrity": "sha512-NqADB8VjPFLM2V0VvHUewwwsw0ZWBaIdgo+ieHtK3hasLz4qeCRjYcqfB6AQrBggRKppKF8L52/VqdVsO47Dlw==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "has-symbols": "^1.0.3"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/hasown": {
-      "version": "2.0.2",
-      "resolved": "https://registry.npmjs.org/hasown/-/hasown-2.0.2.tgz",
-      "integrity": "sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==",
-      "license": "MIT",
-      "dependencies": {
-        "function-bind": "^1.1.2"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/html-entities": {
-      "version": "2.6.0",
-      "resolved": "https://registry.npmjs.org/html-entities/-/html-entities-2.6.0.tgz",
-      "integrity": "sha512-kig+rMn/QOVRvr7c86gQ8lWXq+Hkv6CbAH1hLu+RG338StTpE8Z0b44SDVaqVu7HGKf27frdmUYEs9hTUX/cLQ==",
-      "funding": [
-        {
-          "type": "github",
-          "url": "https://github.com/sponsors/mdevils"
-        },
-        {
-          "type": "patreon",
-          "url": "https://patreon.com/mdevils"
-        }
-      ],
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/http-errors": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz",
-      "integrity": "sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==",
-      "license": "MIT",
-      "dependencies": {
-        "depd": "~2.0.0",
-        "inherits": "~2.0.4",
-        "setprototypeof": "~1.2.0",
-        "statuses": "~2.0.2",
-        "toidentifier": "~1.0.1"
-      },
-      "engines": {
-        "node": ">= 0.8"
-      },
-      "funding": {
-        "type": "opencollective",
-        "url": "https://opencollective.com/express"
-      }
-    },
-    "node_modules/http-parser-js": {
-      "version": "0.5.10",
-      "resolved": "https://registry.npmjs.org/http-parser-js/-/http-parser-js-0.5.10.tgz",
-      "integrity": "sha512-Pysuw9XpUq5dVc/2SMHpuTY01RFl8fttgcyunjL7eEMhGM3cI4eOmiCycJDVCo/7O7ClfQD3SaI6ftDzqOXYMA==",
-      "license": "MIT"
-    },
-    "node_modules/http-proxy-agent": {
-      "version": "5.0.0",
-      "resolved": "https://registry.npmjs.org/http-proxy-agent/-/http-proxy-agent-5.0.0.tgz",
-      "integrity": "sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "@tootallnate/once": "2",
-        "agent-base": "6",
-        "debug": "4"
-      },
-      "engines": {
-        "node": ">= 6"
-      }
-    },
-    "node_modules/http-proxy-agent/node_modules/agent-base": {
-      "version": "6.0.2",
-      "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz",
-      "integrity": "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "debug": "4"
-      },
-      "engines": {
-        "node": ">= 6.0.0"
-      }
-    },
-    "node_modules/http-proxy-agent/node_modules/debug": {
-      "version": "4.4.3",
-      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
-      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "ms": "^2.1.3"
-      },
-      "engines": {
-        "node": ">=6.0"
-      },
-      "peerDependenciesMeta": {
-        "supports-color": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/http-proxy-agent/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/https-proxy-agent": {
-      "version": "7.0.6",
-      "resolved": "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-7.0.6.tgz",
-      "integrity": "sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "agent-base": "^7.1.2",
-        "debug": "4"
-      },
-      "engines": {
-        "node": ">= 14"
-      }
-    },
-    "node_modules/https-proxy-agent/node_modules/debug": {
-      "version": "4.4.3",
-      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
-      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "ms": "^2.1.3"
-      },
-      "engines": {
-        "node": ">=6.0"
-      },
-      "peerDependenciesMeta": {
-        "supports-color": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/https-proxy-agent/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/iconv-lite": {
-      "version": "0.4.24",
-      "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz",
-      "integrity": "sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==",
-      "license": "MIT",
-      "dependencies": {
-        "safer-buffer": ">= 2.1.2 < 3"
-      },
-      "engines": {
-        "node": ">=0.10.0"
-      }
-    },
-    "node_modules/inherits": {
-      "version": "2.0.4",
-      "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz",
-      "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==",
-      "license": "ISC"
-    },
-    "node_modules/ipaddr.js": {
-      "version": "1.9.1",
-      "resolved": "https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz",
-      "integrity": "sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.10"
-      }
-    },
-    "node_modules/is-fullwidth-code-point": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/is-fullwidth-code-point/-/is-fullwidth-code-point-3.0.0.tgz",
-      "integrity": "sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=8"
-      }
-    },
-    "node_modules/is-stream": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/is-stream/-/is-stream-2.0.1.tgz",
-      "integrity": "sha512-hFoiJiTl63nn+kstHGBtewWSKnQLpyb155KHheA1l39uvtO9nWIop1p3udqPcUd/xbF1VLMO4n7OI6p7RbngDg==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=8"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/sindresorhus"
-      }
-    },
-    "node_modules/jose": {
-      "version": "4.15.9",
-      "resolved": "https://registry.npmjs.org/jose/-/jose-4.15.9.tgz",
-      "integrity": "sha512-1vUQX+IdDMVPj4k8kOxgUqlcK518yluMuGZwqlr44FS1ppZB/5GWh4rZG89erpOBOJjU/OBsnCVFfapsRz6nEA==",
-      "license": "MIT",
-      "funding": {
-        "url": "https://github.com/sponsors/panva"
-      }
-    },
-    "node_modules/json-bigint": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/json-bigint/-/json-bigint-1.0.0.tgz",
-      "integrity": "sha512-SiPv/8VpZuWbvLSMtTDU8hEfrZWg/mH/nV/b4o0CYbSxu1UIQPLdwKOCIyLQX+VIPO5vrLX3i8qtqFyhdPSUSQ==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "bignumber.js": "^9.0.0"
-      }
-    },
-    "node_modules/jsonwebtoken": {
-      "version": "9.0.3",
-      "resolved": "https://registry.npmjs.org/jsonwebtoken/-/jsonwebtoken-9.0.3.tgz",
-      "integrity": "sha512-MT/xP0CrubFRNLNKvxJ2BYfy53Zkm++5bX9dtuPbqAeQpTVe0MQTFhao8+Cp//EmJp244xt6Drw/GVEGCUj40g==",
-      "license": "MIT",
-      "dependencies": {
-        "jws": "^4.0.1",
-        "lodash.includes": "^4.3.0",
-        "lodash.isboolean": "^3.0.3",
-        "lodash.isinteger": "^4.0.4",
-        "lodash.isnumber": "^3.0.3",
-        "lodash.isplainobject": "^4.0.6",
-        "lodash.isstring": "^4.0.1",
-        "lodash.once": "^4.0.0",
-        "ms": "^2.1.1",
-        "semver": "^7.5.4"
-      },
-      "engines": {
-        "node": ">=12",
-        "npm": ">=6"
-      }
-    },
-    "node_modules/jsonwebtoken/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT"
-    },
-    "node_modules/jwa": {
-      "version": "2.0.1",
-      "resolved": "https://registry.npmjs.org/jwa/-/jwa-2.0.1.tgz",
-      "integrity": "sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==",
-      "license": "MIT",
-      "dependencies": {
-        "buffer-equal-constant-time": "^1.0.1",
-        "ecdsa-sig-formatter": "1.0.11",
-        "safe-buffer": "^5.0.1"
-      }
-    },
-    "node_modules/jwks-rsa": {
-      "version": "3.2.2",
-      "resolved": "https://registry.npmjs.org/jwks-rsa/-/jwks-rsa-3.2.2.tgz",
-      "integrity": "sha512-BqTyEDV+lS8F2trk3A+qJnxV5Q9EqKCBJOPti3W97r7qTympCZjb7h2X6f2kc+0K3rsSTY1/6YG2eaXKoj497w==",
-      "license": "MIT",
-      "dependencies": {
-        "@types/jsonwebtoken": "^9.0.4",
-        "debug": "^4.3.4",
-        "jose": "^4.15.4",
-        "limiter": "^1.1.5",
-        "lru-memoizer": "^2.2.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/jwks-rsa/node_modules/debug": {
-      "version": "4.4.3",
-      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
-      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
-      "license": "MIT",
-      "dependencies": {
-        "ms": "^2.1.3"
-      },
-      "engines": {
-        "node": ">=6.0"
-      },
-      "peerDependenciesMeta": {
-        "supports-color": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/jwks-rsa/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT"
-    },
-    "node_modules/jws": {
-      "version": "4.0.1",
-      "resolved": "https://registry.npmjs.org/jws/-/jws-4.0.1.tgz",
-      "integrity": "sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==",
-      "license": "MIT",
-      "dependencies": {
-        "jwa": "^2.0.1",
-        "safe-buffer": "^5.0.1"
-      }
-    },
-    "node_modules/limiter": {
-      "version": "1.1.5",
-      "resolved": "https://registry.npmjs.org/limiter/-/limiter-1.1.5.tgz",
-      "integrity": "sha512-FWWMIEOxz3GwUI4Ts/IvgVy6LPvoMPgjMdQ185nN6psJyBJ4yOpzqm695/h5umdLJg2vW3GR5iG11MAkR2AzJA=="
-    },
-    "node_modules/lodash.camelcase": {
-      "version": "4.3.0",
-      "resolved": "https://registry.npmjs.org/lodash.camelcase/-/lodash.camelcase-4.3.0.tgz",
-      "integrity": "sha512-TwuEnCnxbc3rAvhf/LbG7tJUDzhqXyFnv3dtzLOPgCG/hODL7WFnsbwktkD7yUV0RrreP/l1PALq/YSg6VvjlA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/lodash.clonedeep": {
-      "version": "4.5.0",
-      "resolved": "https://registry.npmjs.org/lodash.clonedeep/-/lodash.clonedeep-4.5.0.tgz",
-      "integrity": "sha512-H5ZhCF25riFd9uB5UCkVKo61m3S/xZk1x4wA6yp/L3RFP6Z/eHH1ymQcGLo7J3GMPfm0V/7m1tryHuGVxpqEBQ==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.includes": {
-      "version": "4.3.0",
-      "resolved": "https://registry.npmjs.org/lodash.includes/-/lodash.includes-4.3.0.tgz",
-      "integrity": "sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.isboolean": {
-      "version": "3.0.3",
-      "resolved": "https://registry.npmjs.org/lodash.isboolean/-/lodash.isboolean-3.0.3.tgz",
-      "integrity": "sha512-Bz5mupy2SVbPHURB98VAcw+aHh4vRV5IPNhILUCsOzRmsTmSQ17jIuqopAentWoehktxGd9e/hbIXq980/1QJg==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.isinteger": {
-      "version": "4.0.4",
-      "resolved": "https://registry.npmjs.org/lodash.isinteger/-/lodash.isinteger-4.0.4.tgz",
-      "integrity": "sha512-DBwtEWN2caHQ9/imiNeEA5ys1JoRtRfY3d7V9wkqtbycnAmTvRRmbHKDV4a0EYc678/dia0jrte4tjYwVBaZUA==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.isnumber": {
-      "version": "3.0.3",
-      "resolved": "https://registry.npmjs.org/lodash.isnumber/-/lodash.isnumber-3.0.3.tgz",
-      "integrity": "sha512-QYqzpfwO3/CWf3XP+Z+tkQsfaLL/EnUlXWVkIk5FUPc4sBdTehEqZONuyRt2P67PXAk+NXmTBcc97zw9t1FQrw==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.isplainobject": {
-      "version": "4.0.6",
-      "resolved": "https://registry.npmjs.org/lodash.isplainobject/-/lodash.isplainobject-4.0.6.tgz",
-      "integrity": "sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.isstring": {
-      "version": "4.0.1",
-      "resolved": "https://registry.npmjs.org/lodash.isstring/-/lodash.isstring-4.0.1.tgz",
-      "integrity": "sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==",
-      "license": "MIT"
-    },
-    "node_modules/lodash.once": {
-      "version": "4.1.1",
-      "resolved": "https://registry.npmjs.org/lodash.once/-/lodash.once-4.1.1.tgz",
-      "integrity": "sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==",
-      "license": "MIT"
-    },
-    "node_modules/long": {
-      "version": "5.3.2",
-      "resolved": "https://registry.npmjs.org/long/-/long-5.3.2.tgz",
-      "integrity": "sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==",
-      "license": "Apache-2.0"
-    },
-    "node_modules/lru-cache": {
-      "version": "6.0.0",
-      "resolved": "https://registry.npmjs.org/lru-cache/-/lru-cache-6.0.0.tgz",
-      "integrity": "sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==",
-      "license": "ISC",
-      "dependencies": {
-        "yallist": "^4.0.0"
-      },
-      "engines": {
-        "node": ">=10"
-      }
-    },
-    "node_modules/lru-memoizer": {
-      "version": "2.3.0",
-      "resolved": "https://registry.npmjs.org/lru-memoizer/-/lru-memoizer-2.3.0.tgz",
-      "integrity": "sha512-GXn7gyHAMhO13WSKrIiNfztwxodVsP8IoZ3XfrJV4yH2x0/OeTO/FIaAHTY5YekdGgW94njfuKmyyt1E0mR6Ug==",
-      "license": "MIT",
-      "dependencies": {
-        "lodash.clonedeep": "^4.5.0",
-        "lru-cache": "6.0.0"
-      }
-    },
-    "node_modules/math-intrinsics": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz",
-      "integrity": "sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      }
-    },
-    "node_modules/media-typer": {
-      "version": "0.3.0",
-      "resolved": "https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz",
-      "integrity": "sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/merge-descriptors": {
-      "version": "1.0.3",
-      "resolved": "https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz",
-      "integrity": "sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==",
-      "license": "MIT",
-      "funding": {
-        "url": "https://github.com/sponsors/sindresorhus"
-      }
-    },
-    "node_modules/methods": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/methods/-/methods-1.1.2.tgz",
-      "integrity": "sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/mime": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/mime/-/mime-3.0.0.tgz",
-      "integrity": "sha512-jSCU7/VB1loIWBZe14aEYHU/+1UMEHoaO7qxCOVJOw9GgH72VAWppxNcjU+x9a2k3GSIBXNKxXQFqRvvZ7vr3A==",
-      "license": "MIT",
-      "optional": true,
-      "bin": {
-        "mime": "cli.js"
-      },
-      "engines": {
-        "node": ">=10.0.0"
-      }
-    },
-    "node_modules/mime-db": {
-      "version": "1.52.0",
-      "resolved": "https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz",
-      "integrity": "sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/mime-types": {
-      "version": "2.1.35",
-      "resolved": "https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz",
-      "integrity": "sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==",
-      "license": "MIT",
-      "dependencies": {
-        "mime-db": "1.52.0"
-      },
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/ms": {
-      "version": "2.0.0",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.0.0.tgz",
-      "integrity": "sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==",
-      "license": "MIT"
-    },
-    "node_modules/negotiator": {
-      "version": "0.6.3",
-      "resolved": "https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz",
-      "integrity": "sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/node-fetch": {
-      "version": "2.7.0",
-      "resolved": "https://registry.npmjs.org/node-fetch/-/node-fetch-2.7.0.tgz",
-      "integrity": "sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "whatwg-url": "^5.0.0"
-      },
-      "engines": {
-        "node": "4.x || >=6.0.0"
-      },
-      "peerDependencies": {
-        "encoding": "^0.1.0"
-      },
-      "peerDependenciesMeta": {
-        "encoding": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/node-forge": {
-      "version": "1.3.3",
-      "resolved": "https://registry.npmjs.org/node-forge/-/node-forge-1.3.3.tgz",
-      "integrity": "sha512-rLvcdSyRCyouf6jcOIPe/BgwG/d7hKjzMKOas33/pHEr6gbq18IK9zV7DiPvzsz0oBJPme6qr6H6kGZuI9/DZg==",
-      "license": "(BSD-3-Clause OR GPL-2.0)",
-      "engines": {
-        "node": ">= 6.13.0"
-      }
-    },
-    "node_modules/object-assign": {
-      "version": "4.1.1",
-      "resolved": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz",
-      "integrity": "sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=0.10.0"
-      }
-    },
-    "node_modules/object-hash": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/object-hash/-/object-hash-3.0.0.tgz",
-      "integrity": "sha512-RSn9F68PjH9HqtltsSnqYC1XXoWe9Bju5+213R98cNGttag9q9yAOTzdbsqvIa7aNm5WffBZFpWYr2aWrklWAw==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">= 6"
-      }
-    },
-    "node_modules/object-inspect": {
-      "version": "1.13.4",
-      "resolved": "https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz",
-      "integrity": "sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/on-finished": {
-      "version": "2.4.1",
-      "resolved": "https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz",
-      "integrity": "sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==",
-      "license": "MIT",
-      "dependencies": {
-        "ee-first": "1.1.1"
-      },
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/once": {
-      "version": "1.4.0",
-      "resolved": "https://registry.npmjs.org/once/-/once-1.4.0.tgz",
-      "integrity": "sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==",
-      "license": "ISC",
-      "optional": true,
-      "dependencies": {
-        "wrappy": "1"
-      }
-    },
-    "node_modules/p-limit": {
-      "version": "3.1.0",
-      "resolved": "https://registry.npmjs.org/p-limit/-/p-limit-3.1.0.tgz",
-      "integrity": "sha512-TYOanM3wGwNGsZN2cVTYPArw454xnXj5qmWF1bEoAc4+cU/ol7GVh7odevjp1FNHduHc3KZMcFduxU5Xc6uJRQ==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "yocto-queue": "^0.1.0"
-      },
-      "engines": {
-        "node": ">=10"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/sindresorhus"
-      }
-    },
-    "node_modules/parseurl": {
-      "version": "1.3.3",
-      "resolved": "https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz",
-      "integrity": "sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/path-to-regexp": {
-      "version": "0.1.12",
-      "resolved": "https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.12.tgz",
-      "integrity": "sha512-RA1GjUVMnvYFxuqovrEqZoxxW5NUZqbwKtYz/Tt7nXerk0LbLblQmrsgdeOxV5SFHf0UDggjS/bSeOZwt1pmEQ==",
-      "license": "MIT"
-    },
-    "node_modules/proto3-json-serializer": {
-      "version": "2.0.2",
-      "resolved": "https://registry.npmjs.org/proto3-json-serializer/-/proto3-json-serializer-2.0.2.tgz",
-      "integrity": "sha512-SAzp/O4Yh02jGdRc+uIrGoe87dkN/XtwxfZ4ZyafJHymd79ozp5VG5nyZ7ygqPM5+cpLDjjGnYFUkngonyDPOQ==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "protobufjs": "^7.2.5"
-      },
-      "engines": {
-        "node": ">=14.0.0"
-      }
-    },
-    "node_modules/protobufjs": {
-      "version": "7.5.4",
-      "resolved": "https://registry.npmjs.org/protobufjs/-/protobufjs-7.5.4.tgz",
-      "integrity": "sha512-CvexbZtbov6jW2eXAvLukXjXUW1TzFaivC46BpWc/3BpcCysb5Vffu+B3XHMm8lVEuy2Mm4XGex8hBSg1yapPg==",
-      "hasInstallScript": true,
-      "license": "BSD-3-Clause",
-      "dependencies": {
-        "@protobufjs/aspromise": "^1.1.2",
-        "@protobufjs/base64": "^1.1.2",
-        "@protobufjs/codegen": "^2.0.4",
-        "@protobufjs/eventemitter": "^1.1.0",
-        "@protobufjs/fetch": "^1.1.0",
-        "@protobufjs/float": "^1.0.2",
-        "@protobufjs/inquire": "^1.1.0",
-        "@protobufjs/path": "^1.1.2",
-        "@protobufjs/pool": "^1.1.0",
-        "@protobufjs/utf8": "^1.1.0",
-        "@types/node": ">=13.7.0",
-        "long": "^5.0.0"
-      },
-      "engines": {
-        "node": ">=12.0.0"
-      }
-    },
-    "node_modules/proxy-addr": {
-      "version": "2.0.7",
-      "resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.7.tgz",
-      "integrity": "sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==",
-      "license": "MIT",
-      "dependencies": {
-        "forwarded": "0.2.0",
-        "ipaddr.js": "1.9.1"
-      },
-      "engines": {
-        "node": ">= 0.10"
-      }
-    },
-    "node_modules/qs": {
-      "version": "6.14.1",
-      "resolved": "https://registry.npmjs.org/qs/-/qs-6.14.1.tgz",
-      "integrity": "sha512-4EK3+xJl8Ts67nLYNwqw/dsFVnCf+qR7RgXSK9jEEm9unao3njwMDdmsdvoKBKHzxd7tCYz5e5M+SnMjdtXGQQ==",
-      "license": "BSD-3-Clause",
-      "dependencies": {
-        "side-channel": "^1.1.0"
-      },
-      "engines": {
-        "node": ">=0.6"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/range-parser": {
-      "version": "1.2.1",
-      "resolved": "https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz",
-      "integrity": "sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/raw-body": {
-      "version": "2.5.3",
-      "resolved": "https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz",
-      "integrity": "sha512-s4VSOf6yN0rvbRZGxs8Om5CWj6seneMwK3oDb4lWDH0UPhWcxwOWw5+qk24bxq87szX1ydrwylIOp2uG1ojUpA==",
-      "license": "MIT",
-      "dependencies": {
-        "bytes": "~3.1.2",
-        "http-errors": "~2.0.1",
-        "iconv-lite": "~0.4.24",
-        "unpipe": "~1.0.0"
-      },
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/readable-stream": {
-      "version": "3.6.2",
-      "resolved": "https://registry.npmjs.org/readable-stream/-/readable-stream-3.6.2.tgz",
-      "integrity": "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "inherits": "^2.0.3",
-        "string_decoder": "^1.1.1",
-        "util-deprecate": "^1.0.1"
-      },
-      "engines": {
-        "node": ">= 6"
-      }
-    },
-    "node_modules/require-directory": {
-      "version": "2.1.1",
-      "resolved": "https://registry.npmjs.org/require-directory/-/require-directory-2.1.1.tgz",
-      "integrity": "sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=0.10.0"
-      }
-    },
-    "node_modules/retry": {
-      "version": "0.13.1",
-      "resolved": "https://registry.npmjs.org/retry/-/retry-0.13.1.tgz",
-      "integrity": "sha512-XQBQ3I8W1Cge0Seh+6gjj03LbmRFWuoszgK9ooCpwYIrhhoO80pfq4cUkU5DkknwfOfFteRwlZ56PYOGYyFWdg==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">= 4"
-      }
-    },
-    "node_modules/retry-request": {
-      "version": "7.0.2",
-      "resolved": "https://registry.npmjs.org/retry-request/-/retry-request-7.0.2.tgz",
-      "integrity": "sha512-dUOvLMJ0/JJYEn8NrpOaGNE7X3vpI5XlZS/u0ANjqtcZVKnIxP7IgCFwrKTxENw29emmwug53awKtaMm4i9g5w==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "@types/request": "^2.48.8",
-        "extend": "^3.0.2",
-        "teeny-request": "^9.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/safe-buffer": {
-      "version": "5.2.1",
-      "resolved": "https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz",
-      "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==",
-      "funding": [
-        {
-          "type": "github",
-          "url": "https://github.com/sponsors/feross"
-        },
-        {
-          "type": "patreon",
-          "url": "https://www.patreon.com/feross"
-        },
-        {
-          "type": "consulting",
-          "url": "https://feross.org/support"
-        }
-      ],
-      "license": "MIT"
-    },
-    "node_modules/safer-buffer": {
-      "version": "2.1.2",
-      "resolved": "https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz",
-      "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==",
-      "license": "MIT"
-    },
-    "node_modules/semver": {
-      "version": "7.7.3",
-      "resolved": "https://registry.npmjs.org/semver/-/semver-7.7.3.tgz",
-      "integrity": "sha512-SdsKMrI9TdgjdweUSR9MweHA4EJ8YxHn8DFaDisvhVlUOe4BF1tLD7GAj0lIqWVl+dPb/rExr0Btby5loQm20Q==",
-      "license": "ISC",
-      "bin": {
-        "semver": "bin/semver.js"
-      },
-      "engines": {
-        "node": ">=10"
-      }
-    },
-    "node_modules/send": {
-      "version": "0.19.2",
-      "resolved": "https://registry.npmjs.org/send/-/send-0.19.2.tgz",
-      "integrity": "sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==",
-      "license": "MIT",
-      "dependencies": {
-        "debug": "2.6.9",
-        "depd": "2.0.0",
-        "destroy": "1.2.0",
-        "encodeurl": "~2.0.0",
-        "escape-html": "~1.0.3",
-        "etag": "~1.8.1",
-        "fresh": "~0.5.2",
-        "http-errors": "~2.0.1",
-        "mime": "1.6.0",
-        "ms": "2.1.3",
-        "on-finished": "~2.4.1",
-        "range-parser": "~1.2.1",
-        "statuses": "~2.0.2"
-      },
-      "engines": {
-        "node": ">= 0.8.0"
-      }
-    },
-    "node_modules/send/node_modules/mime": {
-      "version": "1.6.0",
-      "resolved": "https://registry.npmjs.org/mime/-/mime-1.6.0.tgz",
-      "integrity": "sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==",
-      "license": "MIT",
-      "bin": {
-        "mime": "cli.js"
-      },
-      "engines": {
-        "node": ">=4"
-      }
-    },
-    "node_modules/send/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT"
-    },
-    "node_modules/serve-static": {
-      "version": "1.16.3",
-      "resolved": "https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz",
-      "integrity": "sha512-x0RTqQel6g5SY7Lg6ZreMmsOzncHFU7nhnRWkKgWuMTu5NN0DR5oruckMqRvacAN9d5w6ARnRBXl9xhDCgfMeA==",
-      "license": "MIT",
-      "dependencies": {
-        "encodeurl": "~2.0.0",
-        "escape-html": "~1.0.3",
-        "parseurl": "~1.3.3",
-        "send": "~0.19.1"
-      },
-      "engines": {
-        "node": ">= 0.8.0"
-      }
-    },
-    "node_modules/setprototypeof": {
-      "version": "1.2.0",
-      "resolved": "https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz",
-      "integrity": "sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==",
-      "license": "ISC"
-    },
-    "node_modules/side-channel": {
-      "version": "1.1.0",
-      "resolved": "https://registry.npmjs.org/side-channel/-/side-channel-1.1.0.tgz",
-      "integrity": "sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==",
-      "license": "MIT",
-      "dependencies": {
-        "es-errors": "^1.3.0",
-        "object-inspect": "^1.13.3",
-        "side-channel-list": "^1.0.0",
-        "side-channel-map": "^1.0.1",
-        "side-channel-weakmap": "^1.0.2"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/side-channel-list": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.0.tgz",
-      "integrity": "sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==",
-      "license": "MIT",
-      "dependencies": {
-        "es-errors": "^1.3.0",
-        "object-inspect": "^1.13.3"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/side-channel-map": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz",
-      "integrity": "sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==",
-      "license": "MIT",
-      "dependencies": {
-        "call-bound": "^1.0.2",
-        "es-errors": "^1.3.0",
-        "get-intrinsic": "^1.2.5",
-        "object-inspect": "^1.13.3"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/side-channel-weakmap": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz",
-      "integrity": "sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==",
-      "license": "MIT",
-      "dependencies": {
-        "call-bound": "^1.0.2",
-        "es-errors": "^1.3.0",
-        "get-intrinsic": "^1.2.5",
-        "object-inspect": "^1.13.3",
-        "side-channel-map": "^1.0.1"
-      },
-      "engines": {
-        "node": ">= 0.4"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/ljharb"
-      }
-    },
-    "node_modules/statuses": {
-      "version": "2.0.2",
-      "resolved": "https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz",
-      "integrity": "sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/stream-events": {
-      "version": "1.0.5",
-      "resolved": "https://registry.npmjs.org/stream-events/-/stream-events-1.0.5.tgz",
-      "integrity": "sha512-E1GUzBSgvct8Jsb3v2X15pjzN1tYebtbLaMg+eBOUOAxgbLoSbT2NS91ckc5lJD1KfLjId+jXJRgo0qnV5Nerg==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "stubs": "^3.0.0"
-      }
-    },
-    "node_modules/stream-shift": {
-      "version": "1.0.3",
-      "resolved": "https://registry.npmjs.org/stream-shift/-/stream-shift-1.0.3.tgz",
-      "integrity": "sha512-76ORR0DO1o1hlKwTbi/DM3EXWGf3ZJYO8cXX5RJwnul2DEg2oyoZyjLNoQM8WsvZiFKCRfC1O0J7iCvie3RZmQ==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/string_decoder": {
-      "version": "1.3.0",
-      "resolved": "https://registry.npmjs.org/string_decoder/-/string_decoder-1.3.0.tgz",
-      "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "safe-buffer": "~5.2.0"
-      }
-    },
-    "node_modules/string-width": {
-      "version": "4.2.3",
-      "resolved": "https://registry.npmjs.org/string-width/-/string-width-4.2.3.tgz",
-      "integrity": "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "emoji-regex": "^8.0.0",
-        "is-fullwidth-code-point": "^3.0.0",
-        "strip-ansi": "^6.0.1"
-      },
-      "engines": {
-        "node": ">=8"
-      }
-    },
-    "node_modules/strip-ansi": {
-      "version": "6.0.1",
-      "resolved": "https://registry.npmjs.org/strip-ansi/-/strip-ansi-6.0.1.tgz",
-      "integrity": "sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "ansi-regex": "^5.0.1"
-      },
-      "engines": {
-        "node": ">=8"
-      }
-    },
-    "node_modules/strnum": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/strnum/-/strnum-1.1.2.tgz",
-      "integrity": "sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==",
-      "funding": [
-        {
-          "type": "github",
-          "url": "https://github.com/sponsors/NaturalIntelligence"
-        }
-      ],
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/stubs": {
-      "version": "3.0.0",
-      "resolved": "https://registry.npmjs.org/stubs/-/stubs-3.0.0.tgz",
-      "integrity": "sha512-PdHt7hHUJKxvTCgbKX9C1V/ftOcjJQgz8BZwNfV5c4B6dcGqlpelTbJ999jBGZ2jYiPAwcX5dP6oBwVlBlUbxw==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/teeny-request": {
-      "version": "9.0.0",
-      "resolved": "https://registry.npmjs.org/teeny-request/-/teeny-request-9.0.0.tgz",
-      "integrity": "sha512-resvxdc6Mgb7YEThw6G6bExlXKkv6+YbuzGg9xuXxSgxJF7Ozs+o8Y9+2R3sArdWdW8nOokoQb1yrpFB0pQK2g==",
-      "license": "Apache-2.0",
-      "optional": true,
-      "dependencies": {
-        "http-proxy-agent": "^5.0.0",
-        "https-proxy-agent": "^5.0.0",
-        "node-fetch": "^2.6.9",
-        "stream-events": "^1.0.5",
-        "uuid": "^9.0.0"
-      },
-      "engines": {
-        "node": ">=14"
-      }
-    },
-    "node_modules/teeny-request/node_modules/agent-base": {
-      "version": "6.0.2",
-      "resolved": "https://registry.npmjs.org/agent-base/-/agent-base-6.0.2.tgz",
-      "integrity": "sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "debug": "4"
-      },
-      "engines": {
-        "node": ">= 6.0.0"
-      }
-    },
-    "node_modules/teeny-request/node_modules/debug": {
-      "version": "4.4.3",
-      "resolved": "https://registry.npmjs.org/debug/-/debug-4.4.3.tgz",
-      "integrity": "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "ms": "^2.1.3"
-      },
-      "engines": {
-        "node": ">=6.0"
-      },
-      "peerDependenciesMeta": {
-        "supports-color": {
-          "optional": true
-        }
-      }
-    },
-    "node_modules/teeny-request/node_modules/https-proxy-agent": {
-      "version": "5.0.1",
-      "resolved": "https://registry.npmjs.org/https-proxy-agent/-/https-proxy-agent-5.0.1.tgz",
-      "integrity": "sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "agent-base": "6",
-        "debug": "4"
-      },
-      "engines": {
-        "node": ">= 6"
-      }
-    },
-    "node_modules/teeny-request/node_modules/ms": {
-      "version": "2.1.3",
-      "resolved": "https://registry.npmjs.org/ms/-/ms-2.1.3.tgz",
-      "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/teeny-request/node_modules/uuid": {
-      "version": "9.0.1",
-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-9.0.1.tgz",
-      "integrity": "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
-      "license": "MIT",
-      "optional": true,
-      "bin": {
-        "uuid": "dist/bin/uuid"
-      }
-    },
-    "node_modules/toidentifier": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz",
-      "integrity": "sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">=0.6"
-      }
-    },
-    "node_modules/tr46": {
-      "version": "0.0.3",
-      "resolved": "https://registry.npmjs.org/tr46/-/tr46-0.0.3.tgz",
-      "integrity": "sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/tslib": {
-      "version": "2.8.1",
-      "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.8.1.tgz",
-      "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==",
-      "license": "0BSD"
-    },
-    "node_modules/type-is": {
-      "version": "1.6.18",
-      "resolved": "https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz",
-      "integrity": "sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==",
-      "license": "MIT",
-      "dependencies": {
-        "media-typer": "0.3.0",
-        "mime-types": "~2.1.24"
-      },
-      "engines": {
-        "node": ">= 0.6"
-      }
-    },
-    "node_modules/undici-types": {
-      "version": "6.21.0",
-      "resolved": "https://registry.npmjs.org/undici-types/-/undici-types-6.21.0.tgz",
-      "integrity": "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==",
-      "license": "MIT"
-    },
-    "node_modules/unpipe": {
-      "version": "1.0.0",
-      "resolved": "https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz",
-      "integrity": "sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/util-deprecate": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/util-deprecate/-/util-deprecate-1.0.2.tgz",
-      "integrity": "sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==",
-      "license": "MIT",
-      "optional": true
-    },
-    "node_modules/utils-merge": {
-      "version": "1.0.1",
-      "resolved": "https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz",
-      "integrity": "sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.4.0"
-      }
-    },
-    "node_modules/uuid": {
-      "version": "10.0.0",
-      "resolved": "https://registry.npmjs.org/uuid/-/uuid-10.0.0.tgz",
-      "integrity": "sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==",
-      "funding": [
-        "https://github.com/sponsors/broofa",
-        "https://github.com/sponsors/ctavan"
-      ],
-      "license": "MIT",
-      "bin": {
-        "uuid": "dist/bin/uuid"
-      }
-    },
-    "node_modules/vary": {
-      "version": "1.1.2",
-      "resolved": "https://registry.npmjs.org/vary/-/vary-1.1.2.tgz",
-      "integrity": "sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==",
-      "license": "MIT",
-      "engines": {
-        "node": ">= 0.8"
-      }
-    },
-    "node_modules/webidl-conversions": {
-      "version": "3.0.1",
-      "resolved": "https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-3.0.1.tgz",
-      "integrity": "sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==",
-      "license": "BSD-2-Clause",
-      "optional": true
-    },
-    "node_modules/websocket-driver": {
-      "version": "0.7.4",
-      "resolved": "https://registry.npmjs.org/websocket-driver/-/websocket-driver-0.7.4.tgz",
-      "integrity": "sha512-b17KeDIQVjvb0ssuSDF2cYXSg2iztliJ4B9WdsuB6J952qCPKmnVq4DyW5motImXHDC1cBT/1UezrJVsKw5zjg==",
-      "license": "Apache-2.0",
-      "dependencies": {
-        "http-parser-js": ">=0.5.1",
-        "safe-buffer": ">=5.1.0",
-        "websocket-extensions": ">=0.1.1"
-      },
-      "engines": {
-        "node": ">=0.8.0"
-      }
-    },
-    "node_modules/websocket-extensions": {
-      "version": "0.1.4",
-      "resolved": "https://registry.npmjs.org/websocket-extensions/-/websocket-extensions-0.1.4.tgz",
-      "integrity": "sha512-OqedPIGOfsDlo31UNwYbCFMSaO9m9G/0faIHj5/dZFDMFqPTcx6UwqyOy3COEaEOg/9VsGIpdqn62W5KhoKSpg==",
-      "license": "Apache-2.0",
-      "engines": {
-        "node": ">=0.8.0"
-      }
-    },
-    "node_modules/whatwg-url": {
-      "version": "5.0.0",
-      "resolved": "https://registry.npmjs.org/whatwg-url/-/whatwg-url-5.0.0.tgz",
-      "integrity": "sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "tr46": "~0.0.3",
-        "webidl-conversions": "^3.0.0"
-      }
-    },
-    "node_modules/wrap-ansi": {
-      "version": "7.0.0",
-      "resolved": "https://registry.npmjs.org/wrap-ansi/-/wrap-ansi-7.0.0.tgz",
-      "integrity": "sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "ansi-styles": "^4.0.0",
-        "string-width": "^4.1.0",
-        "strip-ansi": "^6.0.0"
-      },
-      "engines": {
-        "node": ">=10"
-      },
-      "funding": {
-        "url": "https://github.com/chalk/wrap-ansi?sponsor=1"
-      }
-    },
-    "node_modules/wrappy": {
-      "version": "1.0.2",
-      "resolved": "https://registry.npmjs.org/wrappy/-/wrappy-1.0.2.tgz",
-      "integrity": "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==",
-      "license": "ISC",
-      "optional": true
-    },
-    "node_modules/y18n": {
-      "version": "5.0.8",
-      "resolved": "https://registry.npmjs.org/y18n/-/y18n-5.0.8.tgz",
-      "integrity": "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA==",
-      "license": "ISC",
-      "optional": true,
-      "engines": {
-        "node": ">=10"
-      }
-    },
-    "node_modules/yallist": {
-      "version": "4.0.0",
-      "resolved": "https://registry.npmjs.org/yallist/-/yallist-4.0.0.tgz",
-      "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==",
-      "license": "ISC"
-    },
-    "node_modules/yargs": {
-      "version": "17.7.2",
-      "resolved": "https://registry.npmjs.org/yargs/-/yargs-17.7.2.tgz",
-      "integrity": "sha512-7dSzzRQ++CKnNI/krKnYRV7JKKPUXMEh61soaHKg9mrWEhzFWhFnxPxGl+69cD1Ou63C13NUPCnmIcrvqCuM6w==",
-      "license": "MIT",
-      "optional": true,
-      "dependencies": {
-        "cliui": "^8.0.1",
-        "escalade": "^3.1.1",
-        "get-caller-file": "^2.0.5",
-        "require-directory": "^2.1.1",
-        "string-width": "^4.2.3",
-        "y18n": "^5.0.5",
-        "yargs-parser": "^21.1.1"
-      },
-      "engines": {
-        "node": ">=12"
-      }
-    },
-    "node_modules/yargs-parser": {
-      "version": "21.1.1",
-      "resolved": "https://registry.npmjs.org/yargs-parser/-/yargs-parser-21.1.1.tgz",
-      "integrity": "sha512-tVpsJW7DdjecAiFpbIB1e3qxIQsE6NoPc5/eTdrbbIC4h0LVsWhnoa3g+m2HclBIujHzsxZ4VJVA+GUuc2/LBw==",
-      "license": "ISC",
-      "optional": true,
-      "engines": {
-        "node": ">=12"
-      }
-    },
-    "node_modules/yocto-queue": {
-      "version": "0.1.0",
-      "resolved": "https://registry.npmjs.org/yocto-queue/-/yocto-queue-0.1.0.tgz",
-      "integrity": "sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==",
-      "license": "MIT",
-      "optional": true,
-      "engines": {
-        "node": ">=10"
-      },
-      "funding": {
-        "url": "https://github.com/sponsors/sindresorhus"
-      }
-    }
-  }
-}
-
-```
----
-
-## FILE: functions/package.json
-```json
-{
-  "name": "functions",
-  "description": "Cloud Functions for Firebase",
-  "scripts": {
-    "serve": "firebase serve --only functions",
-    "shell": "firebase functions:shell",
-    "start": "npm run shell",
-    "deploy": "firebase deploy --only functions",
-    "logs": "firebase functions:log"
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+  ],
+  define: {
+    'import.meta.env.PACKAGE_VERSION': JSON.stringify(packageJson.version),
   },
-  "engines": {
-    "node": "20"
+  resolve: {
+    alias: {
+      react: 'react',
+      'react-dom': 'react-dom',
+    },
   },
-  "dependencies": {
-    "@google/generative-ai": "^0.21.0",
-    "firebase-admin": "^12.7.0",
-    "firebase-functions": "^7.0.3"
+  // âœ… Relaxed Headers for Dev Server
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+    },
   },
-  "private": true
-}
+  optimizeDeps: {
+    include: ['mermaid', 'framer-motion', 'react', 'react-dom', 'react-router-dom'],
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1500,
+    commonjsOptions: {
+      include: [/mermaid/, /node_modules/],
+      transformMixedEsModules: true,
+    },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // 1. Core React + Recharts
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router-dom') ||
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/recharts') || 
+              id.includes('node_modules/d3')) {
+            return 'vendor-react';
+          }
+          // 2. Firebase
+          if (id.includes('node_modules/firebase')) {
+            return 'vendor-firebase';
+          }
+          // 3. Mermaid
+          if (id.includes('node_modules/mermaid') || 
+              id.includes('node_modules/khroma') || 
+              id.includes('node_modules/cytoscape')) {
+            return 'vendor-mermaid';
+          }
+          // 4. Animation
+          if (id.includes('node_modules/framer-motion')) {
+            return 'vendor-animation';
+          }
+        },
+      },
+    },
+  },
+  pool: 'forks',
+  poolOptions: {
+    forks: {
+      singleFork: true,
+    },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.js',
+    css: true,
+    testTimeout: 10000,
+  },
+})
 
 ```
 ---
