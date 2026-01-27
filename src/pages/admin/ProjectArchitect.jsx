@@ -14,13 +14,20 @@ const ProjectArchitect = () => {
     setError(null);
     try {
       const response = await architectProject({ rawText });
-      setResult(response.data);
+      
+      console.log("🤖 Raw Cloud Function Response:", response);
+
+      // ✅ FIX: Intelligent Unwrapping (Handle double wrapping)
+      // The function returns { data: ... }, and the SDK puts that in response.data
+      const payload = response.data.data || response.data;
+      
+      console.log("📦 Unwrapped Payload:", payload);
+      setResult(payload);
+
     } catch (err) {
-      // ✅ FIX: Use the actual error message from the backend/mock
-      // This allows "Quota exceeded" or "Auth failed" to be seen by the user.
       const msg = err.message || "AI generation failed. Check your API key or connection.";
       setError(msg);
-      console.error(err);
+      console.error("Architect Error:", err);
     } finally {
       setLoading(false);
     }
@@ -70,14 +77,13 @@ const ProjectArchitect = () => {
 
           {result ? (
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-               {/* Use the existing TimelineCard UI, mocked into the format it expects */}
                <TimelineCard 
                  data={{
                    role: "Preview Output",
                    company: "AI Generated",
                    date: "Today",
                    summary: "Formatting of your raw notes completed successfully.",
-                   projects: [result]
+                   projects: [result] // Result is now the properly unwrapped project object
                  }}
                  index={0}
                  activeFilter={null}

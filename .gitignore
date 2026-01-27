@@ -34,3 +34,5 @@ firebase-debug.log*
 .firebase
 update_docs.py
 
+.env*
+update_docs.py

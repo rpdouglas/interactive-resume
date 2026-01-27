@@ -42,3 +42,10 @@ Cross-Origin-Opener-Policy: unsafe-none
 Cross-Origin-Embedder-Policy: unsafe-none
 
 Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
+
+## 5. Cloud Functions (Gen 2) Setup
+When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
+```bash
+gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
+```
+*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*

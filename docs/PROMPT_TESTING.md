@@ -20,7 +20,10 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
     * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
     * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
     * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
-    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
+    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables
+    * **Defensive Rendering:** UI components consuming Cloud Function data MUST use optional chaining (`?.`) or default values. The data structure returned by the SDK often wraps the result in `data`, leading to `response.data.data`.
+    * **Secret Binding:** When testing Cloud Functions, ensure `secrets` are whitelisted in the function definition object (`{ secrets: ["KEY_NAME"] }`).
+ in Firebase tests to prevent SDK crashes.
 
 2.  **Testing Strategy:**
     * **Happy Path:** Does it render data correctly?
