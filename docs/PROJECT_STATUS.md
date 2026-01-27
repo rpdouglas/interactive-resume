@@ -1,12 +1,12 @@
 # 🟢 Project Status: Platform Expansion
 
-**Current Phase:** Phase 17 - Application Manager
+**Current Phase:** Phase 17 - Application Manager (Backend Complete)
 **Version:** v2.2.0-beta
 **Status:** 🟢 Phase 17.1 Complete
 
 ## 🎯 Current Objectives
 * [x] Sprint 17.1: The Job Input Interface (Admin UI).
-* [ ] Sprint 17.2: Vector Matching Logic (Gemini).
+* [x] Sprint 17.2: Vector Matching Engine (Gemini 2.5 Flash).
 
 ## ✅ Completed Roadmap
 * **Phase 16:** [x] The Backbone Shift (Firestore Migration).

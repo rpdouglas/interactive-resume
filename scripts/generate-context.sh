@@ -56,4 +56,10 @@ find scripts -type f \( -name "*.js" -o -name "*.cjs" -o -name "*.sh" \) | sort 
 # CI/CD Workflows
 find .github/workflows -type f -name "*.yml" | sort | while read file; do ingest_file "$file"; done
 
+# -----------------------------------------------------------
+# ✅ NEW: Cloud Functions (Backend Logic)
+# -----------------------------------------------------------
+# We explicitly find files in 'functions' but exclude node_modules
+find functions -type f -not -path "*/node_modules/*" -not -path "*/.*" | sort | while read file; do ingest_file "$file"; done
+
 echo "✅ Context Generated at: $OUTPUT_FILE"

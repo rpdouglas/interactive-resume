@@ -14,8 +14,10 @@ const TimelineCard = ({ data, index, activeFilter }) => {
       setIsOpen(false);
       return;
     }
-    const hasMatchingProject = data.projects.some(proj => 
-      proj.skills.some(skill => 
+    // Defensive check for data.projects
+    const projects = data.projects || [];
+    const hasMatchingProject = projects.some(proj => 
+      proj.skills?.some(skill => 
         skill.toLowerCase().includes(activeFilter.toLowerCase())
       )
     );
@@ -31,14 +33,13 @@ const TimelineCard = ({ data, index, activeFilter }) => {
     }
   };
 
+  // Guard: If no projects, render minimal card
+  const projects = data.projects || [];
+
   return (
-    /* 📱 MOBILE OPTIMIZATION: 
-       Reduced left padding (pl-6) on mobile to reclaim horizontal space.
-       Restored to pl-12 on desktop (md).
-    */
     <div className="relative pl-6 md:pl-12 py-6 group">
       
-      {/* 📏 The Dot (Adjusted position for new padding) */}
+      {/* 📏 The Dot */}
       <motion.div 
         layout
         className="absolute left-[-5px] top-8 w-4 h-4 rounded-full bg-blue-500 border-4 border-slate-900 z-10 group-hover:scale-125 transition-transform"
@@ -49,22 +50,19 @@ const TimelineCard = ({ data, index, activeFilter }) => {
         layout
         className="bg-slate-800/50 rounded-xl border border-slate-700 hover:border-blue-500/50 transition-colors shadow-lg overflow-hidden"
       >
-        {/* 📱 MOBILE OPTIMIZATION: 
-           Reduced card padding (p-4) on mobile.
-        */}
         <div className="p-4 md:p-6 cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
             <div className="max-w-full">
-              <h3 className="text-lg md:text-xl font-bold text-white break-words">{data.role}</h3>
-              <span className="text-blue-400 font-medium text-sm block mt-1 sm:mt-0">{data.company}</span>
+              <h3 className="text-lg md:text-xl font-bold text-white break-words">{data.role || "Role Title"}</h3>
+              <span className="text-blue-400 font-medium text-sm block mt-1 sm:mt-0">{data.company || "Company Name"}</span>
             </div>
             
             <div className="flex items-center gap-4 mt-2 sm:mt-0">
-              <span className="text-slate-400 text-xs md:text-sm font-mono whitespace-nowrap">{data.date}</span>
+              <span className="text-slate-400 text-xs md:text-sm font-mono whitespace-nowrap">{data.date || "Present"}</span>
               {isOpen ? <ChevronUp size={18} className="text-slate-500" /> : <ChevronDown size={18} className="text-slate-500" />}
             </div>
           </div>
-          <p className="text-slate-300 text-sm mt-2 leading-relaxed">{data.summary}</p>
+          <p className="text-slate-300 text-sm mt-2 leading-relaxed">{data.summary || "No summary provided."}</p>
         </div>
 
         <AnimatePresence>
@@ -75,24 +73,22 @@ const TimelineCard = ({ data, index, activeFilter }) => {
               exit={{ height: 0, opacity: 0 }}
               className="border-t border-slate-700 bg-slate-900/30 p-4 space-y-4 md:space-y-4"
             >
-              {data.projects.map(project => {
-                const isMatch = activeFilter && project.skills.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
+              {projects.length === 0 && <div className="text-slate-500 text-sm italic">No projects listed.</div>}
+              
+              {projects.map(project => {
+                const isMatch = activeFilter && project.skills?.some(s => s.toLowerCase().includes(activeFilter.toLowerCase()));
                 const hasDiagram = !!project.diagram;
+                
+                // ✅ DEFENSIVE: Fallback for PAR object
+                const par = project.par || { problem: "N/A", action: "N/A", result: "N/A" };
 
                 return (
                   <div 
-                    key={project.id} 
-                    /* 📱 ADAPTIVE DENSITY STRATEGY:
-                       - Mobile: "Flattened". No borders/bg. Items separated by a subtle bottom border.
-                       - Desktop (md): "Card". Boxed look with borders and background.
-                    */
+                    key={project.id || Math.random()} 
                     className={clsx(
                       "transition-all",
-                      // Mobile Styles (Flattened)
                       "pb-6 border-b border-slate-800/50 last:border-0 last:pb-0",
-                      // Desktop Styles (Card)
                       "md:p-4 md:rounded-lg md:border md:pb-4 md:border-b md:mb-0",
-                      // Active State (Only applies styling on Desktop to keep Mobile clean)
                       isMatch 
                         ? "md:bg-blue-900/20 md:border-blue-500/50" 
                         : "md:bg-slate-900 md:border-slate-800"
@@ -101,7 +97,7 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     <div className="flex flex-col gap-2 mb-3">
                       <div className="flex justify-between items-start">
                         <h5 className={clsx("font-bold text-sm", isMatch ? "text-blue-300" : "text-slate-200")}>
-                          {project.title}
+                          {project.title || "Untitled Project"}
                         </h5>
                       </div>
                       
@@ -123,9 +119,9 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     </div>
 
                     <div className="space-y-2 text-sm text-slate-400 mb-4 leading-relaxed">
-                      <p><strong className="text-blue-400 block text-xs uppercase tracking-wider mb-0.5">Problem:</strong> {project.par.problem}</p>
-                      <p><strong className="text-emerald-400 block text-xs uppercase tracking-wider mb-0.5">Action:</strong> {project.par.action}</p>
-                      <p><strong className="text-purple-400 block text-xs uppercase tracking-wider mb-0.5">Result:</strong> {project.par.result}</p>
+                      <p><strong className="text-blue-400 block text-xs uppercase tracking-wider mb-0.5">Problem:</strong> {par.problem}</p>
+                      <p><strong className="text-emerald-400 block text-xs uppercase tracking-wider mb-0.5">Action:</strong> {par.action}</p>
+                      <p><strong className="text-purple-400 block text-xs uppercase tracking-wider mb-0.5">Result:</strong> {par.result}</p>
                     </div>
 
                     <AnimatePresence>
@@ -142,7 +138,7 @@ const TimelineCard = ({ data, index, activeFilter }) => {
                     </AnimatePresence>
 
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {project.skills.map(skill => (
+                      {(project.skills || []).map(skill => (
                         <span key={skill} className="px-2 py-1 text-[10px] rounded-md border border-slate-700 bg-slate-800 text-slate-500 whitespace-nowrap">
                           {skill}
                         </span>

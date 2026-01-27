@@ -3,168 +3,114 @@ import datetime
 import re
 
 # ==========================================
-# 📝 DOCUMENTATION PRESERVATION PROTOCOL
+# 📝 SPRINT 17.2: DOCUMENTATION AUDIT
 # ==========================================
 
 def read_file(path):
-    """Safely reads a file, returns content or empty string if missing."""
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
             return f.read()
-    print(f"⚠️ Warning: File not found: {path}")
     return ""
 
 def write_file(path, content):
-    """Writes content to file with UTF-8 encoding."""
-    # Ensure directory exists
-    os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
     print(f"✅ Updated: {path}")
-
-# ==========================================
-# PHASE 1: STATUS & LOGS
-# ==========================================
 
 # 1. Update PROJECT_STATUS.md
 # ------------------------------------------
 status_path = 'docs/PROJECT_STATUS.md'
 status_content = read_file(status_path)
 
-if status_content:
-    # 1. Update Phase Name if needed
+if "[ ] Sprint 17.2: Vector Matching Logic" in status_content:
     status_content = status_content.replace(
-        "Phase 17 - The Application Manager (Job Matcher)",
-        "Phase 17 - Application Manager"
+        "[ ] Sprint 17.2: Vector Matching Logic (Gemini).",
+        "[x] Sprint 17.2: Vector Matching Engine (Gemini 2.5 Flash)."
     )
-    
-    # 2. Mark Sprint 17.1 as Complete
-    # Using simple replace for robustness
-    if "[ ] Sprint 17.1: The Job Input Interface" in status_content:
-        status_content = status_content.replace(
-            "[ ] Sprint 17.1: The Job Input Interface (Admin UI).",
-            "[x] Sprint 17.1: The Job Input Interface (Admin UI)."
-        )
-    
-    # 3. Update Overall Status Line
-    if "**Status:** 🛠️ Active Development" in status_content:
-        status_content = status_content.replace(
-            "**Status:** 🛠️ Active Development",
-            "**Status:** 🟢 Phase 17.1 Complete (Ready for AI)"
-        )
+    status_content = status_content.replace(
+        "Phase 17 - Application Manager",
+        "Phase 17 - Application Manager (Backend Complete)"
+    )
 
-    write_file(status_path, status_content)
+write_file(status_path, status_content)
 
 # 2. Update CHANGELOG.md
 # ------------------------------------------
 changelog_path = 'docs/CHANGELOG.md'
 changelog_content = read_file(changelog_path)
-today_str = datetime.date.today().strftime("%Y-%m-%d")
+today = datetime.date.today().strftime("%Y-%m-%d")
 
-if changelog_content:
-    new_entry = f"""## [v2.3.0-beta] - {today_str}
+new_entry = f"""## [v2.4.0-beta] - {today}
 ### Added
-- **Admin:** New `JobTracker` module for inputting raw job descriptions.
-- **Data:** Created `applications` collection in Firestore with "Async Trigger" schema (`ai_status: pending`).
-- **Security:** Restricted `applications` to Admin-Write/Read only.
-- **Testing:** Added environment-mocked unit tests for Admin components.
+- **Backend:** `analyzeApplication` Firestore Trigger (Gemini 2.5 Flash) for resume-to-JD analysis.
+- **Backend:** Restored and hardened `architectProject` (Gemini 3.0 Preview) for Resume Building.
+- **Security:** Migrated API Keys to Google Secret Manager.
+- **UI:** Hardened `TimelineCard` to handle undefined data structures gracefully.
+
+### Fixed
+- **Functions:** Fixed "Service Identity" error for Eventarc triggers.
+- **UI:** Resolved "Double Wrapper" issue where Cloud Function responses were nested `data.data`.
 
 """
-    # Insert new entry after the main header or first known version
-    # Strategy: Find the first "## [" line and insert before it
-    match = re.search(r'## \[v', changelog_content)
-    if match:
-        insert_pos = match.start()
-        new_changelog = changelog_content[:insert_pos] + new_entry + changelog_content[insert_pos:]
-        write_file(changelog_path, new_changelog)
-    else:
-        # Fallback if file is empty or formatted differently
-        new_changelog = "# 📜 Changelog\n\n" + new_entry + changelog_content
-        write_file(changelog_path, new_changelog)
 
+if "## [v" in changelog_content:
+    parts = changelog_content.split("## [v", 1)
+    new_changelog = parts[0] + new_entry + "## [v" + parts[1]
+else:
+    new_changelog = "# 📜 Changelog\n\n" + new_entry + changelog_content
 
-# ==========================================
-# PHASE 2: TECHNICAL CONTEXT
-# ==========================================
+write_file(changelog_path, new_changelog)
 
-# 3. Update CONTEXT_DUMP.md
+# 3. Update CONTEXT_DUMP.md (Architecture Update)
 # ------------------------------------------
 context_path = 'docs/CONTEXT_DUMP.md'
 context_content = read_file(context_path)
 
-if context_content and "JobTracker.jsx" not in context_content:
-    # Locate the admin component line
-    target_line = "* `src/components/admin` -> CMS specific UI."
-    replacement = "* `src/components/admin` -> CMS specific UI.\n    * `JobTracker.jsx`: Input for AI Analysis (Async Trigger Pattern)."
+if "analyzeApplication" not in context_content:
+    # Update AI Isolation section
+    ai_section = "### 4. AI Isolation"
+    new_ai_note = """### 4. AI Isolation
+* **Server-Side AI:** Gemini logic resides in `functions/index.js`.
+    * `architectProject`: Callable (Gemini 3.0) for UI generation.
+    * `analyzeApplication`: Trigger (Gemini 2.5) for background processing.
+* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY` injected by Secret Manager."""
     
-    if target_line in context_content:
-        context_content = context_content.replace(target_line, replacement)
+    if ai_section in context_content:
+        # Regex to replace the old section until the next header
+        context_content = re.sub(r'### 4\. AI Isolation.*?(?=## Directory)', new_ai_note + "\n\n", context_content, flags=re.DOTALL)
         write_file(context_path, context_content)
 
-# 4. Update SECURITY_MODEL.md
+# 4. Update DEPLOYMENT.md (Critical Gcloud Step)
 # ------------------------------------------
-security_path = 'docs/SECURITY_MODEL.md'
-security_content = read_file(security_path)
+deploy_path = 'docs/DEPLOYMENT.md'
+deploy_content = read_file(deploy_path)
 
-if security_content and "`applications`" not in security_content:
-    # Find the table rows and append
-    # Looking for the last row usually projects
-    target_row = "| `projects` | 🌍 Public | 🔐 Auth Only |"
-    new_row = "\n| `applications` | ⛔ None | 🔐 Admin Only |"
-    
-    if target_row in security_content:
-        security_content = security_content.replace(target_row, target_row + new_row)
-        write_file(security_path, security_content)
-
-
-# ==========================================
-# PHASE 3: CONTINUOUS IMPROVEMENT (PROCESS)
-# ==========================================
-
-# 5. Update PROMPT_TESTING.md
-# ------------------------------------------
-testing_prompt_path = 'docs/PROMPT_TESTING.md'
-testing_content = read_file(testing_prompt_path)
-
-if testing_content:
-    # We want to add new constraints to item 1 (Environment Mocking) or create a new item.
-    # Let's append to the Constraints section generally.
-    
-    new_constraints = """    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
-    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables in Firebase tests to prevent SDK crashes.
+if "Eventarc" not in deploy_content:
+    new_deploy_step = """
+## 5. Cloud Functions (Gen 2) Setup
+When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
+```bash
+gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
+```
+*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
 """
-    
-    # Hook into the existing list. Looking for "Constraints & Best Practices:"
-    # We will append these as sub-bullets under rule #1 or just add them to the list logic.
-    # A safe place is to replace the "Constraints & Best Practices:" block or append to the end of Rule 1.
-    
-    # Searching for Rule 1's end
-    rule_1_marker = "* *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls."
-    
-    if rule_1_marker in testing_content and "Path Verification" not in testing_content:
-        testing_content = testing_content.replace(rule_1_marker, rule_1_marker + "\n" + new_constraints)
-        write_file(testing_prompt_path, testing_content)
+    deploy_content = deploy_content + new_deploy_step
+    write_file(deploy_path, deploy_content)
 
-
-# 6. Update PROMPT_APPROVAL.md
+# 5. Update PROMPT_TESTING.md (Process Constraints)
 # ------------------------------------------
-approval_prompt_path = 'docs/PROMPT_APPROVAL.md'
-approval_content = read_file(approval_prompt_path)
+testing_path = 'docs/PROMPT_TESTING.md'
+testing_content = read_file(testing_path)
 
-if approval_content:
-    # Add constraint to "Strict Technical Constraints"
-    # We'll look for the last item in that list (usually item 3 Environment Awareness)
-    
-    new_constraint = """4.  **UI Resilience:**
-    * **Textareas:** Always enforce `overflow-y-auto` and `resize-none` to prevent Mobile Safari scroll trapping on large inputs.
+if "Double Wrapping" not in testing_content:
+    new_constraints = """
+    * **Defensive Rendering:** UI components consuming Cloud Function data MUST use optional chaining (`?.`) or default values. The data structure returned by the SDK often wraps the result in `data`, leading to `response.data.data`.
+    * **Secret Binding:** When testing Cloud Functions, ensure `secrets` are whitelisted in the function definition object (`{ secrets: ["KEY_NAME"] }`).
 """
-    
-    # Find the end of item 3
-    # Matches: * **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`).
-    item_3_marker = "* **Codespaces:** Assume the dev server headers are relaxed (`unsafe-none`)."
-    
-    if item_3_marker in approval_content and "UI Resilience" not in approval_content:
-        approval_content = approval_content.replace(item_3_marker, item_3_marker + "\n" + new_constraint)
-        write_file(approval_prompt_path, approval_content)
+    # Append to Rule 1
+    marker = "* **Stubbing:** Use `vi.stubEnv` for ALL environment variables"
+    if marker in testing_content:
+        testing_content = testing_content.replace(marker, marker + new_constraints)
+        write_file(testing_path, testing_content)
 
-print("\n🎉 Documentation Audit Complete. All files synchronized for Sprint 17.2.")
+print("\n🎉 Documentation Audit Complete. Ready for Commit.")
