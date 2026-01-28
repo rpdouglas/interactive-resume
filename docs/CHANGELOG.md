@@ -2,6 +2,12 @@
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
+## [3.2.0-beta] - 2026-01-28
+### Added
+- **Resume Tailor:** New 'Diff View' UI in Job Tracker for side-by-side text comparison.
+- **AI:** `tailorResume` Cloud Function (Gemini 2.5) with "Ethical Editor" guardrails.
+- **Data:** `tailored_bullets` schema in Firestore applications collection.
+
 ## [v3.1.0-beta] - 2026-01-28
 ### Added
 - **AI:** "Cover Letter Engine" (Cloud Function) using Gemini 2.5 Flash.

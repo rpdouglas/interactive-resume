@@ -63,3 +63,12 @@ The `applications` collection is the core of the Content Factory.
     * `gap_analysis` (array<string>) - Structured list of missing skills.
     * `cover_letter_status` (string) - 'idle' | 'pending' | 'writing' | 'complete'
     * `cover_letter_text` (string) - Markdown/Text content.
+
+
+### Application Schema (`applications/{id}`)
+* `tailor_status`: 'idle' | 'pending' | 'processing' | 'complete' | 'error'
+* `tailored_bullets`: Array of Objects
+    * `original`: String
+    * `optimized`: String
+    * `reasoning`: String
+    * `confidence`: Number (0-100)

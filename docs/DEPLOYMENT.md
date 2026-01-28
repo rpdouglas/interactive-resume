@@ -1,55 +1,63 @@
-# ☁️ Deployment & Infrastructure Manual
+# ☁️ Production Deployment & Infrastructure
 
-**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
-**Stack:** Vite + React 19 + Tailwind v4
+**Environment:** Firebase Hosting & Cloud Functions (Gen 2)
+**CI/CD:** GitHub Actions
 
-## 1. Secrets Management (The 2-File System)
-Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
+## 1. Automated Deployment (CI/CD)
+We utilize two primary workflows:
 
-### A. Development (`.env.local`)
-* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
-* **Status:** Ignored by Git.
-* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
+### A. Preview Channels (Pull Requests)
+* **Trigger:** Open/Update PR.
+* **Action:** Builds the app and deploys to a temporary URL (e.g., `pr-123--ryandouglas-resume.web.app`).
+* **Secrets:** Uses `GITHUB_TOKEN` and `FIREBASE_SERVICE_ACCOUNT`.
 
-### B. Testing (`.env.test`)
-* **Purpose:** Runs `npm run test`. Used by Vitest.
-* **Status:** Committed to Git.
-* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
+### B. Production Channel (Merge to Main)
+* **Trigger:** Push to `main`.
+* **Action:** Deploys to the live URL.
+* **Purge:** Clears CDN cache.
 
-## 2. CLI Authentication (Headless Mode)
-In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
+## 2. Manual Deployment (CLI)
+If CI/CD fails, you can manually deploy from a local terminal.
 
+**Full Deploy:**
 ```bash
-# 1. Request login link
-firebase login --no-localhost
-
-# 2. Open the URL provided in a separate tab.
-# 3. Authenticate with Google.
-# 4. Copy the Authorization Code.
-# 5. Paste code back into the terminal.
+npm run build
+firebase deploy
 ```
 
-## 3. Database Security
-Rules: Defined in firestore.rules.
-
-Deploy: firebase deploy --only firestore:rules
-
-## 4. Header Policy (Critical)
-To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
-
-Cross-Origin-Opener-Policy: unsafe-none
-
-Cross-Origin-Embedder-Policy: unsafe-none
-
-Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
-
-## 5. Cloud Functions (Gen 2) Setup
-When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
+**Partial Deploy (Functions Only):**
+*Use this when updating AI prompts to avoid rebuilding the frontend.*
 ```bash
-gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
+firebase deploy --only functions
 ```
-*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
 
+**Partial Deploy (Rules Only):**
+```bash
+firebase deploy --only firestore:rules
+```
 
-## 6. Gen 2 Cloud Functions Quirk
-When deploying Gen 2 functions for the first time, you may see an `Error generating service identity`. This is a known timeout issue. **Wait 2 minutes and retry the deploy.** It usually succeeds on the second attempt.
+## 3. Infrastructure & Secrets
+
+### Cloud Functions Secrets (Gen 2)
+We use Google Cloud Secret Manager. DO NOT put API keys in `.env` files for Functions.
+
+**Setting a Secret:**
+```bash
+firebase functions:secrets:set GOOGLE_API_KEY
+```
+
+**Accessing in Code:**
+```javascript
+const { onCall } = require("firebase-functions/v2/https");
+exports.myFunc = onCall({ secrets: ["GOOGLE_API_KEY"] }, (req) => { ... });
+```
+
+### Security Headers
+To support Google Identity Services and potential SharedArrayBuffer usage, `firebase.json` enforces:
+* `Cross-Origin-Opener-Policy: unsafe-none`
+* `Cross-Origin-Embedder-Policy: unsafe-none`
+
+## 4. Database Security
+* **Rules:** Defined in `firestore.rules`.
+* **Policy:** Public Read (Resume Data) / Admin Write Only.
+* **Lockdown:** `applications` collection is strictly Admin Read/Write.

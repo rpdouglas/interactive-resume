@@ -26,6 +26,7 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
         * `framer-motion`: Replace with standard HTML tags to avoid animation delays in JSDOM.
 3.  **Testing Strategy:**
     * **Happy Path:** Does it render data correctly?
+    * **Integration:** When testing Tabbed Interfaces (like JobTracker), verify tab switching logic explicitly.
     * **Interactive:** Click buttons and verify handlers are called.
     * **Defensive:** Ensure it handles `null` or `undefined` props without crashing.
 
