@@ -1,5 +1,5 @@
 # The Job Whisperer: CODEBASE DUMP
-**Date:** Wed Jan 28 20:19:35 UTC 2026
+**Date:** Wed Jan 28 23:29:04 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: .firebaserc
@@ -33,6 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js (Enable Caching)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
       
       - name: Install Dependencies
         run: npm ci
@@ -75,6 +81,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Node.js (Enable Caching)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
 
       - name: Install Dependencies
         run: npm ci
@@ -223,20 +235,73 @@ npm test
 
 ## FILE: README.md
 ```md
-# Ryan Douglas: Interactive Resume Platform
+# 🦅 The Job Whisperer
 
-A high-performance management consultant portfolio transformed into a self-curating platform.
+> **The AI Agent that tailored this resume gets the interview.**
 
-## 🛡️ Platform Security
-This application implements a **Hard Perimeter** for its CMS features.
-- **Public View:** Optimized for speed and keyword matching for recruiters.
-- **Admin Portal (`/admin`):** Protected via Firebase Google Identity. Access is strictly limited to the whitelisted administrator email.
+![Version](https://img.shields.io/badge/version-3.2.0--beta-blue.svg)
+![Stack](https://img.shields.io/badge/stack-React_19_|_Firebase_|_Gemini-orange.svg)
+![Status](https://img.shields.io/badge/status-Production-green.svg)
 
-## 🚀 Tech Stack
-- **Frontend:** React 19, Tailwind CSS v4, Framer Motion
-- **Routing:** React Router v7
-- **Backend:** Firebase Auth, Hosting, and Google Analytics
-- **Intelligence:** (Upcoming) Gemini 1.5 Pro integration for content architecture
+**The Job Whisperer** is not just a portfolio—it is a self-curating **Career Management System (CMS)**. It uses Google's Gemini 2.5 Flash to analyze Job Descriptions (JDs), identify gaps, rewrite bullet points, and draft cover letters in real-time.
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    User[Recruiter / Public] -->|Reads| CDN[Firebase Hosting]
+    Admin[You / Candidate] -->|Auth| CMS[Admin Dashboard]
+    
+    subgraph "The Content Factory (Server-Side)"
+        CMS -->|Writes JD| DB[(Cloud Firestore)]
+        DB -->|Triggers| CF[Cloud Functions]
+        CF -->|Prompt| AI[Gemini 2.5 Flash]
+        AI -->|Analysis/Tailoring| DB
+    end
+    
+    subgraph "Client-Side (React 19)"
+        DB -->|Real-time Sync| Dashboard[Analysis UI]
+        Dashboard -->|Diff View| ResumeTailor[Resume Tailor]
+    end
+```
+
+## 🚀 Key Features
+
+### 1. 🧠 The Analysis Engine
+* **Vector Matching:** Instantly scores your profile against a JD (0-100%).
+* **Gap Detection:** Identifies missing keywords (e.g., "Docker", "Kubernetes") and suggests specific projects to highlight.
+
+### 2. 🧵 The Resume Tailor (Diff Engine)
+* **Problem:** Generic resumes fail ATS (Applicant Tracking Systems).
+* **Solution:** An "Ethical Editor" agent that rewrites your existing bullet points to match the JD's language *without* inventing facts.
+* **UI:** Side-by-Side "Diff View" (Red/Green) to review changes before accepting.
+
+### 3. ✍️ The Cover Letter Engine
+* **Zero-Shot Generation:** Creates a persuasive, context-aware cover letter in < 5 seconds.
+* **PDF Export:** Built-in "White Paper" styling for instant PDF generation.
+
+## 🛠️ Tech Stack & Decisions
+
+| Layer | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Frontend** | React 19 + Vite | Concurrent rendering for complex dashboards. |
+| **Styling** | Tailwind CSS v4 | "Mobile-First" utility classes for speed. |
+| **Backend** | Firebase Functions (Gen 2) | Serverless scalability for AI triggers. |
+| **Database** | Cloud Firestore | Real-time listeners (`onSnapshot`) for instant UI feedback. |
+| **AI Model** | Gemini 2.5 Flash | Low latency (necessary for interactive editing). |
+
+## 👷 Local Development
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions.
+
+```bash
+# Quick Start
+npm install
+npm run dev
+```
+
+## 📜 License
+Proprietary. Built by Ryan Douglas.
 ```
 ---
 
@@ -269,6 +334,112 @@ We store an array of `tailored_bullets` inside the `application` document. The U
 * **Positive:** Minimal storage footprint. Preserves the "Single Source of Truth" (Master Resume).
 * **Negative:** Requires client-side logic to merge/display the diffs.
 * **Guardrails:** We explicitly prompt the AI to *not* invent facts, only rephrase existing ones ("The Ethical Editor" protocol).
+```
+---
+
+## FILE: docs/ADR/002-resume-snapshot-strategy.md
+```md
+# ADR 002: Resume Versioning Strategy (Snapshots)
+
+**Date:** 2026-01-28
+**Status:** Accepted
+**Context:** Sprint 19.4
+
+## Context
+Candidates need to save the specific version of a resume sent to a company.
+The "Master Resume" evolves over time. If we only link to the Master, old applications will display incorrect/new data, breaking the historical record.
+
+## Options Considered
+1.  **Runtime Overlay:** Store only Diff IDs. (Rejected: Vulnerable to Master Resume deletion).
+2.  **Binary Storage:** Save PDF to Blob Storage. (Rejected: Hard to search/index, heavy infrastructure).
+3.  **JSON Snapshot:** Deep copy the rendered JSON to the `application` document. (Selected).
+
+## Decision
+We will implement **Option 3: JSON Snapshot**.
+When a user clicks "Finalize", we:
+1.  Merge the Master Resume + Selected AI Tailored Bullets.
+2.  Write the resulting JSON object to a new field `resume_snapshot` in the `applications` collection.
+3.  Lock the application (`is_frozen: true`).
+
+## Consequences
+* **Immutable History:** We can strictly render *exactly* what the recruiter saw.
+* **Printability:** We can generate PDFs on-the-fly from the JSON without storing binary files.
+* **Storage:** Slightly increased Firestore document size, but well within the 1MB limit.
+
+```
+---
+
+## FILE: docs/ADR/003-async-ai-pipeline.md
+```md
+# ADR 003: Async AI Pipeline (Trigger Pattern)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 17 (Application Manager)
+
+## Context
+We introduced Generative AI (Gemini) to analyze Job Descriptions.
+LLM API calls are slow (5-15 seconds) and non-deterministic. Keeping the client waiting on a synchronous HTTP connection (`await fetch`) resulted in timeouts.
+
+## Decision
+We adopted the **Firestore Trigger Pattern**.
+1.  **Write:** UI creates a document in `applications` with `ai_status: 'pending'`.
+2.  **Trigger:** Cloud Function `onDocumentWritten` detects the change.
+3.  **Process:** Server calls Gemini API.
+4.  **Update:** Server updates document with `ai_status: 'complete'`.
+5.  **Listen:** UI uses `onSnapshot` to reactively display the result.
+```
+---
+
+## FILE: docs/ADR/004-hybrid-data-strategy.md
+```md
+# ADR 004: Hybrid Data Strategy (Indestructible Fallback)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 16 (The Backbone)
+
+## Context
+Relying solely on Firestore introduced risks: Quota limits, Offline scenarios, or Misconfigured Security Rules could cause a "White Screen of Death".
+
+## Decision
+We implemented the **"Indestructible Fallback"** pattern.
+Our data hooks (`useResumeData`) wrap Firestore calls in a `try/catch` block. If *any* error occurs, we immediately return the static data located in `src/data/*.json`.
+```
+---
+
+## FILE: docs/ADR/005-deep-fetch-pattern.md
+```md
+# ADR 005: Deep Fetch (Recursive Hydration)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 16 (The Backbone)
+
+## Context
+Firestore queries are **shallow**. Fetching a `Job` document does *not* fetch its `Projects` sub-collection.
+
+## Decision
+We chose **Recursive Client-Side Joining**.
+Our data fetcher retrieves the parent collection (`experience`), maps over the results, and triggers a `Promise.all` to fetch the `projects` sub-collection for each job.
+```
+---
+
+## FILE: docs/ADR/006-security-perimeter.md
+```md
+# ADR 006: Security Perimeter (Email Whitelist)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 2 (Project Setup)
+
+## Context
+We needed to secure the Admin CMS without building a complex multi-tenant User Management system.
+
+## Decision
+We implemented a **Hard Perimeter** using Email Whitelisting.
+1.  **Frontend:** `AuthContext` checks `user.email` against `VITE_ADMIN_EMAIL`.
+2.  **Backend:** `firestore.rules` enforces write access only if `request.auth.token.email` matches the admin email.
 ```
 ---
 
@@ -446,48 +617,31 @@ All notable changes to the **Fresh Nest / Interactive Resume** platform will be 
 
 ## FILE: docs/CONTEXT_DUMP.md
 ```md
-# Interactive Resume: Platform Context
-**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
-**Environment:** GitHub Codespaces
-**Version: 3.2.0-beta
+# The Job Whisperer: Platform Context
+**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 2.5
+**Version:** 3.2.0-beta
+**Branding:** "The Job Whisperer"
 
 ## 🧠 Coding Standards (The Brain)
 
 ### 1. Data & State (SSOT)
 * **Public View:** `ResumeContext` is the Single Source of Truth.
-* **Hybrid Strategy:** Firestore (Primary) -> JSON (Fallback).
-* **Deep Fetch:** We strictly use Recursive Fetching for nested sub-collections (`projects`).
+* **Admin View:** `JobTracker` manages the "Application State" (JD + Analysis).
+* **Deep Fetch:** Recursive fetching is mandatory for nested sub-collections (`projects`).
 
-### 2. React 19 Patterns
-* **Hooks:** Hooks must strictly follow the rules.
-* **Bundling:** We manually chunk `react`, `recharts`, and `react-dom` together in `vite.config.js` to prevent `forwardRef` errors.
+### 2. AI Architecture (Server-Side)
+* **Logic:** All AI operations reside in `functions/index.js` to protect API keys.
+    * `analyzeApplication`: Vector Analysis & Gap Detection.
+    * `generateCoverLetter`: Content Generation (No Header/Footer).
+    * `tailorResume`: Ethical Bullet Point Optimization (Diff Engine).
 
-### 3. Security & Headers
-* **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
-* **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
-
-### 4. AI Isolation (Server-Side)
-* **Logic:** All AI operations reside in `functions/index.js`.
-    * `architectProject`: Callable (Gemini 3.0) for Resume Building.
-    * `analyzeApplication`: Trigger (Gemini 2.5) for Job Analysis.
-    * `generateCoverLetter`: Trigger (Gemini 2.5) for Content Generation.
-* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY`.
-
-
-### 5. Async UI Patterns
-* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
-* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
-    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
-    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
+### 3. UI Patterns
+* **Optimistic UI:** Always show a Skeleton or Spinner while waiting for Firestore `onSnapshot`.
+* **Mobile First:** All CSS must use Tailwind utility classes targeting mobile first (`w-full md:w-1/2`).
 
 ## Directory Structure
-* `src/components/admin` -> CMS specific UI.
-    * `JobTracker.jsx`: Input for AI Analysis.
-* `src/context` -> Data Providers (`ResumeContext`).
-* `src/hooks` -> Logic Consumers (`useResumeData`).
-* `src/data` -> **Indestructible Fallback** (Do not delete).
-* `src/lib` -> Firebase services.
-
+* `src/components/admin` -> Job Whisperer UI (JobTracker, ResumeTailor).
+* `docs/` -> Documentation as Code (ADRs, Changelogs).
 ```
 ---
 
@@ -626,32 +780,30 @@ Our development strategy is guided by specific user archetypes. Features must pa
 
 ## FILE: docs/PROJECT_STATUS.md
 ```md
-# 🟢 Project Status: 🟢 Sprint 19.2 Complete
+# 🟢 Project Status: The Job Whisperer
 
 > 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
 
-**Current Phase:** Phase 19 - The Content Factory
-**Version: 3.2.0-beta
-**Status:** 🚀 Sprint 19.1 Starting
+**Current Phase:** Phase 20 - The Strategist
+**Version:** v3.2.0-beta
+**Status:** 🟢 Stable / Feature Complete (Sprint 19)
 
 ## 🎯 Current Objectives
-* [x] Sprint 19.1: The Cover Letter Engine (Generative AI).
-* [x] Sprint 19.2: The Outreach Bot.
-* [x] Sprint 19.3: The Resume Tailor.
+* [x] **Sprint 19.1:** The Cover Letter Engine.
+* [x] **Sprint 19.2:** The Outreach Bot (Merged into Tailor).
+* [x] **Sprint 19.3:** The Resume Tailor (Diff Engine).
+* [ ] **Sprint 19.4:** The Version Controller (Snapshot & Print).
+* [ ] **Sprint 20.1:** Application Kanban Board (Upcoming).
 
-## ⏳ Backlog (Deferred)
-* Phase 20: The Strategist (Kanban & Prep).
-* Phase 21: Security Hardening (The Identity Shield).
+## 🛑 Known Issues
+* Mobile layout for "Diff View" needs optimization on screens < 375px.
+* Rate limiting for Gemini API is currently manual.
 
 ## ✅ Completed Roadmap
-* **Phase 17:** [x] Application Manager Complete.
-    * Sprint 17.1: Input Interface.
-    * Sprint 17.2: Vector Engine.
-    * Sprint 17.3: Analysis Dashboard (Real-time UI).
-* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
-* **Phase 15:** [x] Chart Stabilization.
-* **v1.0.0:** [x] Gold Master Release.
-
+* **Phase 19 (The Content Factory):** [x] Complete suite of Generative AI tools.
+* **Phase 17 (Application Manager):** [x] Job Input & Vector Analysis.
+* **Phase 16 (Backbone):** [x] Firestore Migration.
+* **v1.0.0:** [x] Static Resume Platform.
 ```
 ---
 
@@ -762,21 +914,33 @@ Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approach
 
 ## FILE: docs/PROMPT_INITIALIZATION.md
 ```md
-# 🤖 AI Session Initialization Prompt (v2.0)
+# 🤖 AI Session Initialization Prompt (v3.0)
 
-**Role:** Senior Fullstack Architect & AI Integration Engineer.
+**Role:** You are the **Senior Lead Developer & System Architect** for "The Job Whisperer" (v3.2.0).
+**System:** React 19 + Vite + Tailwind v4 + Firebase (Firestore/Auth/Functions) + Gemini 2.5 Flash.
 
-**Core Context:**
-* We are building a Resume CMS with Gemini AI integration.
-* **Security:** Firebase Auth is the entry point for `/admin`.
-* **Data:** Transitioning to Firestore. Components must handle 'Loading' and 'Empty' database states.
+**Your Operational Framework (`docs/AI_WORKFLOW.md`):**
+You must fluidly switch between these modes as needed:
+1.  **The Architect:** Design secure, scalable patterns (ADRs).
+2.  **The Builder:** Write complete, production-ready code (No placeholders).
+3.  **The Maintainer:** Update documentation (`CHANGELOG`, `PROJECT_STATUS`) after every feature.
+V
+**Critical Directives (The "Anti-Drift" Protocols):**
+1.  **Ground Truth:** Do NOT assume file paths. If unsure, ask me to run `ls -R src`.
+2.  **Complete Deliverables:** Always provide full file contents or complete bash scripts. Never output partial code blocks ("... rest of code").
+3.  **Security First:** `firestore.rules` are "Admin Write / Public Read". `applications` collection is "Admin Only".
+4.  **Data Integrity:** Use `structuredClone` for snapshots. Firestore is the Single Source of Truth (SSOT).
 
-**Critical Rules:**
-1. **Never Hardcode Keys:** Use `import.meta.env.VITE_*` and check for existence.
-2. **Complete Files Only:** Maintain the existing pattern of full-file delivery.
-3. **Modular AI:** Prompts sent to Gemini should be versioned and kept in `src/lib/ai/prompts.js`.
+**Initialization Sequence:**
+To begin our session and prevent context drift, please perform the following **Deep Dive Review**:
+1.  **Request:** Ask me to paste the current full codebase dump.
+2.  **Analyze:** Perform a detailed review of `docs/` (Roadmap, Status, ADRs) and `src/` structure.
+3.  **Report:** Output a **"System Health Check"** summarizing:
+    * *Current Phase & Sprint* (from PROJECT_STATUS).
+    * *Key Architectural Patterns* (from ADRs).
+    * *Discrepancies:* Any mismatch between the Docs and the Code.
 
-**Reply 'Platform Architecture Loaded. Ready for Phase 14.'**
+**Reply ONLY with:** "🚀 System Architect Ready. Please paste the full codebase context to begin the Deep Dive Analysis."
 ```
 ---
 
@@ -896,6 +1060,10 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
     * **Tech:** Clipboard API + Tone analysis.
 * **Sprint 19.3: The Resume Tailor**
     * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
+* **Sprint 19.4: The Version Controller (Snapshot Engine)**
+    * **Feature:** "Freeze" a specific tailored resume version into an immutable record.
+    * **Feature:** Dedicated Print Preview route for generating clean PDFs from Snapshots.
+    * **Tech:** Firestore (JSON Storage) + Print CSS.
 
 ---
 
@@ -1596,35 +1764,23 @@ exports.tailorResume = onDocumentWritten(
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <title>Ryan Douglas | Management Consultant & Power BI Developer</title>
-    <meta name="description" content="Interactive resume of Ryan Douglas. 15 years experience in Business Transformation, Power BI, and React Development. View my project portfolio and skills matrix." />
-    <meta name="keywords" content="Management Consultant, Power BI Developer, React, Data Visualization, Business Transformation, Resume" />
+    <title>The Job Whisperer | Ryan Douglas</title>
+    <meta name="description" content="The Job Whisperer: AI-Powered Career Management System. Bridging the gap between Strategy and Execution." />
     <meta name="author" content="Ryan Douglas" />
     <meta name="theme-color" content="#0f172a" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ryandouglas-resume.web.app/" />
-    <meta property="og:title" content="Ryan Douglas | Interactive Resume" />
-    <meta property="og:description" content="Bridging the gap between Business Strategy and Technical Execution. Click to explore my interactive skills matrix and timeline." />
-    <meta property="og:image" content="https://ryandouglas-resume.web.app/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://ryandouglas-resume.web.app/" />
-    <meta property="twitter:title" content="Ryan Douglas | Interactive Resume" />
-    <meta property="twitter:description" content="Bridging the gap between Business Strategy and Technical Execution." />
-    <meta property="twitter:image" content="https://ryandouglas-resume.web.app/og-image.png" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    </head>
+    <meta property="og:title" content="The Job Whisperer | AI Resume Platform" />
+    <meta property="og:description" content="AI-driven resume tailoring and job analysis engine." />
+    
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)" />
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin />
+  </head>
   <body class="bg-slate-50 text-slate-900 antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
-
 ```
 ---
 
@@ -2219,6 +2375,54 @@ echo "👉 Run 'npm test' to verify."
     "vitest": "^4.0.18"
   }
 }
+```
+---
+
+## FILE: prod_merge.sh
+```sh
+#!/bin/bash
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${YELLOW}🚀 Starting Production Merge...${NC}"
+
+# 1. Identify Branch
+CURRENT_BRANCH=$(git branch --show-current)
+
+# 2. Guardrail
+if [ "$CURRENT_BRANCH" == "main" ]; then
+  echo -e "${RED}❌ ERROR: You are on 'main'. Please run this from the feature branch you wish to merge.${NC}"
+  exit 1
+fi
+
+# 3. User Verification (The "Human in the Loop")
+echo -e "Target Branch: ${GREEN}$CURRENT_BRANCH${NC}"
+echo -e "${YELLOW}⚠️  CRITICAL CHECK:${NC} Did you visit the Firebase Preview URL and verify the features?"
+read -p "Type 'yes' to confirm merge to Production: " CONFIRM
+if [ "$CONFIRM" != "yes" ]; then
+    echo -e "${RED}🛑 Merge Aborted. Please verify UAT first.${NC}"
+    exit 1
+fi
+
+# 4. Merge via GitHub CLI
+echo -e "\n${YELLOW}🔀 Merging PR into Main (Squash Strategy)...${NC}"
+gh pr merge --squash --delete-branch --admin
+
+# 5. Local Cleanup
+echo -e "\n${YELLOW}🧹 Syncing local environment...${NC}"
+git checkout main
+git pull origin main
+git fetch --prune
+
+# 6. Final Status
+echo -e "\n${GREEN}✅ Production Deployment Triggered!${NC}"
+echo "The 'Deploy to Live' GitHub Action is now running."
+echo -e "Monitor it here: https://github.com/rpdouglas/interactive-resume/actions"
 ```
 ---
 
@@ -3906,7 +4110,7 @@ export default DataSeeder;
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/db';
 import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
-import { Briefcase, Save, Loader2, ArrowLeft } from 'lucide-react';
+import { Briefcase, Save, Loader2, ArrowLeft, Bot } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnalysisDashboard from './AnalysisDashboard';
 import CoverLetterGenerator from './CoverLetterGenerator';
@@ -3920,20 +4124,18 @@ const JobTracker = () => {
     source_url: ''
   });
   
-  // State Machine: 'idle' | 'saving' | 'analyzing' | 'complete'
   const [viewState, setViewState] = useState('idle');
-  const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' | 'letter' | 'tailor'
+  const [activeTab, setActiveTab] = useState('analysis');
   const [activeDocId, setActiveDocId] = useState(null);
   const [applicationData, setApplicationData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 👂 Real-time Listener
   useEffect(() => {
     if (!activeDocId) return;
     const unsubscribe = onSnapshot(doc(db, "applications", activeDocId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        setApplicationData(data); // Sync full object
+        setApplicationData(data);
         
         if (data.ai_status === 'processing') setViewState('analyzing');
         else if (data.ai_status === 'complete') setViewState('complete');
@@ -3972,7 +4174,6 @@ const JobTracker = () => {
     setActiveTab('analysis');
   };
 
-  // Tab Helper
   const TabButton = ({ id, label, colorClass, isActive, onClick }) => (
     <button 
       onClick={onClick} 
@@ -3990,7 +4191,11 @@ const JobTracker = () => {
         {(viewState === 'idle' || viewState === 'saving') && (
           <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Briefcase className="text-blue-600" size={24} /> New Application</h2>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <Bot className="text-blue-600" size={24} /> 
+                The Job Whisperer
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">AI-Powered Application Strategy Engine</p>
             </div>
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4019,18 +4224,16 @@ const JobTracker = () => {
             <div className="relative w-24 h-24 mb-6">
               <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
               <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center text-4xl">🧠</div>
+              <div className="absolute inset-0 flex items-center justify-center text-4xl">🦅</div>
             </div>
-            <h3 className="text-xl font-bold text-slate-800">Analyzing Vectors...</h3>
-            <p className="text-slate-500 mt-2 max-w-xs mx-auto">Comparing your experience against <span className="font-semibold text-blue-600">{formData.company}</span>.</p>
+            <h3 className="text-xl font-bold text-slate-800">The Whisperer is Thinking...</h3>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto">Analyzing vectors for <span className="font-semibold text-blue-600">{formData.company}</span>.</p>
           </motion.div>
         )}
 
-        {/* 3️⃣ WORKSPACE (TABS) */}
+        {/* 3️⃣ WORKSPACE */}
         {viewState === 'complete' && applicationData && (
           <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-            
-            {/* Nav Bar */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50/80">
               <div className="flex gap-2">
                 <TabButton id="analysis" label="Strategy & Gaps" colorClass="text-blue-600" isActive={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} />
@@ -4041,8 +4244,6 @@ const JobTracker = () => {
                 <ArrowLeft size={14} /> New App
               </button>
             </div>
-
-            {/* Tab Content */}
             <div className="flex-1 overflow-hidden bg-slate-50">
               {activeTab === 'analysis' && <AnalysisDashboard data={applicationData} onReset={handleReset} />}
               {activeTab === 'letter' && <CoverLetterGenerator applicationId={activeDocId} applicationData={applicationData} />}
@@ -4057,7 +4258,6 @@ const JobTracker = () => {
 };
 
 export default JobTracker;
-
 ```
 ---
 
@@ -7106,221 +7306,125 @@ afterEach(() => {
 ```
 ---
 
+## FILE: uat_push.sh
+```sh
+#!/bin/bash
+set -e
+
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo -e "${YELLOW}🚀 Starting UAT Release Process...${NC}"
+
+# 1. Identify Branch
+CURRENT_BRANCH=$(git branch --show-current)
+
+# 2. Guardrail: Main Branch Check
+if [ "$CURRENT_BRANCH" == "main" ]; then
+  echo -e "${RED}❌ ERROR: You are on 'main'. Please checkout your feature branch first.${NC}"
+  exit 1
+fi
+
+# 3. Guardrail: Uncommitted Changes Check
+if [ -n "$(git status --porcelain)" ]; then
+  echo -e "${RED}⚠️  You have uncommitted changes!${NC}"
+  git status --short
+  echo ""
+  read -p "Do you want to commit these changes now? (y/n) " -n 1 -r
+  echo ""
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    read -p "Enter commit message: " COMMIT_MSG
+    git add .
+    git commit -m "$COMMIT_MSG"
+    echo -e "${GREEN}✅ Changes committed.${NC}"
+  else
+    echo -e "${RED}🛑 Cannot push without committing. Aborting.${NC}"
+    exit 1
+  fi
+fi
+
+# 4. User Verification
+echo -e "\nYou are about to push feature branch: ${GREEN}$CURRENT_BRANCH${NC}"
+read -p "Are you sure you want to proceed to UAT? (y/n) " -n 1 -r
+echo ""
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo -e "${RED}🛑 Process Aborted.${NC}"
+    exit 1
+fi
+
+# 5. Push Code
+echo -e "\n${YELLOW}📦 Pushing code to origin...${NC}"
+git push -u origin "$CURRENT_BRANCH"
+
+# 6. Create Pull Request
+echo -e "\n${YELLOW}🔀 Opening Pull Request...${NC}"
+if gh pr view "$CURRENT_BRANCH" >/dev/null 2>&1; then
+    echo -e "${GREEN}✅ PR already exists. Updating...${NC}"
+else
+    # Create PR and capture the URL
+    gh pr create --title "feat: $CURRENT_BRANCH" --fill
+fi
+
+# 7. Success
+echo -e "\n${GREEN}✅ UAT Phase Initiated!${NC}"
+echo "---------------------------------------------------"
+echo -e "👀 View PR Status:"
+gh pr view --json url -q .url
+echo "---------------------------------------------------"
+```
+---
+
 ## FILE: update_docs.py
 ```py
 import os
 
 # ==========================================
-# 📚 DOCS UPGRADE INSTALLER (ROBUST)
+# 🤖 UPGRADE INITIALIZATION PROMPT (v3.0)
 # ==========================================
 
-# Helper to safely render backticks in generated files
-# without breaking this chat's markdown formatting
-CB = "```" 
+file_path = "docs/PROMPT_INITIALIZATION.md"
 
-def write_file(path, content):
-    """Writes content to a file, ensuring the directory exists."""
-    directory = os.path.dirname(path)
-    if directory and not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
-        print(f"📂 Created directory: {directory}")
-    
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content.strip())
-        print(f"✅ Created/Updated: {path}")
-    except Exception as e:
-        print(f"❌ Error writing {path}: {e}")
+new_content = """# 🤖 AI Session Initialization Prompt (v3.0)
 
-# ------------------------------------------------------------------
-# 1. ADR 001: Resume Tailor Strategy
-# ------------------------------------------------------------------
-adr_001_content = f"""
-# ADR 001: Resume Tailor Data Strategy (Delta Patching)
+**Role:** You are the **Senior Lead Developer & System Architect** for "The Job Whisperer" (v3.2.0).
+**System:** React 19 + Vite + Tailwind v4 + Firebase (Firestore/Auth/Functions) + Gemini 2.5 Flash.
 
-**Date:** 2026-01-28
-**Status:** Accepted
-**Context:** Sprint 19.3
+**Your Operational Framework (`docs/AI_WORKFLOW.md`):**
+You must fluidly switch between these modes as needed:
+1.  **The Architect:** Design secure, scalable patterns (ADRs).
+2.  **The Builder:** Write complete, production-ready code (No placeholders).
+3.  **The Maintainer:** Update documentation (`CHANGELOG`, `PROJECT_STATUS`) after every feature.
 
-## Context
-We needed a way to tailor the candidate's resume for specific Job Descriptions (JDs) to increase ATS matching scores.
-The "Master Resume" is stored in Firestore (`experience` collection). We faced a choice on how to persist these customizations.
+**Critical Directives (The "Anti-Drift" Protocols):**
+1.  **Ground Truth:** Do NOT assume file paths. If unsure, ask me to run `ls -R src`.
+2.  **Complete Deliverables:** Always provide full file contents or complete bash scripts. Never output partial code blocks ("... rest of code").
+3.  **Security First:** `firestore.rules` are "Admin Write / Public Read". `applications` collection is "Admin Only".
+4.  **Data Integrity:** Use `structuredClone` for snapshots. Firestore is the Single Source of Truth (SSOT).
 
-## The Options Considered
-1.  **Shadow Resume:** Deep clone the entire resume tree for every application.
-    * *Pros:* Complete isolation.
-    * *Cons:* Massive data duplication, high storage costs, complex sync if Master changes.
-2.  **Ephemeral:** Generate on-the-fly in memory.
-    * *Pros:* Zero storage cost.
-    * *Cons:* Expensive API costs (re-generating on every page load), poor UX (waiting).
-3.  **Delta Patching (Selected):** Store only the specific bullet points that changed.
+**Initialization Sequence:**
+To begin our session and prevent context drift, please perform the following **Deep Dive Review**:
+1.  **Request:** Ask me to paste the current full codebase dump.
+2.  **Analyze:** Perform a detailed review of `docs/` (Roadmap, Status, ADRs) and `src/` structure.
+3.  **Report:** Output a **"System Health Check"** summarizing:
+    * *Current Phase & Sprint* (from PROJECT_STATUS).
+    * *Key Architectural Patterns* (from ADRs).
+    * *Discrepancies:* Any mismatch between the Docs and the Code.
 
-## Decision
-We chose **Option 3: Delta Patching**.
-We store an array of `tailored_bullets` inside the `application` document. The UI renders the Master Resume, but "swaps" specific bullets with their tailored versions at runtime (or displays them side-by-side in Diff View).
-
-## Consequences
-* **Positive:** Minimal storage footprint. Preserves the "Single Source of Truth" (Master Resume).
-* **Negative:** Requires client-side logic to merge/display the diffs.
-* **Guardrails:** We explicitly prompt the AI to *not* invent facts, only rephrase existing ones ("The Ethical Editor" protocol).
+**Reply ONLY with:** "🚀 System Architect Ready. Please paste the full codebase context to begin the Deep Dive Analysis."
 """
 
-# ------------------------------------------------------------------
-# 2. CONTRIBUTING.md
-# ------------------------------------------------------------------
-contributing_content = f"""
-# 👷 Contributing to the Interactive Resume
+directory = os.path.dirname(file_path)
+if not os.path.exists(directory):
+    os.makedirs(directory, exist_ok=True)
 
-Welcome to the development guide. This project uses a **Hybrid Cloud** architecture:
-* **Frontend:** React 19 + Vite (Local)
-* **Backend:** Firebase Cloud Functions (Remote/Serverless)
-* **Database:** Cloud Firestore (Remote)
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(new_content.strip())
 
-## 1. Getting Started
-
-### Prerequisites
-* Node.js v20+
-* Firebase CLI (`npm install -g firebase-tools`)
-* Java (Required only if running local Emulators)
-
-### Setup
-1.  **Clone the repo:**
-    {CB}bash
-    git clone [https://github.com/rpdouglas/interactive-resume.git](https://github.com/rpdouglas/interactive-resume.git)
-    {CB}
-2.  **Install Dependencies:**
-    {CB}bash
-    npm ci
-    cd functions && npm ci && cd ..
-    {CB}
-3.  **Environment Variables:**
-    Create a `.env.local` file in the root. **Do not commit this.**
-    {CB}ini
-    VITE_API_KEY=your_firebase_api_key
-    VITE_AUTH_DOMAIN=your_project.firebaseapp.com
-    VITE_PROJECT_ID=your_project_id
-    # ... other firebase config
-    {CB}
-
-## 2. The Development Loop
-
-### A. Frontend Development (UI/UX)
-We use Vite for HMR (Hot Module Replacement).
-{CB}bash
-npm run dev
-{CB}
-* **Access:** `http://localhost:5173`
-* **Auth:** Uses your real Firebase Auth users (Production Data).
-* **Data:** Reads from the live Firestore (be careful with writes!).
-
-### B. Backend Development (Cloud Functions)
-Functions (Gemini AI triggers) must be deployed to Google Cloud to work reliably with the live database, or run via emulators.
-
-**Option 1: Deploy to Cloud (Easiest)**
-{CB}bash
-firebase deploy --only functions
-{CB}
-
-**Option 2: Local Emulators (Advanced)**
-{CB}bash
-firebase emulators:start
-{CB}
-
-## 3. Branching Strategy
-* **`main`**: Production-ready code. Deployed automatically via GitHub Actions.
-* **`feature/SprintX.Y`**: Active development.
-* **Process:**
-    1.  Create Feature Branch.
-    2.  Develop & Test (`npm test`).
-    3.  Merge to Main -> Triggers Deploy.
-
-## 4. Testing
-We use Vitest. Tests **MUST** mock Firebase network calls.
-{CB}bash
-npm test
-{CB}
-"""
-
-# ------------------------------------------------------------------
-# 3. DEPLOYMENT.md (Refactored)
-# ------------------------------------------------------------------
-deployment_content = f"""
-# ☁️ Production Deployment & Infrastructure
-
-**Environment:** Firebase Hosting & Cloud Functions (Gen 2)
-**CI/CD:** GitHub Actions
-
-## 1. Automated Deployment (CI/CD)
-We utilize two primary workflows:
-
-### A. Preview Channels (Pull Requests)
-* **Trigger:** Open/Update PR.
-* **Action:** Builds the app and deploys to a temporary URL (e.g., `pr-123--ryandouglas-resume.web.app`).
-* **Secrets:** Uses `GITHUB_TOKEN` and `FIREBASE_SERVICE_ACCOUNT`.
-
-### B. Production Channel (Merge to Main)
-* **Trigger:** Push to `main`.
-* **Action:** Deploys to the live URL.
-* **Purge:** Clears CDN cache.
-
-## 2. Manual Deployment (CLI)
-If CI/CD fails, you can manually deploy from a local terminal.
-
-**Full Deploy:**
-{CB}bash
-npm run build
-firebase deploy
-{CB}
-
-**Partial Deploy (Functions Only):**
-*Use this when updating AI prompts to avoid rebuilding the frontend.*
-{CB}bash
-firebase deploy --only functions
-{CB}
-
-**Partial Deploy (Rules Only):**
-{CB}bash
-firebase deploy --only firestore:rules
-{CB}
-
-## 3. Infrastructure & Secrets
-
-### Cloud Functions Secrets (Gen 2)
-We use Google Cloud Secret Manager. DO NOT put API keys in `.env` files for Functions.
-
-**Setting a Secret:**
-{CB}bash
-firebase functions:secrets:set GOOGLE_API_KEY
-{CB}
-
-**Accessing in Code:**
-{CB}javascript
-const {{ onCall }} = require("firebase-functions/v2/https");
-exports.myFunc = onCall({{ secrets: ["GOOGLE_API_KEY"] }}, (req) => {{ ... }});
-{CB}
-
-### Security Headers
-To support Google Identity Services and potential SharedArrayBuffer usage, `firebase.json` enforces:
-* `Cross-Origin-Opener-Policy: unsafe-none`
-* `Cross-Origin-Embedder-Policy: unsafe-none`
-
-## 4. Database Security
-* **Rules:** Defined in `firestore.rules`.
-* **Policy:** Public Read (Resume Data) / Admin Write Only.
-* **Lockdown:** `applications` collection is strictly Admin Read/Write.
-"""
-
-# ==========================================
-# 🏁 MAIN EXECUTION
-# ==========================================
-if __name__ == "__main__":
-    print("📚 Implementing Documentation Audit Recommendations (Python Safe Mode)...")
-    
-    write_file("docs/ADR/001-resume-tailor-strategy.md", adr_001_content)
-    write_file("CONTRIBUTING.md", contributing_content)
-    write_file("docs/DEPLOYMENT.md", deployment_content)
-    
-    print("\n🎉 Documentation Architecture Upgraded Successfully.")
+print(f"✅ Upgraded {file_path} to v3.0.")
+print("👉 You can now copy the content of this file to start your new chat.")
 ```
 ---
 

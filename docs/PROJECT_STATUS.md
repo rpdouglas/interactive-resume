@@ -10,6 +10,7 @@
 * [x] **Sprint 19.1:** The Cover Letter Engine.
 * [x] **Sprint 19.2:** The Outreach Bot (Merged into Tailor).
 * [x] **Sprint 19.3:** The Resume Tailor (Diff Engine).
+* [ ] **Sprint 19.4:** The Version Controller (Snapshot & Print).
 * [ ] **Sprint 20.1:** Application Kanban Board (Upcoming).
 
 ## 🛑 Known Issues
