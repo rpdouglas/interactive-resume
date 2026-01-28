@@ -17,6 +17,10 @@
     * **Tech:** Clipboard API + Tone analysis.
 * **Sprint 19.3: The Resume Tailor**
     * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
+* **Sprint 19.4: The Version Controller (Snapshot Engine)**
+    * **Feature:** "Freeze" a specific tailored resume version into an immutable record.
+    * **Feature:** Dedicated Print Preview route for generating clean PDFs from Snapshots.
+    * **Tech:** Firestore (JSON Storage) + Print CSS.
 
 ---
 
