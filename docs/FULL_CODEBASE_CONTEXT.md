@@ -1,5 +1,5 @@
 # FRESH NEST: CODEBASE DUMP
-**Date:** Tue Jan 27 21:24:50 UTC 2026
+**Date:** Wed Jan 28 14:15:53 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: .firebaserc
@@ -466,6 +466,8 @@ Our development strategy is guided by specific user archetypes. Features must pa
 ```md
 # 🟢 Project Status: Platform Expansion
 
+> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision (Phases 18-20).
+
 **Current Phase:** Phase 17 - Application Manager (Complete)
 **Version:** v2.2.0-beta
 **Status:** 🟢 Phase 17.1 Complete
@@ -703,6 +705,63 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 * **Do not** reference real database paths. Use mocks.
 
 **Wait:** Ask me to paste the Component Code to begin.
+
+```
+---
+
+## FILE: docs/ROADMAP.md
+```md
+# 🗺️ Product Strategy & Roadmap
+
+**Vision:** Transform the platform from a static portfolio into an AI-powered Career Management System (CMS).
+**Status:** Living Document
+**Last Updated:** 2026-01-27
+
+---
+
+## 🛡️ Phase 18: Fortress & Foundation (Security & Ops)
+*Goal: Lock down the application, secure the data, and optimize for production scale.*
+
+* **Sprint 18.1: The Identity Shield (Auth Blocking)**
+    * **Objective:** Move from "Client-Side Whitelisting" to "Server-Side Rejection".
+    * **Tech:** Firebase Blocking Functions (`beforeUserSignedIn`).
+    * **Why:** Prevent unauthorized users from even generating a token.
+* **Sprint 18.2: The Data Lockdown (Rules & Indexes)**
+    * **Objective:** Finalize strict `firestore.rules`.
+    * **Tech:** `request.auth.token.email` enforcement on all Admin collections.
+* **Sprint 18.3: The Cost Governor**
+    * **Objective:** Prevent API cost runaways.
+    * **Tech:** Rate limiting or Daily Budget alerts for Gemini usage.
+* **Sprint 18.4: The Performance Polish**
+    * **Objective:** Lighthouse Score 90+ on Mobile.
+    * **Tech:** Code Splitting (`React.lazy`), Image Optimization, PWA capabilities.
+
+---
+
+## 🏭 Phase 19: The Content Factory (Generative Action)
+*Goal: Stop writing boilerplate. Let the AI generate high-quality tailored documents.*
+
+* **Sprint 19.1: The Cover Letter Engine**
+    * **Feature:** One-click PDF generation based on Resume + JD.
+    * **Tech:** Gemini Prompting + `react-to-print`.
+* **Sprint 19.2: The Outreach Bot**
+    * **Feature:** Generate cold-outreach messages (LinkedIn/Email) tailored to the Hiring Manager.
+    * **Tech:** Clipboard API + Tone analysis.
+* **Sprint 19.3: The Resume Tailor**
+    * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
+
+---
+
+## ♟️ Phase 20: The Strategist (Workflow & Prep)
+*Goal: Manage the campaign lifecycle and win the interview.*
+
+* **Sprint 20.1: The Application Kanban**
+    * **Feature:** Drag-and-drop board to track status (Applied, Interview, Offer).
+    * **Tech:** `dnd-kit` or `react-beautiful-dnd`.
+* **Sprint 20.2: The Interview Simulator**
+    * **Feature:** AI acts as the interviewer, asking technical questions based on the JD.
+    * **Tech:** Text-to-Speech API + Speech-to-Text.
+
 
 ```
 ---
@@ -1929,7 +1988,7 @@ echo "👉 Run 'npm test' to verify."
 {
   "name": "interactive-resume",
   "private": true,
-  "version": "2.1.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -6528,11 +6587,9 @@ afterEach(() => {
 ## FILE: update_docs.py
 ```py
 import os
-import datetime
-import re
 
 # ==========================================
-# 📝 SPRINT 17.3: DOCUMENTATION AUDIT
+# 🗺️ STRATEGIC ROADMAP GENERATOR
 # ==========================================
 
 def read_file(path):
@@ -6546,107 +6603,82 @@ def write_file(path, content):
         f.write(content)
     print(f"✅ Updated: {path}")
 
-# 1. Update PROJECT_STATUS.md
+# 1. Create docs/ROADMAP.md
+# ------------------------------------------
+roadmap_path = 'docs/ROADMAP.md'
+roadmap_content = """# 🗺️ Product Strategy & Roadmap
+
+**Vision:** Transform the platform from a static portfolio into an AI-powered Career Management System (CMS).
+**Status:** Living Document
+**Last Updated:** 2026-01-27
+
+---
+
+## 🛡️ Phase 18: Fortress & Foundation (Security & Ops)
+*Goal: Lock down the application, secure the data, and optimize for production scale.*
+
+* **Sprint 18.1: The Identity Shield (Auth Blocking)**
+    * **Objective:** Move from "Client-Side Whitelisting" to "Server-Side Rejection".
+    * **Tech:** Firebase Blocking Functions (`beforeUserSignedIn`).
+    * **Why:** Prevent unauthorized users from even generating a token.
+* **Sprint 18.2: The Data Lockdown (Rules & Indexes)**
+    * **Objective:** Finalize strict `firestore.rules`.
+    * **Tech:** `request.auth.token.email` enforcement on all Admin collections.
+* **Sprint 18.3: The Cost Governor**
+    * **Objective:** Prevent API cost runaways.
+    * **Tech:** Rate limiting or Daily Budget alerts for Gemini usage.
+* **Sprint 18.4: The Performance Polish**
+    * **Objective:** Lighthouse Score 90+ on Mobile.
+    * **Tech:** Code Splitting (`React.lazy`), Image Optimization, PWA capabilities.
+
+---
+
+## 🏭 Phase 19: The Content Factory (Generative Action)
+*Goal: Stop writing boilerplate. Let the AI generate high-quality tailored documents.*
+
+* **Sprint 19.1: The Cover Letter Engine**
+    * **Feature:** One-click PDF generation based on Resume + JD.
+    * **Tech:** Gemini Prompting + `react-to-print`.
+* **Sprint 19.2: The Outreach Bot**
+    * **Feature:** Generate cold-outreach messages (LinkedIn/Email) tailored to the Hiring Manager.
+    * **Tech:** Clipboard API + Tone analysis.
+* **Sprint 19.3: The Resume Tailor**
+    * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
+
+---
+
+## ♟️ Phase 20: The Strategist (Workflow & Prep)
+*Goal: Manage the campaign lifecycle and win the interview.*
+
+* **Sprint 20.1: The Application Kanban**
+    * **Feature:** Drag-and-drop board to track status (Applied, Interview, Offer).
+    * **Tech:** `dnd-kit` or `react-beautiful-dnd`.
+* **Sprint 20.2: The Interview Simulator**
+    * **Feature:** AI acts as the interviewer, asking technical questions based on the JD.
+    * **Tech:** Text-to-Speech API + Speech-to-Text.
+
+"""
+
+# Only write if it doesn't exist or if you want to overwrite. 
+# Since this is a new file, we write it fresh.
+write_file(roadmap_path, roadmap_content)
+
+# 2. Update PROJECT_STATUS.md to link to Roadmap
 # ------------------------------------------
 status_path = 'docs/PROJECT_STATUS.md'
 status_content = read_file(status_path)
 
-# Mark Phase 17 as Complete (Update Header)
-if "Phase 17 - Application Manager" in status_content:
-    status_content = re.sub(
-        r"Phase 17 - Application Manager.*", 
-        "Phase 17 - Application Manager (Complete)", 
-        status_content
-    )
+# Add reference if missing
+if "docs/ROADMAP.md" not in status_content:
+    # Insert the link right after the title
+    header_marker = "# 🟢 Project Status: Platform Expansion"
+    new_link = "\n\n> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision (Phases 18-20)."
+    
+    if header_marker in status_content:
+        status_content = status_content.replace(header_marker, header_marker + new_link)
+        write_file(status_path, status_content)
 
-# Add Phase 18 if missing
-if "Phase 18: Security Hardening" not in status_content:
-    if "## 🎯 Current Objectives" in status_content:
-        status_content = status_content.replace(
-            "## 🎯 Current Objectives",
-            "## 🎯 Current Objectives\n* [ ] Phase 18: Security Hardening & Deployment."
-        )
-
-# Update Roadmap
-if "## ✅ Completed Roadmap" in status_content:
-    if "Sprint 17.3" not in status_content:
-        new_roadmap_item = """* **Phase 17:** [x] Application Manager Complete.
-    * Sprint 17.1: Input Interface.
-    * Sprint 17.2: Vector Engine.
-    * Sprint 17.3: Analysis Dashboard (Real-time UI)."""
-        status_content = status_content.replace(
-            "## ✅ Completed Roadmap",
-            "## ✅ Completed Roadmap\n" + new_roadmap_item
-        )
-
-write_file(status_path, status_content)
-
-# 2. Update CHANGELOG.md
-# ------------------------------------------
-changelog_path = 'docs/CHANGELOG.md'
-changelog_content = read_file(changelog_path)
-today = datetime.date.today().strftime("%Y-%m-%d")
-
-new_entry = f"""## [v2.5.0-beta] - {today}
-### Added
-- **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.
-- **UX:** Implemented "Inline Transformation" animation using `framer-motion` to smoothly reveal results.
-- **Visualization:** Added `ScoreGauge` with color-coded match thresholds (Red/Yellow/Green).
-
-"""
-
-if "## [v" in changelog_content:
-    parts = changelog_content.split("## [v", 1)
-    new_changelog = parts[0] + new_entry + "## [v" + parts[1]
-else:
-    new_changelog = "# 📜 Changelog\n\n" + new_entry + changelog_content
-
-write_file(changelog_path, new_changelog)
-
-# 3. Update CONTEXT_DUMP.md (Async Pattern)
-# ------------------------------------------
-context_path = 'docs/CONTEXT_DUMP.md'
-context_content = read_file(context_path)
-
-if "5. Async UI Patterns" not in context_content:
-    new_section = """
-### 5. Async UI Patterns
-* **Optimistic vs Real-Time:** For AI operations (which take >3s), we do not await the API response directly in the client. 
-* **The Pattern:** 1. UI writes document with `ai_status: 'pending'`.
-    2. Cloud Function triggers, processes, and updates to `ai_status: 'complete'`.
-    3. UI component uses `onSnapshot` to listen for this status change and reveals the result.
-"""
-    # Append to the end of "Coding Standards" section (before Directory Structure)
-    if "## Directory Structure" in context_content:
-        context_content = context_content.replace(
-            "## Directory Structure", 
-            new_section + "\n## Directory Structure"
-        )
-    else:
-        context_content += new_section
-
-write_file(context_path, context_content)
-
-# 4. Update PROMPT_TESTING.md (Accessibility Constraint)
-# ------------------------------------------
-testing_path = 'docs/PROMPT_TESTING.md'
-testing_content = read_file(testing_path)
-
-if "Accessibility & Selectors" not in testing_content:
-    new_constraint = """
-    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
-"""
-    # Look for "Constraints & Best Practices" list items
-    # We append it before the "Output Requirements" section to keep it in the list
-    if "3.  **Imports:**" in testing_content:
-         testing_content = testing_content.replace(
-            "3.  **Imports:**", 
-            new_constraint + "3.  **Imports:**"
-        )
-
-write_file(testing_path, testing_content)
-
-print("\n🎉 Sprint 17.3 Documentation Audit Complete.")
+print("\n🎉 Roadmap Created. Strategic vision defined.")
 ```
 ---
 

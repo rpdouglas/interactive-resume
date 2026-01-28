@@ -1,9 +1,5 @@
 import os
 
-# ==========================================
-# 🗺️ STRATEGIC ROADMAP GENERATOR
-# ==========================================
-
 def read_file(path):
     if os.path.exists(path):
         with open(path, 'r', encoding='utf-8') as f:
@@ -15,42 +11,55 @@ def write_file(path, content):
         f.write(content)
     print(f"✅ Updated: {path}")
 
-# 1. Create docs/ROADMAP.md
-# ------------------------------------------
+# 1. Update PROJECT_STATUS.md
+# ---------------------------
+status_path = 'docs/PROJECT_STATUS.md'
+status_content = """# 🟢 Project Status: Platform Expansion
+
+> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
+
+**Current Phase:** Phase 19 - The Content Factory
+**Version:** v3.0.0-dev
+**Status:** 🚀 Sprint 19.1 Starting
+
+## 🎯 Current Objectives
+* [ ] Sprint 19.1: The Cover Letter Engine (Generative AI).
+* [ ] Sprint 19.2: The Outreach Bot.
+* [ ] Sprint 19.3: The Resume Tailor.
+
+## ⏳ Backlog (Deferred)
+* Phase 20: The Strategist (Kanban & Prep).
+* Phase 21: Security Hardening (The Identity Shield).
+
+## ✅ Completed Roadmap
+* **Phase 17:** [x] Application Manager Complete.
+    * Sprint 17.1: Input Interface.
+    * Sprint 17.2: Vector Engine.
+    * Sprint 17.3: Analysis Dashboard (Real-time UI).
+* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
+* **Phase 15:** [x] Chart Stabilization.
+* **v1.0.0:** [x] Gold Master Release.
+"""
+
+write_file(status_path, status_content)
+
+# 2. Update ROADMAP.md
+# --------------------
 roadmap_path = 'docs/ROADMAP.md'
 roadmap_content = """# 🗺️ Product Strategy & Roadmap
 
 **Vision:** Transform the platform from a static portfolio into an AI-powered Career Management System (CMS).
-**Status:** Living Document
-**Last Updated:** 2026-01-27
+**Status:** Active Development
+**Last Updated:** 2026-01-28
 
 ---
 
-## 🛡️ Phase 18: Fortress & Foundation (Security & Ops)
-*Goal: Lock down the application, secure the data, and optimize for production scale.*
-
-* **Sprint 18.1: The Identity Shield (Auth Blocking)**
-    * **Objective:** Move from "Client-Side Whitelisting" to "Server-Side Rejection".
-    * **Tech:** Firebase Blocking Functions (`beforeUserSignedIn`).
-    * **Why:** Prevent unauthorized users from even generating a token.
-* **Sprint 18.2: The Data Lockdown (Rules & Indexes)**
-    * **Objective:** Finalize strict `firestore.rules`.
-    * **Tech:** `request.auth.token.email` enforcement on all Admin collections.
-* **Sprint 18.3: The Cost Governor**
-    * **Objective:** Prevent API cost runaways.
-    * **Tech:** Rate limiting or Daily Budget alerts for Gemini usage.
-* **Sprint 18.4: The Performance Polish**
-    * **Objective:** Lighthouse Score 90+ on Mobile.
-    * **Tech:** Code Splitting (`React.lazy`), Image Optimization, PWA capabilities.
-
----
-
-## 🏭 Phase 19: The Content Factory (Generative Action)
+## 🏭 Phase 19: The Content Factory (Current Focus)
 *Goal: Stop writing boilerplate. Let the AI generate high-quality tailored documents.*
 
 * **Sprint 19.1: The Cover Letter Engine**
     * **Feature:** One-click PDF generation based on Resume + JD.
-    * **Tech:** Gemini Prompting + `react-to-print`.
+    * **Tech:** Gemini Prompting + `react-to-print` / `jspdf`.
 * **Sprint 19.2: The Outreach Bot**
     * **Feature:** Generate cold-outreach messages (LinkedIn/Email) tailored to the Hiring Manager.
     * **Tech:** Clipboard API + Tone analysis.
@@ -59,35 +68,28 @@ roadmap_content = """# 🗺️ Product Strategy & Roadmap
 
 ---
 
-## ♟️ Phase 20: The Strategist (Workflow & Prep)
+## ♟️ Phase 20: The Strategist (Workflow)
 *Goal: Manage the campaign lifecycle and win the interview.*
 
 * **Sprint 20.1: The Application Kanban**
     * **Feature:** Drag-and-drop board to track status (Applied, Interview, Offer).
-    * **Tech:** `dnd-kit` or `react-beautiful-dnd`.
+    * **Tech:** `dnd-kit`.
 * **Sprint 20.2: The Interview Simulator**
     * **Feature:** AI acts as the interviewer, asking technical questions based on the JD.
-    * **Tech:** Text-to-Speech API + Speech-to-Text.
+    * **Tech:** Browser Speech API.
+
+---
+
+## 🛡️ Phase 21: Fortress & Foundation (Security)
+*Goal: Lock down the application before public release.*
+
+* **Sprint 21.1: The Identity Shield**
+    * **Objective:** Server-Side Auth Blocking (Fix IAM Permissions).
+* **Sprint 21.2: The Data Lockdown**
+    * **Objective:** Strict `firestore.rules`.
+* **Sprint 21.3: Cost Governor**
+    * **Objective:** API Rate Limiting.
 
 """
 
-# Only write if it doesn't exist or if you want to overwrite. 
-# Since this is a new file, we write it fresh.
 write_file(roadmap_path, roadmap_content)
-
-# 2. Update PROJECT_STATUS.md to link to Roadmap
-# ------------------------------------------
-status_path = 'docs/PROJECT_STATUS.md'
-status_content = read_file(status_path)
-
-# Add reference if missing
-if "docs/ROADMAP.md" not in status_content:
-    # Insert the link right after the title
-    header_marker = "# 🟢 Project Status: Platform Expansion"
-    new_link = "\n\n> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision (Phases 18-20)."
-    
-    if header_marker in status_content:
-        status_content = status_content.replace(header_marker, header_marker + new_link)
-        write_file(status_path, status_content)
-
-print("\n🎉 Roadmap Created. Strategic vision defined.")
