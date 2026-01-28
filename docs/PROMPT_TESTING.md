@@ -1,4 +1,4 @@
-# 🧪 AI Testing Prompt (The QA Engineer)
+# 🧪 AI Testing Prompt (The QA Engineer v2.1)
 
 **Instructions:**
 Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Done".
@@ -15,26 +15,22 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
 * Data Context: [PASTE JSON SNIPPET]
 
 **Constraints & Best Practices:**
-1.  **Environment Mocking (CRITICAL):**
+1.  **Execution First:** Output a single **Bash Script** (`install_tests.sh`) that:
+    * Creates the directory `src/__tests__` (or component specific folder).
+    * Uses `cat << 'JSX' > path/to/test.test.jsx` to write the file.
+2.  **Environment Mocking (CRITICAL):**
     * The Firebase SDK will crash instantly if `VITE_API_KEY` is undefined.
-    * **Rule:** If the component touches Firebase (Auth/Firestore), you MUST verify that `vi.stubEnv` or a mock `.env.test` is loaded in the test setup.
-    * *Tip:* Mock the `firebase/auth` and `firebase/firestore` modules entirely to avoid network calls.
-    * **Path Verification:** When mocking modules with `vi.mock`, strictly verify the directory depth of relative imports (e.g., `../../../lib/db` vs `../../lib/db`). Mismatched paths cause silent failures.
-    * **Stubbing:** Use `vi.stubEnv` for ALL environment variables
-    * **Defensive Rendering:** UI components consuming Cloud Function data MUST use optional chaining (`?.`) or default values. The data structure returned by the SDK often wraps the result in `data`, leading to `response.data.data`.
-    * **Secret Binding:** When testing Cloud Functions, ensure `secrets` are whitelisted in the function definition object (`{ secrets: ["KEY_NAME"] }`).
- in Firebase tests to prevent SDK crashes.
-
-2.  **Testing Strategy:**
+    * **Rule:** Use `vi.stubEnv` or mock `firebase/auth` and `firebase/firestore` modules entirely.
+    * **Mocking Libraries:**
+        * `react-to-print`: Mock `useReactToPrint` to return a void function.
+        * `framer-motion`: Replace with standard HTML tags to avoid animation delays in JSDOM.
+3.  **Testing Strategy:**
     * **Happy Path:** Does it render data correctly?
-    * **Loading State:** Is the Skeleton visible? (Never use raw text "Loading...").
-    * **Error State:** Does it degrade gracefully to the Fallback JSON?
-
-    * **Accessibility & Selectors:** Interactive elements without visible text (e.g., Icon Buttons) MUST have an `aria-label`. Complex visualizations (e.g., SVG Charts) MUST have a `data-testid` to be testable via `getByTestId`.
-3.  **Imports:** Use `@testing-library/react` for `render`, `screen`, and `fireEvent`.
+    * **Interactive:** Click buttons and verify handlers are called.
+    * **Defensive:** Ensure it handles `null` or `undefined` props without crashing.
 
 **Output Requirements:**
-* A complete `.test.jsx` file.
-* **Do not** reference real database paths. Use mocks.
+* A single `install_tests.sh` script block.
+* Do not output raw JSX outside the script.
 
 **Wait:** Ask me to paste the Component Code to begin.

@@ -1,3 +1,8 @@
+
+# ⚠️ DEV MODE ACTIVE (SKELETON KEY)
+**Current Status:** Authentication is bypassed. Database Rules are `allow read, write: if true`.
+**Do NOT deploy to Production without reverting `AuthContext` and `firestore.rules`.**
+
 # 🛡️ Security Model & Access Control
 
 **Auth Provider:** Firebase Authentication (Google OAuth)

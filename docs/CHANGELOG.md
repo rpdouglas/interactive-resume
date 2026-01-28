@@ -2,6 +2,15 @@
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
 
+## [v3.1.0-beta] - 2026-01-28
+### Added
+- **AI:** "Cover Letter Engine" (Cloud Function) using Gemini 2.5 Flash.
+- **UI:** Structured "Gap Analysis" rendering (Yellow Warning Cards).
+- **Export:** PDF generation via `react-to-print`.
+### Changed
+- **UX:** Restored "Thinking Brain" animation during analysis.
+- **Architecture:** Moved all AI logic to Server-Side Cloud Functions for security.
+
 ## [v2.5.0-beta] - 2026-01-27
 ### Added
 - **UI:** Added `AnalysisDashboard` with real-time Firestore listeners (`onSnapshot`) for instant feedback.

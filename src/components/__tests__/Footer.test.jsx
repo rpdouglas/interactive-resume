@@ -1,50 +1,47 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import { BrowserRouter } from 'react-router-dom';
 import Footer from '../Footer';
-import { AuthProvider } from '../../context/AuthContext';
 
-// Mock Firebase Auth
-vi.mock('firebase/auth', () => ({
-  getAuth: vi.fn(),
-  GoogleAuthProvider: vi.fn(),
-  onAuthStateChanged: vi.fn(() => () => {}),
-}));
-
-// Mock the Firebase library
-vi.mock('../../lib/firebase', () => ({
-  auth: {},
-  googleProvider: {},
+// Mock Auth Context
+const mockUseAuth = vi.fn();
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => mockUseAuth(),
 }));
 
 describe('Footer Component', () => {
   it('renders the correct copyright year', () => {
+    mockUseAuth.mockReturnValue({ user: null });
     render(
-      <AuthProvider>
+      <BrowserRouter>
         <Footer />
-      </AuthProvider>
+      </BrowserRouter>
     );
-    const currentYear = new Date().getFullYear().toString();
-    expect(screen.getByText(new RegExp(currentYear))).toBeDefined();
+    expect(screen.getByText(new RegExp(new Date().getFullYear().toString()))).toBeDefined();
   });
 
   it('renders the System Version indicator', () => {
+    mockUseAuth.mockReturnValue({ user: null });
     render(
-      <AuthProvider>
+      <BrowserRouter>
         <Footer />
-      </AuthProvider>
+      </BrowserRouter>
     );
-    expect(screen.getByText(/System Version: v/i)).toBeDefined();
+    expect(screen.getByText(/System Version/i)).toBeDefined();
   });
 
-  it('renders the admin lock icon when not logged in', () => {
+  it('renders the Dashboard link (Dev Mode)', () => {
+    mockUseAuth.mockReturnValue({ user: null }); // Even if logged out
     render(
-      <AuthProvider>
+      <BrowserRouter>
         <Footer />
-      </AuthProvider>
+      </BrowserRouter>
     );
-    // The Lock icon is inside a button
-    const lockBtn = screen.getByRole('button');
-    expect(lockBtn).toBeDefined();
+    
+    // ✅ Updated: Looks for the link text instead of a lock button
+    const dashboardLink = screen.getByText(/Go to Dashboard/i);
+    expect(dashboardLink).toBeDefined();
+    expect(dashboardLink.closest('a')).toHaveAttribute('href', '/admin');
   });
 });

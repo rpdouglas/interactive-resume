@@ -18,11 +18,12 @@
 * **Auth:** Google Identity Services requires relaxed headers (`unsafe-none`) to allow popup communication.
 * **Policy:** `Cross-Origin-Opener-Policy: unsafe-none`. This applies to both `firebase.json` (Prod) and `vite.config.js` (Dev).
 
-### 4. AI Isolation
-* **Server-Side AI:** Gemini logic resides in `functions/index.js`.
-    * `architectProject`: Callable (Gemini 3.0) for UI generation.
-    * `analyzeApplication`: Trigger (Gemini 2.5) for background processing.
-* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY` injected by Secret Manager.
+### 4. AI Isolation (Server-Side)
+* **Logic:** All AI operations reside in `functions/index.js`.
+    * `architectProject`: Callable (Gemini 3.0) for Resume Building.
+    * `analyzeApplication`: Trigger (Gemini 2.5) for Job Analysis.
+    * `generateCoverLetter`: Trigger (Gemini 2.5) for Content Generation.
+* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY`.
 
 
 ### 5. Async UI Patterns

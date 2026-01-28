@@ -49,3 +49,7 @@ When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you mus
 gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
 ```
 *Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
+
+
+## 6. Gen 2 Cloud Functions Quirk
+When deploying Gen 2 functions for the first time, you may see an `Error generating service identity`. This is a known timeout issue. **Wait 2 minutes and retry the deploy.** It usually succeeds on the second attempt.
