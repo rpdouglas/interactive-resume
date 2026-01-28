@@ -1,5 +1,5 @@
 # The Job Whisperer: CODEBASE DUMP
-**Date:** Wed Jan 28 21:53:30 UTC 2026
+**Date:** Wed Jan 28 23:29:04 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: .firebaserc
@@ -334,6 +334,112 @@ We store an array of `tailored_bullets` inside the `application` document. The U
 * **Positive:** Minimal storage footprint. Preserves the "Single Source of Truth" (Master Resume).
 * **Negative:** Requires client-side logic to merge/display the diffs.
 * **Guardrails:** We explicitly prompt the AI to *not* invent facts, only rephrase existing ones ("The Ethical Editor" protocol).
+```
+---
+
+## FILE: docs/ADR/002-resume-snapshot-strategy.md
+```md
+# ADR 002: Resume Versioning Strategy (Snapshots)
+
+**Date:** 2026-01-28
+**Status:** Accepted
+**Context:** Sprint 19.4
+
+## Context
+Candidates need to save the specific version of a resume sent to a company.
+The "Master Resume" evolves over time. If we only link to the Master, old applications will display incorrect/new data, breaking the historical record.
+
+## Options Considered
+1.  **Runtime Overlay:** Store only Diff IDs. (Rejected: Vulnerable to Master Resume deletion).
+2.  **Binary Storage:** Save PDF to Blob Storage. (Rejected: Hard to search/index, heavy infrastructure).
+3.  **JSON Snapshot:** Deep copy the rendered JSON to the `application` document. (Selected).
+
+## Decision
+We will implement **Option 3: JSON Snapshot**.
+When a user clicks "Finalize", we:
+1.  Merge the Master Resume + Selected AI Tailored Bullets.
+2.  Write the resulting JSON object to a new field `resume_snapshot` in the `applications` collection.
+3.  Lock the application (`is_frozen: true`).
+
+## Consequences
+* **Immutable History:** We can strictly render *exactly* what the recruiter saw.
+* **Printability:** We can generate PDFs on-the-fly from the JSON without storing binary files.
+* **Storage:** Slightly increased Firestore document size, but well within the 1MB limit.
+
+```
+---
+
+## FILE: docs/ADR/003-async-ai-pipeline.md
+```md
+# ADR 003: Async AI Pipeline (Trigger Pattern)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 17 (Application Manager)
+
+## Context
+We introduced Generative AI (Gemini) to analyze Job Descriptions.
+LLM API calls are slow (5-15 seconds) and non-deterministic. Keeping the client waiting on a synchronous HTTP connection (`await fetch`) resulted in timeouts.
+
+## Decision
+We adopted the **Firestore Trigger Pattern**.
+1.  **Write:** UI creates a document in `applications` with `ai_status: 'pending'`.
+2.  **Trigger:** Cloud Function `onDocumentWritten` detects the change.
+3.  **Process:** Server calls Gemini API.
+4.  **Update:** Server updates document with `ai_status: 'complete'`.
+5.  **Listen:** UI uses `onSnapshot` to reactively display the result.
+```
+---
+
+## FILE: docs/ADR/004-hybrid-data-strategy.md
+```md
+# ADR 004: Hybrid Data Strategy (Indestructible Fallback)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 16 (The Backbone)
+
+## Context
+Relying solely on Firestore introduced risks: Quota limits, Offline scenarios, or Misconfigured Security Rules could cause a "White Screen of Death".
+
+## Decision
+We implemented the **"Indestructible Fallback"** pattern.
+Our data hooks (`useResumeData`) wrap Firestore calls in a `try/catch` block. If *any* error occurs, we immediately return the static data located in `src/data/*.json`.
+```
+---
+
+## FILE: docs/ADR/005-deep-fetch-pattern.md
+```md
+# ADR 005: Deep Fetch (Recursive Hydration)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 16 (The Backbone)
+
+## Context
+Firestore queries are **shallow**. Fetching a `Job` document does *not* fetch its `Projects` sub-collection.
+
+## Decision
+We chose **Recursive Client-Side Joining**.
+Our data fetcher retrieves the parent collection (`experience`), maps over the results, and triggers a `Promise.all` to fetch the `projects` sub-collection for each job.
+```
+---
+
+## FILE: docs/ADR/006-security-perimeter.md
+```md
+# ADR 006: Security Perimeter (Email Whitelist)
+
+**Date:** 2026-01-28 (Backfilled)
+**Status:** Accepted
+**Context:** Sprint 2 (Project Setup)
+
+## Context
+We needed to secure the Admin CMS without building a complex multi-tenant User Management system.
+
+## Decision
+We implemented a **Hard Perimeter** using Email Whitelisting.
+1.  **Frontend:** `AuthContext` checks `user.email` against `VITE_ADMIN_EMAIL`.
+2.  **Backend:** `firestore.rules` enforces write access only if `request.auth.token.email` matches the admin email.
 ```
 ---
 
@@ -686,6 +792,7 @@ Our development strategy is guided by specific user archetypes. Features must pa
 * [x] **Sprint 19.1:** The Cover Letter Engine.
 * [x] **Sprint 19.2:** The Outreach Bot (Merged into Tailor).
 * [x] **Sprint 19.3:** The Resume Tailor (Diff Engine).
+* [ ] **Sprint 19.4:** The Version Controller (Snapshot & Print).
 * [ ] **Sprint 20.1:** Application Kanban Board (Upcoming).
 
 ## 🛑 Known Issues
@@ -807,21 +914,33 @@ Do **NOT** write code yet. Analyze the request and propose **3 Distinct Approach
 
 ## FILE: docs/PROMPT_INITIALIZATION.md
 ```md
-# 🤖 AI Session Initialization Prompt (v2.0)
+# 🤖 AI Session Initialization Prompt (v3.0)
 
-**Role:** Senior Fullstack Architect & AI Integration Engineer.
+**Role:** You are the **Senior Lead Developer & System Architect** for "The Job Whisperer" (v3.2.0).
+**System:** React 19 + Vite + Tailwind v4 + Firebase (Firestore/Auth/Functions) + Gemini 2.5 Flash.
 
-**Core Context:**
-* We are building a Resume CMS with Gemini AI integration.
-* **Security:** Firebase Auth is the entry point for `/admin`.
-* **Data:** Transitioning to Firestore. Components must handle 'Loading' and 'Empty' database states.
+**Your Operational Framework (`docs/AI_WORKFLOW.md`):**
+You must fluidly switch between these modes as needed:
+1.  **The Architect:** Design secure, scalable patterns (ADRs).
+2.  **The Builder:** Write complete, production-ready code (No placeholders).
+3.  **The Maintainer:** Update documentation (`CHANGELOG`, `PROJECT_STATUS`) after every feature.
+V
+**Critical Directives (The "Anti-Drift" Protocols):**
+1.  **Ground Truth:** Do NOT assume file paths. If unsure, ask me to run `ls -R src`.
+2.  **Complete Deliverables:** Always provide full file contents or complete bash scripts. Never output partial code blocks ("... rest of code").
+3.  **Security First:** `firestore.rules` are "Admin Write / Public Read". `applications` collection is "Admin Only".
+4.  **Data Integrity:** Use `structuredClone` for snapshots. Firestore is the Single Source of Truth (SSOT).
 
-**Critical Rules:**
-1. **Never Hardcode Keys:** Use `import.meta.env.VITE_*` and check for existence.
-2. **Complete Files Only:** Maintain the existing pattern of full-file delivery.
-3. **Modular AI:** Prompts sent to Gemini should be versioned and kept in `src/lib/ai/prompts.js`.
+**Initialization Sequence:**
+To begin our session and prevent context drift, please perform the following **Deep Dive Review**:
+1.  **Request:** Ask me to paste the current full codebase dump.
+2.  **Analyze:** Perform a detailed review of `docs/` (Roadmap, Status, ADRs) and `src/` structure.
+3.  **Report:** Output a **"System Health Check"** summarizing:
+    * *Current Phase & Sprint* (from PROJECT_STATUS).
+    * *Key Architectural Patterns* (from ADRs).
+    * *Discrepancies:* Any mismatch between the Docs and the Code.
 
-**Reply 'Platform Architecture Loaded. Ready for Phase 14.'**
+**Reply ONLY with:** "🚀 System Architect Ready. Please paste the full codebase context to begin the Deep Dive Analysis."
 ```
 ---
 
@@ -941,6 +1060,10 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
     * **Tech:** Clipboard API + Tone analysis.
 * **Sprint 19.3: The Resume Tailor**
     * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
+* **Sprint 19.4: The Version Controller (Snapshot Engine)**
+    * **Feature:** "Freeze" a specific tailored resume version into an immutable record.
+    * **Feature:** Dedicated Print Preview route for generating clean PDFs from Snapshots.
+    * **Tech:** Firestore (JSON Storage) + Print CSS.
 
 ---
 
@@ -7259,357 +7382,49 @@ echo "---------------------------------------------------"
 import os
 
 # ==========================================
-# 🦅 THE JOB WHISPERER: REBRANDING & AUDIT
+# 🤖 UPGRADE INITIALIZATION PROMPT (v3.0)
 # ==========================================
 
-# CB represents the triple backticks. 
-# We use this variable to prevent breaking the chat interface's formatting.
-CB = "```"
+file_path = "docs/PROMPT_INITIALIZATION.md"
 
-def write_file(path, content):
-    directory = os.path.dirname(path)
-    if directory and not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content.strip())
-        print(f"✅ Updated: {path}")
-    except Exception as e:
-        print(f"❌ Error writing {path}: {e}")
+new_content = """# 🤖 AI Session Initialization Prompt (v3.0)
 
-# ------------------------------------------------------------------
-# 1. README.md (Major Overhaul with Diagrams)
-# ------------------------------------------------------------------
-readme_content = f"""
-# 🦅 The Job Whisperer
+**Role:** You are the **Senior Lead Developer & System Architect** for "The Job Whisperer" (v3.2.0).
+**System:** React 19 + Vite + Tailwind v4 + Firebase (Firestore/Auth/Functions) + Gemini 2.5 Flash.
 
-> **The AI Agent that tailored this resume gets the interview.**
+**Your Operational Framework (`docs/AI_WORKFLOW.md`):**
+You must fluidly switch between these modes as needed:
+1.  **The Architect:** Design secure, scalable patterns (ADRs).
+2.  **The Builder:** Write complete, production-ready code (No placeholders).
+3.  **The Maintainer:** Update documentation (`CHANGELOG`, `PROJECT_STATUS`) after every feature.
 
-![Version](https://img.shields.io/badge/version-3.2.0--beta-blue.svg)
-![Stack](https://img.shields.io/badge/stack-React_19_|_Firebase_|_Gemini-orange.svg)
-![Status](https://img.shields.io/badge/status-Production-green.svg)
+**Critical Directives (The "Anti-Drift" Protocols):**
+1.  **Ground Truth:** Do NOT assume file paths. If unsure, ask me to run `ls -R src`.
+2.  **Complete Deliverables:** Always provide full file contents or complete bash scripts. Never output partial code blocks ("... rest of code").
+3.  **Security First:** `firestore.rules` are "Admin Write / Public Read". `applications` collection is "Admin Only".
+4.  **Data Integrity:** Use `structuredClone` for snapshots. Firestore is the Single Source of Truth (SSOT).
 
-**The Job Whisperer** is not just a portfolio—it is a self-curating **Career Management System (CMS)**. It uses Google's Gemini 2.5 Flash to analyze Job Descriptions (JDs), identify gaps, rewrite bullet points, and draft cover letters in real-time.
+**Initialization Sequence:**
+To begin our session and prevent context drift, please perform the following **Deep Dive Review**:
+1.  **Request:** Ask me to paste the current full codebase dump.
+2.  **Analyze:** Perform a detailed review of `docs/` (Roadmap, Status, ADRs) and `src/` structure.
+3.  **Report:** Output a **"System Health Check"** summarizing:
+    * *Current Phase & Sprint* (from PROJECT_STATUS).
+    * *Key Architectural Patterns* (from ADRs).
+    * *Discrepancies:* Any mismatch between the Docs and the Code.
 
-## 🏗️ System Architecture
-
-{CB}mermaid
-graph TD
-    User[Recruiter / Public] -->|Reads| CDN[Firebase Hosting]
-    Admin[You / Candidate] -->|Auth| CMS[Admin Dashboard]
-    
-    subgraph "The Content Factory (Server-Side)"
-        CMS -->|Writes JD| DB[(Cloud Firestore)]
-        DB -->|Triggers| CF[Cloud Functions]
-        CF -->|Prompt| AI[Gemini 2.5 Flash]
-        AI -->|Analysis/Tailoring| DB
-    end
-    
-    subgraph "Client-Side (React 19)"
-        DB -->|Real-time Sync| Dashboard[Analysis UI]
-        Dashboard -->|Diff View| ResumeTailor[Resume Tailor]
-    end
-{CB}
-
-## 🚀 Key Features
-
-### 1. 🧠 The Analysis Engine
-* **Vector Matching:** Instantly scores your profile against a JD (0-100%).
-* **Gap Detection:** Identifies missing keywords (e.g., "Docker", "Kubernetes") and suggests specific projects to highlight.
-
-### 2. 🧵 The Resume Tailor (Diff Engine)
-* **Problem:** Generic resumes fail ATS (Applicant Tracking Systems).
-* **Solution:** An "Ethical Editor" agent that rewrites your existing bullet points to match the JD's language *without* inventing facts.
-* **UI:** Side-by-Side "Diff View" (Red/Green) to review changes before accepting.
-
-### 3. ✍️ The Cover Letter Engine
-* **Zero-Shot Generation:** Creates a persuasive, context-aware cover letter in < 5 seconds.
-* **PDF Export:** Built-in "White Paper" styling for instant PDF generation.
-
-## 🛠️ Tech Stack & Decisions
-
-| Layer | Technology | Rationale |
-| :--- | :--- | :--- |
-| **Frontend** | React 19 + Vite | Concurrent rendering for complex dashboards. |
-| **Styling** | Tailwind CSS v4 | "Mobile-First" utility classes for speed. |
-| **Backend** | Firebase Functions (Gen 2) | Serverless scalability for AI triggers. |
-| **Database** | Cloud Firestore | Real-time listeners (`onSnapshot`) for instant UI feedback. |
-| **AI Model** | Gemini 2.5 Flash | Low latency (necessary for interactive editing). |
-
-## 👷 Local Development
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for setup instructions.
-
-{CB}bash
-# Quick Start
-npm install
-npm run dev
-{CB}
-
-## 📜 License
-Proprietary. Built by Ryan Douglas.
+**Reply ONLY with:** "🚀 System Architect Ready. Please paste the full codebase context to begin the Deep Dive Analysis."
 """
 
-# ------------------------------------------------------------------
-# 2. PROJECT_STATUS.md (Sync with Reality)
-# ------------------------------------------------------------------
-status_content = """
-# 🟢 Project Status: The Job Whisperer
+directory = os.path.dirname(file_path)
+if not os.path.exists(directory):
+    os.makedirs(directory, exist_ok=True)
 
-> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
+with open(file_path, "w", encoding="utf-8") as f:
+    f.write(new_content.strip())
 
-**Current Phase:** Phase 20 - The Strategist
-**Version:** v3.2.0-beta
-**Status:** 🟢 Stable / Feature Complete (Sprint 19)
-
-## 🎯 Current Objectives
-* [x] **Sprint 19.1:** The Cover Letter Engine.
-* [x] **Sprint 19.2:** The Outreach Bot (Merged into Tailor).
-* [x] **Sprint 19.3:** The Resume Tailor (Diff Engine).
-* [ ] **Sprint 20.1:** Application Kanban Board (Upcoming).
-
-## 🛑 Known Issues
-* Mobile layout for "Diff View" needs optimization on screens < 375px.
-* Rate limiting for Gemini API is currently manual.
-
-## ✅ Completed Roadmap
-* **Phase 19 (The Content Factory):** [x] Complete suite of Generative AI tools.
-* **Phase 17 (Application Manager):** [x] Job Input & Vector Analysis.
-* **Phase 16 (Backbone):** [x] Firestore Migration.
-* **v1.0.0:** [x] Static Resume Platform.
-"""
-
-# ------------------------------------------------------------------
-# 3. index.html (Branding)
-# ------------------------------------------------------------------
-index_html = """
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <title>The Job Whisperer | Ryan Douglas</title>
-    <meta name="description" content="The Job Whisperer: AI-Powered Career Management System. Bridging the gap between Strategy and Execution." />
-    <meta name="author" content="Ryan Douglas" />
-    <meta name="theme-color" content="#0f172a" />
-
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="The Job Whisperer | AI Resume Platform" />
-    <meta property="og:description" content="AI-driven resume tailoring and job analysis engine." />
-    
-    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)" />
-    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin />
-  </head>
-  <body class="bg-slate-50 text-slate-900 antialiased">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
-"""
-
-# ------------------------------------------------------------------
-# 4. JobTracker.jsx (UI Rebranding)
-# ------------------------------------------------------------------
-job_tracker = """
-import React, { useState, useEffect } from 'react';
-import { db } from '../../lib/db';
-import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
-import { Briefcase, Save, Loader2, ArrowLeft, Bot } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import AnalysisDashboard from './AnalysisDashboard';
-import CoverLetterGenerator from './CoverLetterGenerator';
-import ResumeTailor from './ResumeTailor';
-
-const JobTracker = () => {
-  const [formData, setFormData] = useState({
-    company: '',
-    role: '',
-    raw_text: '',
-    source_url: ''
-  });
-  
-  const [viewState, setViewState] = useState('idle');
-  const [activeTab, setActiveTab] = useState('analysis');
-  const [activeDocId, setActiveDocId] = useState(null);
-  const [applicationData, setApplicationData] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  useEffect(() => {
-    if (!activeDocId) return;
-    const unsubscribe = onSnapshot(doc(db, "applications", activeDocId), (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setApplicationData(data);
-        
-        if (data.ai_status === 'processing') setViewState('analyzing');
-        else if (data.ai_status === 'complete') setViewState('complete');
-        else if (data.ai_status === 'error') {
-          setErrorMsg(data.error_log);
-          setViewState('idle');
-        }
-      }
-    });
-    return () => unsubscribe();
-  }, [activeDocId]);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setViewState('saving');
-    try {
-      const payload = { ...formData, status: 'draft', ai_status: 'pending', created_at: serverTimestamp() };
-      const docRef = await addDoc(collection(db, "applications"), payload);
-      setActiveDocId(docRef.id);
-    } catch (err) {
-      setErrorMsg(err.message);
-      setViewState('idle');
-    }
-  };
-
-  const handleReset = () => {
-    setFormData({ company: '', role: '', raw_text: '', source_url: '' });
-    setViewState('idle');
-    setActiveDocId(null);
-    setApplicationData(null);
-    setActiveTab('analysis');
-  };
-
-  const TabButton = ({ id, label, colorClass, isActive, onClick }) => (
-    <button 
-      onClick={onClick} 
-      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${isActive ? 'bg-white shadow ' + colorClass : 'text-slate-500 hover:bg-slate-200'}`}
-    >
-      {label}
-    </button>
-  );
-
-  return (
-    <div className="max-w-6xl mx-auto h-full flex flex-col relative">
-      <AnimatePresence mode="wait">
-        
-        {/* 1️⃣ FORM INPUT */}
-        {(viewState === 'idle' || viewState === 'saving') && (
-          <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
-            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Bot className="text-blue-600" size={24} /> 
-                The Job Whisperer
-              </h2>
-              <p className="text-xs text-slate-500 mt-1">AI-Powered Application Strategy Engine</p>
-            </div>
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <input type="text" name="company" required value={formData.company} onChange={handleChange} placeholder="Company Name" className="p-3 rounded-lg bg-slate-50 border border-slate-200 outline-none" />
-                <input type="text" name="role" required value={formData.role} onChange={handleChange} placeholder="Role Title" className="p-3 rounded-lg bg-slate-50 border border-slate-200 outline-none" />
-              </div>
-              <textarea name="raw_text" required value={formData.raw_text} onChange={handleChange} placeholder="Paste Job Description..." className="w-full h-64 p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none resize-none font-mono text-sm" />
-            </form>
-            <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10">
-              <button onClick={handleSubmit} disabled={viewState === 'saving'} className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2">
-                {viewState === 'saving' ? <Loader2 className="animate-spin" /> : <Save />} Analyze Job
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {/* 2️⃣ LOADING */}
-        {viewState === 'analyzing' && (
-          <motion.div 
-            key="loading" 
-            initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            exit={{ opacity: 0, scale: 0.9 }} 
-            className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 p-8 text-center"
-          >
-            <div className="relative w-24 h-24 mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center text-4xl">🦅</div>
-            </div>
-            <h3 className="text-xl font-bold text-slate-800">The Whisperer is Thinking...</h3>
-            <p className="text-slate-500 mt-2 max-w-xs mx-auto">Analyzing vectors for <span className="font-semibold text-blue-600">{formData.company}</span>.</p>
-          </motion.div>
-        )}
-
-        {/* 3️⃣ WORKSPACE */}
-        {viewState === 'complete' && applicationData && (
-          <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50/80">
-              <div className="flex gap-2">
-                <TabButton id="analysis" label="Strategy & Gaps" colorClass="text-blue-600" isActive={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} />
-                <TabButton id="letter" label="Cover Letter" colorClass="text-purple-600" isActive={activeTab === 'letter'} onClick={() => setActiveTab('letter')} />
-                <TabButton id="tailor" label="Resume Tailor" colorClass="text-green-600" isActive={activeTab === 'tailor'} onClick={() => setActiveTab('tailor')} />
-              </div>
-              <button onClick={handleReset} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
-                <ArrowLeft size={14} /> New App
-              </button>
-            </div>
-            <div className="flex-1 overflow-hidden bg-slate-50">
-              {activeTab === 'analysis' && <AnalysisDashboard data={applicationData} onReset={handleReset} />}
-              {activeTab === 'letter' && <CoverLetterGenerator applicationId={activeDocId} applicationData={applicationData} />}
-              {activeTab === 'tailor' && <ResumeTailor applicationId={activeDocId} applicationData={applicationData} />}
-            </div>
-          </motion.div>
-        )}
-
-      </AnimatePresence>
-    </div>
-  );
-};
-
-export default JobTracker;
-"""
-
-# ------------------------------------------------------------------
-# 5. CONTEXT_DUMP.md (Brand & Logic Update)
-# ------------------------------------------------------------------
-context_dump = """
-# The Job Whisperer: Platform Context
-**Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 2.5
-**Version:** 3.2.0-beta
-**Branding:** "The Job Whisperer"
-
-## 🧠 Coding Standards (The Brain)
-
-### 1. Data & State (SSOT)
-* **Public View:** `ResumeContext` is the Single Source of Truth.
-* **Admin View:** `JobTracker` manages the "Application State" (JD + Analysis).
-* **Deep Fetch:** Recursive fetching is mandatory for nested sub-collections (`projects`).
-
-### 2. AI Architecture (Server-Side)
-* **Logic:** All AI operations reside in `functions/index.js` to protect API keys.
-    * `analyzeApplication`: Vector Analysis & Gap Detection.
-    * `generateCoverLetter`: Content Generation (No Header/Footer).
-    * `tailorResume`: Ethical Bullet Point Optimization (Diff Engine).
-
-### 3. UI Patterns
-* **Optimistic UI:** Always show a Skeleton or Spinner while waiting for Firestore `onSnapshot`.
-* **Mobile First:** All CSS must use Tailwind utility classes targeting mobile first (`w-full md:w-1/2`).
-
-## Directory Structure
-* `src/components/admin` -> Job Whisperer UI (JobTracker, ResumeTailor).
-* `docs/` -> Documentation as Code (ADRs, Changelogs).
-"""
-
-# ==========================================
-# 🏁 MAIN EXECUTION
-# ==========================================
-if __name__ == "__main__":
-    print("🦅 Rebranding to 'The Job Whisperer' & Auditing Docs...")
-    
-    write_file("README.md", readme_content)
-    write_file("docs/PROJECT_STATUS.md", status_content)
-    write_file("index.html", index_html)
-    write_file("src/components/admin/JobTracker.jsx", job_tracker)
-    write_file("docs/CONTEXT_DUMP.md", context_dump)
-    
-    print("\n🎉 Rebrand Complete! 'The Job Whisperer' is live.")
+print(f"✅ Upgraded {file_path} to v3.0.")
+print("👉 You can now copy the content of this file to start your new chat.")
 ```
 ---
 
