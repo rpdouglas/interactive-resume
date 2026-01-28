@@ -31,7 +31,7 @@ async function getResumeContext() {
   return { profile, skills, experience };
 }
 
-// --- ARCHITECT ---
+// --- 1. ARCHITECT ---
 const ARCHITECT_SYSTEM_PROMPT = "You are a Resume Architect. Convert raw notes to JSON. NO Markdown.";
 exports.architectProject = onCall({ 
   cors: true, 
@@ -47,7 +47,7 @@ exports.architectProject = onCall({
   return { data: JSON.parse(result.response.text()) }; 
 });
 
-// --- ANALYZE (FIXED PROMPT) ---
+// --- 2. ANALYZE ---
 exports.analyzeApplication = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] }, 
   async (event) => {
@@ -63,7 +63,6 @@ exports.analyzeApplication = onDocumentWritten(
     
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" }});
 
-    // ⚡ UPDATED: Restored 'suggested_projects' to the JSON Schema
     const prompt = `Analyze this JD against Resume.
     RESUME: ${JSON.stringify(resumeContext)}
     JD: ${newData.company} - ${newData.role} \n ${newData.raw_text}
@@ -87,7 +86,7 @@ exports.analyzeApplication = onDocumentWritten(
   }
 );
 
-// --- COVER LETTER ---
+// --- 3. COVER LETTER (FIXED PROMPT) ---
 exports.generateCoverLetter = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] },
   async (event) => {
@@ -95,6 +94,8 @@ exports.generateCoverLetter = onDocumentWritten(
     if (!snapshot) return;
     const newData = snapshot.after.data();
     const oldData = snapshot.before.data();
+    
+    // Only trigger when status changes to 'pending'
     if (newData.cover_letter_status !== 'pending') return;
     if (oldData && oldData.cover_letter_status === 'pending') return;
 
@@ -104,10 +105,25 @@ exports.generateCoverLetter = onDocumentWritten(
       const genAI = new GoogleGenerativeAI(apiKey);
       const resumeContext = await getResumeContext();
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const systemPrompt = `You are Ryan Douglas. Write a cover letter for ${newData.role} at ${newData.company}. USE ONLY: ${JSON.stringify(resumeContext)}. JD: ${newData.raw_text}`;
+      
+      const systemPrompt = `
+        You are Ryan Douglas. Write a persuasive cover letter for the role of ${newData.role} at ${newData.company}.
+        
+        STRICT FORMATTING RULES:
+        1. DO NOT include a header block (Name, Address, Phone, Email, LinkedIn). The UI renders this automatically.
+        2. DO NOT include the date or the recipient's address block.
+        3. START DIRECTLY with the Salutation (e.g., "Dear Hiring Manager,").
+        4. Focus on connecting my specific experience (from the provided Context) to the Job Description requirements.
+        5. Tone: Professional, confident, and results-oriented.
+        
+        CONTEXT: ${JSON.stringify(resumeContext)}
+        JOB DESCRIPTION: ${newData.raw_text}
+      `;
+      
       const result = await model.generateContent(systemPrompt);
       await snapshot.after.ref.update({ cover_letter_text: result.response.text(), cover_letter_status: 'complete' });
     } catch (error) {
+      console.error("Cover Letter Error:", error);
       await snapshot.after.ref.update({ cover_letter_status: 'error', error_log: error.message });
     }
   }
