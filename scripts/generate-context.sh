@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # ==========================================
-# 🚀 FRESH NEST: UNIVERSAL CONTEXT GENERATOR
+# 🚀 The Job Whisperer: UNIVERSAL CONTEXT GENERATOR
 # ==========================================
 
 OUTPUT_FILE="docs/FULL_CODEBASE_CONTEXT.md"
 
 echo "🔄 Generating Universal Context Dump..."
-echo "# FRESH NEST: CODEBASE DUMP" > "$OUTPUT_FILE"
+echo "# The Job Whisperer: CODEBASE DUMP" > "$OUTPUT_FILE"
 echo "**Date:** $(date)" >> "$OUTPUT_FILE"
 echo "**Description:** Complete codebase context." >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"

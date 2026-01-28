@@ -27,6 +27,8 @@ I need to add a module that [DESCRIBE FUNCTION].
     * **The Skimmer (Public):** Value delivered in < 5 seconds?
 
 2.  **Constraints & Tech Strategy:**
+    * * **Data Strategy Checklist:**
+            * Does this feature require a new Cloud Function trigger?
     * **Data Source:** **Firestore is the SSOT.**
         * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
         * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.

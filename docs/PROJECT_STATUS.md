@@ -1,25 +1,23 @@
-# 🟢 Project Status: 🟢 Sprint 19.2 Complete
+# 🟢 Project Status: The Job Whisperer
 
 > 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
 
-**Current Phase:** Phase 19 - The Content Factory
-**Version:** v3.0.0-dev
-**Status:** 🚀 Sprint 19.1 Starting
+**Current Phase:** Phase 20 - The Strategist
+**Version:** v3.2.0-beta
+**Status:** 🟢 Stable / Feature Complete (Sprint 19)
 
 ## 🎯 Current Objectives
-* [x] Sprint 19.1: The Cover Letter Engine (Generative AI).
-* [x] Sprint 19.2: The Outreach Bot.
-* [ ] Sprint 19.3: The Resume Tailor.
+* [x] **Sprint 19.1:** The Cover Letter Engine.
+* [x] **Sprint 19.2:** The Outreach Bot (Merged into Tailor).
+* [x] **Sprint 19.3:** The Resume Tailor (Diff Engine).
+* [ ] **Sprint 20.1:** Application Kanban Board (Upcoming).
 
-## ⏳ Backlog (Deferred)
-* Phase 20: The Strategist (Kanban & Prep).
-* Phase 21: Security Hardening (The Identity Shield).
+## 🛑 Known Issues
+* Mobile layout for "Diff View" needs optimization on screens < 375px.
+* Rate limiting for Gemini API is currently manual.
 
 ## ✅ Completed Roadmap
-* **Phase 17:** [x] Application Manager Complete.
-    * Sprint 17.1: Input Interface.
-    * Sprint 17.2: Vector Engine.
-    * Sprint 17.3: Analysis Dashboard (Real-time UI).
-* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
-* **Phase 15:** [x] Chart Stabilization.
-* **v1.0.0:** [x] Gold Master Release.
+* **Phase 19 (The Content Factory):** [x] Complete suite of Generative AI tools.
+* **Phase 17 (Application Manager):** [x] Job Input & Vector Analysis.
+* **Phase 16 (Backbone):** [x] Firestore Migration.
+* **v1.0.0:** [x] Static Resume Platform.

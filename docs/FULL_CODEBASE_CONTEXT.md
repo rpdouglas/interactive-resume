@@ -1,5 +1,5 @@
-# FRESH NEST: CODEBASE DUMP
-**Date:** Wed Jan 28 17:21:21 UTC 2026
+# The Job Whisperer: CODEBASE DUMP
+**Date:** Wed Jan 28 20:19:35 UTC 2026
 **Description:** Complete codebase context.
 
 ## FILE: .firebaserc
@@ -146,6 +146,81 @@ update_docs.py
 ```
 ---
 
+## FILE: CONTRIBUTING.md
+```md
+# 👷 Contributing to the Interactive Resume
+
+Welcome to the development guide. This project uses a **Hybrid Cloud** architecture:
+* **Frontend:** React 19 + Vite (Local)
+* **Backend:** Firebase Cloud Functions (Remote/Serverless)
+* **Database:** Cloud Firestore (Remote)
+
+## 1. Getting Started
+
+### Prerequisites
+* Node.js v20+
+* Firebase CLI (`npm install -g firebase-tools`)
+* Java (Required only if running local Emulators)
+
+### Setup
+1.  **Clone the repo:**
+    ```bash
+    git clone [https://github.com/rpdouglas/interactive-resume.git](https://github.com/rpdouglas/interactive-resume.git)
+    ```
+2.  **Install Dependencies:**
+    ```bash
+    npm ci
+    cd functions && npm ci && cd ..
+    ```
+3.  **Environment Variables:**
+    Create a `.env.local` file in the root. **Do not commit this.**
+    ```ini
+    VITE_API_KEY=your_firebase_api_key
+    VITE_AUTH_DOMAIN=your_project.firebaseapp.com
+    VITE_PROJECT_ID=your_project_id
+    # ... other firebase config
+    ```
+
+## 2. The Development Loop
+
+### A. Frontend Development (UI/UX)
+We use Vite for HMR (Hot Module Replacement).
+```bash
+npm run dev
+```
+* **Access:** `http://localhost:5173`
+* **Auth:** Uses your real Firebase Auth users (Production Data).
+* **Data:** Reads from the live Firestore (be careful with writes!).
+
+### B. Backend Development (Cloud Functions)
+Functions (Gemini AI triggers) must be deployed to Google Cloud to work reliably with the live database, or run via emulators.
+
+**Option 1: Deploy to Cloud (Easiest)**
+```bash
+firebase deploy --only functions
+```
+
+**Option 2: Local Emulators (Advanced)**
+```bash
+firebase emulators:start
+```
+
+## 3. Branching Strategy
+* **`main`**: Production-ready code. Deployed automatically via GitHub Actions.
+* **`feature/SprintX.Y`**: Active development.
+* **Process:**
+    1.  Create Feature Branch.
+    2.  Develop & Test (`npm test`).
+    3.  Merge to Main -> Triggers Deploy.
+
+## 4. Testing
+We use Vitest. Tests **MUST** mock Firebase network calls.
+```bash
+npm test
+```
+```
+---
+
 ## FILE: README.md
 ```md
 # Ryan Douglas: Interactive Resume Platform
@@ -162,6 +237,38 @@ This application implements a **Hard Perimeter** for its CMS features.
 - **Routing:** React Router v7
 - **Backend:** Firebase Auth, Hosting, and Google Analytics
 - **Intelligence:** (Upcoming) Gemini 1.5 Pro integration for content architecture
+```
+---
+
+## FILE: docs/ADR/001-resume-tailor-strategy.md
+```md
+# ADR 001: Resume Tailor Data Strategy (Delta Patching)
+
+**Date:** 2026-01-28
+**Status:** Accepted
+**Context:** Sprint 19.3
+
+## Context
+We needed a way to tailor the candidate's resume for specific Job Descriptions (JDs) to increase ATS matching scores.
+The "Master Resume" is stored in Firestore (`experience` collection). We faced a choice on how to persist these customizations.
+
+## The Options Considered
+1.  **Shadow Resume:** Deep clone the entire resume tree for every application.
+    * *Pros:* Complete isolation.
+    * *Cons:* Massive data duplication, high storage costs, complex sync if Master changes.
+2.  **Ephemeral:** Generate on-the-fly in memory.
+    * *Pros:* Zero storage cost.
+    * *Cons:* Expensive API costs (re-generating on every page load), poor UX (waiting).
+3.  **Delta Patching (Selected):** Store only the specific bullet points that changed.
+
+## Decision
+We chose **Option 3: Delta Patching**.
+We store an array of `tailored_bullets` inside the `application` document. The UI renders the Master Resume, but "swaps" specific bullets with their tailored versions at runtime (or displays them side-by-side in Diff View).
+
+## Consequences
+* **Positive:** Minimal storage footprint. Preserves the "Single Source of Truth" (Master Resume).
+* **Negative:** Requires client-side logic to merge/display the diffs.
+* **Guardrails:** We explicitly prompt the AI to *not* invent facts, only rephrase existing ones ("The Ethical Editor" protocol).
 ```
 ---
 
@@ -225,11 +332,45 @@ This application implements a **Hard Perimeter** for its CMS features.
 ```
 ---
 
+## FILE: docs/AUDIT_REPORT.md
+```md
+# 🧐 Documentation Audit Report
+**Date:** 2026-01-28
+**Version:** 3.2.0-beta
+**Auditor:** Automated Maintainer Script (Sprint 19.3)
+
+## 📊 Scorecard: B
+
+### ✅ Strengths
+1.  **Docs-as-Code:** Documentation is treated with the same rigor as source code (versioned, automated updates).
+2.  **Schema Clarity:** `SCHEMA_ARCHITECTURE.md` accurately reflects the NoSQL data graph.
+3.  **Process Definition:** `PROMPT_*.md` files provide excellent reproducibility for AI agents.
+
+### ⚠️ Gaps (Opportunities)
+1.  **Architecture Decisions:** We lack a dedicated `ADR` (Architecture Decision Record) log. The decision to use "Delta Patching" vs "Shadow Resumes" is buried in chat history, not docs.
+2.  **Onboarding:** No `CONTRIBUTING.md` exists for new developers setting up the local Firebase emulators.
+3.  **Visuals:** `README.md` lacks screenshots of the new "Resume Tailor" UI.
+
+## 🛠️ Recommendations
+1.  **Create `docs/ADR` directory:** Formalize architectural choices (e.g., `001-resume-tailor-strategy.md`).
+2.  **Create `CONTRIBUTING.md`:** document the `npm run dev` vs `firebase deploy` workflow.
+3.  **Refactor `DEPLOYMENT.md`:** Split into "Local Development" vs "Production Deployment".
+
+
+```
+---
+
 ## FILE: docs/CHANGELOG.md
 ```md
 # 📜 Changelog
 
 All notable changes to the **Fresh Nest / Interactive Resume** platform will be documented in this file.
+
+## [3.2.0-beta] - 2026-01-28
+### Added
+- **Resume Tailor:** New 'Diff View' UI in Job Tracker for side-by-side text comparison.
+- **AI:** `tailorResume` Cloud Function (Gemini 2.5) with "Ethical Editor" guardrails.
+- **Data:** `tailored_bullets` schema in Firestore applications collection.
 
 ## [v3.1.0-beta] - 2026-01-28
 ### Added
@@ -308,7 +449,7 @@ All notable changes to the **Fresh Nest / Interactive Resume** platform will be 
 # Interactive Resume: Platform Context
 **Stack:** React 19 + Vite + Tailwind v4 + Firebase + Gemini 3.0
 **Environment:** GitHub Codespaces
-**Version:** v2.2.0-beta
+**Version: 3.2.0-beta
 
 ## 🧠 Coding Standards (The Brain)
 
@@ -352,61 +493,69 @@ All notable changes to the **Fresh Nest / Interactive Resume** platform will be 
 
 ## FILE: docs/DEPLOYMENT.md
 ```md
-# ☁️ Deployment & Infrastructure Manual
+# ☁️ Production Deployment & Infrastructure
 
-**Environment:** GitHub Codespaces (Cloud) & Firebase Hosting
-**Stack:** Vite + React 19 + Tailwind v4
+**Environment:** Firebase Hosting & Cloud Functions (Gen 2)
+**CI/CD:** GitHub Actions
 
-## 1. Secrets Management (The 2-File System)
-Since Codespaces is ephemeral and we cannot commit real API keys, we use a split strategy:
+## 1. Automated Deployment (CI/CD)
+We utilize two primary workflows:
 
-### A. Development (`.env.local`)
-* **Purpose:** Runs `npm run dev`. Connects to the **Live Firebase Project**.
-* **Status:** Ignored by Git.
-* **Action:** You must manually create this file in the root of your Codespace using your real keys from the Firebase Console.
+### A. Preview Channels (Pull Requests)
+* **Trigger:** Open/Update PR.
+* **Action:** Builds the app and deploys to a temporary URL (e.g., `pr-123--ryandouglas-resume.web.app`).
+* **Secrets:** Uses `GITHUB_TOKEN` and `FIREBASE_SERVICE_ACCOUNT`.
 
-### B. Testing (`.env.test`)
-* **Purpose:** Runs `npm run test`. Used by Vitest.
-* **Status:** Committed to Git.
-* **Values:** Contains "Dummy" strings (e.g., `VITE_API_KEY=TEST_KEY`) to prevent the Firebase SDK from crashing during initialization. **Never put real keys here.**
+### B. Production Channel (Merge to Main)
+* **Trigger:** Push to `main`.
+* **Action:** Deploys to the live URL.
+* **Purge:** Clears CDN cache.
 
-## 2. CLI Authentication (Headless Mode)
-In Codespaces, you cannot open a browser window for `firebase login`. You must use the `--no-localhost` flag.
+## 2. Manual Deployment (CLI)
+If CI/CD fails, you can manually deploy from a local terminal.
 
+**Full Deploy:**
 ```bash
-# 1. Request login link
-firebase login --no-localhost
-
-# 2. Open the URL provided in a separate tab.
-# 3. Authenticate with Google.
-# 4. Copy the Authorization Code.
-# 5. Paste code back into the terminal.
+npm run build
+firebase deploy
 ```
 
-## 3. Database Security
-Rules: Defined in firestore.rules.
-
-Deploy: firebase deploy --only firestore:rules
-
-## 4. Header Policy (Critical)
-To support Google Auth Popups in this environment, we MUST serve specific headers in firebase.json (Production) and vite.config.js (Development):
-
-Cross-Origin-Opener-Policy: unsafe-none
-
-Cross-Origin-Embedder-Policy: unsafe-none
-
-Why? Strict isolation blocks the popup from communicating "Login Success" back to the main window. 
-
-## 5. Cloud Functions (Gen 2) Setup
-When deploying Gen 2 functions (`onDocumentWritten`) for the first time, you must initialize the Eventarc identity manually:
+**Partial Deploy (Functions Only):**
+*Use this when updating AI prompts to avoid rebuilding the frontend.*
 ```bash
-gcloud beta services identity create --service=eventarc.googleapis.com --project=YOUR_PROJECT_ID
+firebase deploy --only functions
 ```
-*Note: If this fails in Codespaces, run it in the Google Cloud Console Shell.*
 
+**Partial Deploy (Rules Only):**
+```bash
+firebase deploy --only firestore:rules
+```
 
-## 6. Gen 2 Cloud Functions Quirk
-When deploying Gen 2 functions for the first time, you may see an `Error generating service identity`. This is a known timeout issue. **Wait 2 minutes and retry the deploy.** It usually succeeds on the second attempt.
+## 3. Infrastructure & Secrets
+
+### Cloud Functions Secrets (Gen 2)
+We use Google Cloud Secret Manager. DO NOT put API keys in `.env` files for Functions.
+
+**Setting a Secret:**
+```bash
+firebase functions:secrets:set GOOGLE_API_KEY
+```
+
+**Accessing in Code:**
+```javascript
+const { onCall } = require("firebase-functions/v2/https");
+exports.myFunc = onCall({ secrets: ["GOOGLE_API_KEY"] }, (req) => { ... });
+```
+
+### Security Headers
+To support Google Identity Services and potential SharedArrayBuffer usage, `firebase.json` enforces:
+* `Cross-Origin-Opener-Policy: unsafe-none`
+* `Cross-Origin-Embedder-Policy: unsafe-none`
+
+## 4. Database Security
+* **Rules:** Defined in `firestore.rules`.
+* **Policy:** Public Read (Resume Data) / Admin Write Only.
+* **Lockdown:** `applications` collection is strictly Admin Read/Write.
 ```
 ---
 
@@ -482,13 +631,13 @@ Our development strategy is guided by specific user archetypes. Features must pa
 > 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
 
 **Current Phase:** Phase 19 - The Content Factory
-**Version:** v3.0.0-dev
+**Version: 3.2.0-beta
 **Status:** 🚀 Sprint 19.1 Starting
 
 ## 🎯 Current Objectives
 * [x] Sprint 19.1: The Cover Letter Engine (Generative AI).
 * [x] Sprint 19.2: The Outreach Bot.
-* [ ] Sprint 19.3: The Resume Tailor.
+* [x] Sprint 19.3: The Resume Tailor.
 
 ## ⏳ Backlog (Deferred)
 * Phase 20: The Strategist (Kanban & Prep).
@@ -578,6 +727,8 @@ I need to add a module that [DESCRIBE FUNCTION].
     * **The Skimmer (Public):** Value delivered in < 5 seconds?
 
 2.  **Constraints & Tech Strategy:**
+    * * **Data Strategy Checklist:**
+            * Does this feature require a new Cloud Function trigger?
     * **Data Source:** **Firestore is the SSOT.**
         * *Read:* Use `useResumeData` (Client) or `admin.firestore()` (Server).
         * *Write:* **Strictly prohibited** in public components. Admin components must use `DataSeeder` patterns or specific Admin Hooks.
@@ -641,7 +792,7 @@ Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and ver
 ### **Prompt Template**
 
 **Role:** You are the Lead Technical Writer and Open Source Maintainer.
-**Task:** Perform a comprehensive documentation audit, synchronization, and process retrospective.
+**Task:** Perform a comprehensive documentation synchronization AND a "Best Practices" audit of the documentation architecture.
 
 **Trigger:** We have just completed: **[INSERT FEATURE NAME]**.
 
@@ -650,24 +801,26 @@ Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and ver
 2.  **No Placeholders:** Output full, compilable files only.
 3.  **Holistic Scan:** You must evaluate **ALL** files in `/docs` to ensure the "Big Picture" stays consistent.
 
-**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following updates:
+**Your Goal:** Generate a **Python Script** (`update_docs_audit.py`) that performs the following:
 
-### Phase 1: Status & Versioning
-1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version.
-2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top.
-3.  **`package.json`**: **CRITICAL:** Ensure the `version` field in `package.json` matches the new version in `CHANGELOG.md`.
+### Part 1: Feature Synchronization
+1.  **`docs/PROJECT_STATUS.md`**: Mark feature as `[x] Completed`. Update Phase/Version. **Keep** the "Completed Roadmap".
+2.  **`docs/CHANGELOG.md`**: Insert a new Version Header and Entry at the top. **Keep** all older versions.
+3.  **`package.json`**: Update the version number.
+4.  **`docs/SCHEMA_ARCHITECTURE.md`**: Update schemas if data structures changed.
+5.  **`docs/CONTEXT_DUMP.md`**: Update stack details or new Cloud Functions.
 
-### Phase 2: Technical Context (The "New Reality")
-4.  **`docs/CONTEXT_DUMP.md`**:
-    * *Frontend:* Update new components or hooks.
-    * *Backend:* **(Crucial)** Update `functions/index.js` logic description. We now use Server-Side AI.
-5.  **`docs/SCHEMA_ARCHITECTURE.md`**: Did we add new collections or fields (e.g., `cover_letter_text`)? Update the graph.
-6.  **`docs/ROADMAP.md`**: Verify the current objective matches the active sprint. (Note: We recently swapped Phase 18 and 19).
+### Part 2: The "Docs as Code" Audit (Best Practices)
+*Compare our current documentation structure against industry best practices (e.g., Diátaxis framework).*
+6.  **Create/Update `docs/AUDIT_REPORT.md`**:
+    * **Structural Review:** Do we have clear separation between "How-to", "Reference", and "Explanation"?
+    * **Missing Artifacts:** Are we missing standard files (e.g., `CONTRIBUTING.md`, `ADR` records)?
+    * **Score:** Give the documentation a grade (A-F) and 3 specific recommendations for improvement.
 
-### Phase 3: The "Continuous Improvement" Loop
+### Part 3: Process Refinement (Continuous Improvement)
 *Did we encounter recurring errors or discover new best practices during this sprint?*
-7.  **`docs/PROMPT_TESTING.md`**: Did we change mocking strategies? (e.g., `vi.mock('firebase/firestore')`).
-8.  **`docs/SECURITY_MODEL.md`**: Update to reflect the current state (e.g., "Dev Mode: Public Read/Write" vs "Production Target").
+7.  **`docs/PROMPT_FEATURE_REQUEST.md`**: Update constraints if new requirements emerged.
+8.  **`docs/PROMPT_TESTING.md`**: Update constraints if new testing patterns were required.
 
 **Output Requirement:**
 * Provide a single, robust **Python Script**.
@@ -675,7 +828,6 @@ Use this prompt **IMMEDIATELY AFTER** a feature is successfully deployed and ver
 * The script must explicitly reconstruct file content to ensure no data loss.
 
 **Wait:** Ask me for the feature name and **"Were there any specific errors we fixed that should be added to the process constraints?"**
-
 
 ```
 ---
@@ -710,6 +862,7 @@ Use this prompt **AFTER** a feature is built but **BEFORE** it is marked as "Don
         * `framer-motion`: Replace with standard HTML tags to avoid animation delays in JSDOM.
 3.  **Testing Strategy:**
     * **Happy Path:** Does it render data correctly?
+    * **Integration:** When testing Tabbed Interfaces (like JobTracker), verify tab switching logic explicitly.
     * **Interactive:** Click buttons and verify handlers are called.
     * **Defensive:** Ensure it handles `null` or `undefined` props without crashing.
 
@@ -839,6 +992,15 @@ The `applications` collection is the core of the Content Factory.
     * `gap_analysis` (array<string>) - Structured list of missing skills.
     * `cover_letter_status` (string) - 'idle' | 'pending' | 'writing' | 'complete'
     * `cover_letter_text` (string) - Markdown/Text content.
+
+
+### Application Schema (`applications/{id}`)
+* `tailor_status`: 'idle' | 'pending' | 'processing' | 'complete' | 'error'
+* `tailored_bullets`: Array of Objects
+    * `original`: String
+    * `optimized`: String
+    * `reasoning`: String
+    * `confidence`: Number (0-100)
 
 ```
 ---
@@ -1201,7 +1363,8 @@ listModels();
  * Includes:
  * 1. architectProject: Callable (Gemini 3.0)
  * 2. analyzeApplication: Trigger (Gemini 2.5)
- * 3. generateCoverLetter: Trigger (Gemini 2.5)
+ * 3. generateCoverLetter: Trigger (Gemini 2.5) - No Header Mode
+ * 4. tailorResume: Trigger (Gemini 2.5) - NEW!
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -1229,7 +1392,7 @@ async function getResumeContext() {
   return { profile, skills, experience };
 }
 
-// --- ARCHITECT ---
+// --- 1. ARCHITECT ---
 const ARCHITECT_SYSTEM_PROMPT = "You are a Resume Architect. Convert raw notes to JSON. NO Markdown.";
 exports.architectProject = onCall({ 
   cors: true, 
@@ -1245,7 +1408,7 @@ exports.architectProject = onCall({
   return { data: JSON.parse(result.response.text()) }; 
 });
 
-// --- ANALYZE (FIXED PROMPT) ---
+// --- 2. ANALYZE ---
 exports.analyzeApplication = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] }, 
   async (event) => {
@@ -1261,7 +1424,6 @@ exports.analyzeApplication = onDocumentWritten(
     
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" }});
 
-    // ⚡ UPDATED: Restored 'suggested_projects' to the JSON Schema
     const prompt = `Analyze this JD against Resume.
     RESUME: ${JSON.stringify(resumeContext)}
     JD: ${newData.company} - ${newData.role} \n ${newData.raw_text}
@@ -1285,7 +1447,7 @@ exports.analyzeApplication = onDocumentWritten(
   }
 );
 
-// --- COVER LETTER ---
+// --- 3. COVER LETTER ---
 exports.generateCoverLetter = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] },
   async (event) => {
@@ -1293,6 +1455,7 @@ exports.generateCoverLetter = onDocumentWritten(
     if (!snapshot) return;
     const newData = snapshot.after.data();
     const oldData = snapshot.before.data();
+    
     if (newData.cover_letter_status !== 'pending') return;
     if (oldData && oldData.cover_letter_status === 'pending') return;
 
@@ -1302,11 +1465,95 @@ exports.generateCoverLetter = onDocumentWritten(
       const genAI = new GoogleGenerativeAI(apiKey);
       const resumeContext = await getResumeContext();
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const systemPrompt = `You are Ryan Douglas. Write a cover letter for ${newData.role} at ${newData.company}. USE ONLY: ${JSON.stringify(resumeContext)}. JD: ${newData.raw_text}`;
+      
+      const systemPrompt = `
+        You are Ryan Douglas. Write a persuasive cover letter for the role of ${newData.role} at ${newData.company}.
+        STRICT FORMATTING RULES:
+        1. DO NOT include a header block (Name, Address, Phone).
+        2. DO NOT include the date or recipient address.
+        3. START DIRECTLY with the Salutation.
+        CONTEXT: ${JSON.stringify(resumeContext)}
+        JOB DESCRIPTION: ${newData.raw_text}
+      `;
+      
       const result = await model.generateContent(systemPrompt);
       await snapshot.after.ref.update({ cover_letter_text: result.response.text(), cover_letter_status: 'complete' });
     } catch (error) {
       await snapshot.after.ref.update({ cover_letter_status: 'error', error_log: error.message });
+    }
+  }
+);
+
+// --- 4. RESUME TAILOR (NEW) ---
+exports.tailorResume = onDocumentWritten(
+  { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const newData = snapshot.after.data();
+    const oldData = snapshot.before.data();
+
+    // Trigger only when tailor_status flips to 'pending'
+    if (newData.tailor_status !== 'pending') return;
+    if (oldData && oldData.tailor_status === 'pending') return;
+
+    console.log(`🧵 Tailoring Resume for: ${newData.company}`);
+    await snapshot.after.ref.update({ tailor_status: 'processing' });
+
+    try {
+      const apiKey = process.env.GOOGLE_API_KEY;
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const resumeContext = await getResumeContext();
+
+      // Use JSON Mode for strict schema
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      const systemPrompt = `
+        You are an Ethical Resume Editor and ATS Specialist.
+        YOUR TASK: Optimize the Candidate's existing bullet points to match the Job Description (JD).
+        
+        STRICT GUARDRAILS:
+        1. You MUST NOT invent new experiences, companies, or metrics.
+        2. You MAY optimize phrasing (Passive -> Active), inject JD keywords, or emphasize specific technologies ALREADY present in the data.
+        3. Identify the top 5-7 most relevant bullet points from the "Experience" or "Projects" that can be improved.
+        
+        RESUME CONTEXT:
+        ${JSON.stringify(resumeContext)}
+
+        JOB DESCRIPTION:
+        ${newData.raw_text}
+
+        OUTPUT FORMAT:
+        Return a JSON Array of objects with this schema:
+        [
+          {
+            "original": "The exact original text from the resume",
+            "optimized": "The rewritten version with keywords",
+            "reasoning": "Brief explanation of what changed (e.g. 'Added [React] keyword')",
+            "confidence": number (0-100)
+          }
+        ]
+      `;
+
+      const result = await model.generateContent(systemPrompt);
+      const suggestions = JSON.parse(result.response.text());
+
+      await snapshot.after.ref.update({ 
+        tailored_bullets: suggestions,
+        tailor_status: 'complete',
+        updated_at: new Date()
+      });
+      console.log("✅ Resume Tailoring Complete.");
+
+    } catch (error) {
+      console.error("🔥 Tailoring Failed:", error);
+      await snapshot.after.ref.update({ 
+        tailor_status: 'error', 
+        error_log: error.message 
+      });
     }
   }
 );
@@ -1928,7 +2175,7 @@ echo "👉 Run 'npm test' to verify."
 {
   "name": "interactive-resume",
   "private": true,
-  "version": "3.1.0",
+  "version": "3.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -2620,13 +2867,13 @@ echo "=========================================="
 #!/bin/bash
 
 # ==========================================
-# 🚀 FRESH NEST: UNIVERSAL CONTEXT GENERATOR
+# 🚀 The Job Whisperer: UNIVERSAL CONTEXT GENERATOR
 # ==========================================
 
 OUTPUT_FILE="docs/FULL_CODEBASE_CONTEXT.md"
 
 echo "🔄 Generating Universal Context Dump..."
-echo "# FRESH NEST: CODEBASE DUMP" > "$OUTPUT_FILE"
+echo "# The Job Whisperer: CODEBASE DUMP" > "$OUTPUT_FILE"
 echo "**Date:** $(date)" >> "$OUTPUT_FILE"
 echo "**Description:** Complete codebase context." >> "$OUTPUT_FILE"
 echo "" >> "$OUTPUT_FILE"
@@ -3659,10 +3906,11 @@ export default DataSeeder;
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/db';
 import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
-import { Briefcase, FileText, Save, Loader2, ArrowLeft } from 'lucide-react';
+import { Briefcase, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnalysisDashboard from './AnalysisDashboard';
 import CoverLetterGenerator from './CoverLetterGenerator';
+import ResumeTailor from './ResumeTailor';
 
 const JobTracker = () => {
   const [formData, setFormData] = useState({
@@ -3674,7 +3922,7 @@ const JobTracker = () => {
   
   // State Machine: 'idle' | 'saving' | 'analyzing' | 'complete'
   const [viewState, setViewState] = useState('idle');
-  const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' | 'letter'
+  const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' | 'letter' | 'tailor'
   const [activeDocId, setActiveDocId] = useState(null);
   const [applicationData, setApplicationData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
@@ -3724,6 +3972,16 @@ const JobTracker = () => {
     setActiveTab('analysis');
   };
 
+  // Tab Helper
+  const TabButton = ({ id, label, colorClass, isActive, onClick }) => (
+    <button 
+      onClick={onClick} 
+      className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${isActive ? 'bg-white shadow ' + colorClass : 'text-slate-500 hover:bg-slate-200'}`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="max-w-6xl mx-auto h-full flex flex-col relative">
       <AnimatePresence mode="wait">
@@ -3749,7 +4007,7 @@ const JobTracker = () => {
           </motion.div>
         )}
 
-        {/* 2️⃣ LOADING (RESTORED VISUALS) */}
+        {/* 2️⃣ LOADING */}
         {viewState === 'analyzing' && (
           <motion.div 
             key="loading" 
@@ -3758,17 +4016,13 @@ const JobTracker = () => {
             exit={{ opacity: 0, scale: 0.9 }} 
             className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 p-8 text-center"
           >
-            {/* The Pulsing Brain Animation */}
             <div className="relative w-24 h-24 mb-6">
               <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
               <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
               <div className="absolute inset-0 flex items-center justify-center text-4xl">🧠</div>
             </div>
-            
             <h3 className="text-xl font-bold text-slate-800">Analyzing Vectors...</h3>
-            <p className="text-slate-500 mt-2 max-w-xs mx-auto">
-              Comparing your experience against <span className="font-semibold text-blue-600">{formData.company}</span>'s requirements.
-            </p>
+            <p className="text-slate-500 mt-2 max-w-xs mx-auto">Comparing your experience against <span className="font-semibold text-blue-600">{formData.company}</span>.</p>
           </motion.div>
         )}
 
@@ -3779,12 +4033,9 @@ const JobTracker = () => {
             {/* Nav Bar */}
             <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50/80">
               <div className="flex gap-2">
-                <button onClick={() => setActiveTab('analysis')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'analysis' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`}>
-                  Strategy & Gaps
-                </button>
-                <button onClick={() => setActiveTab('letter')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'letter' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:bg-slate-200'}`}>
-                  Cover Letter Engine
-                </button>
+                <TabButton id="analysis" label="Strategy & Gaps" colorClass="text-blue-600" isActive={activeTab === 'analysis'} onClick={() => setActiveTab('analysis')} />
+                <TabButton id="letter" label="Cover Letter" colorClass="text-purple-600" isActive={activeTab === 'letter'} onClick={() => setActiveTab('letter')} />
+                <TabButton id="tailor" label="Resume Tailor" colorClass="text-green-600" isActive={activeTab === 'tailor'} onClick={() => setActiveTab('tailor')} />
               </div>
               <button onClick={handleReset} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
                 <ArrowLeft size={14} /> New App
@@ -3792,12 +4043,10 @@ const JobTracker = () => {
             </div>
 
             {/* Tab Content */}
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'analysis' ? (
-                <AnalysisDashboard data={applicationData} onReset={handleReset} />
-              ) : (
-                <CoverLetterGenerator applicationId={activeDocId} applicationData={applicationData} />
-              )}
+            <div className="flex-1 overflow-hidden bg-slate-50">
+              {activeTab === 'analysis' && <AnalysisDashboard data={applicationData} onReset={handleReset} />}
+              {activeTab === 'letter' && <CoverLetterGenerator applicationId={activeDocId} applicationData={applicationData} />}
+              {activeTab === 'tailor' && <ResumeTailor applicationId={activeDocId} applicationData={applicationData} />}
             </div>
           </motion.div>
         )}
@@ -3823,6 +4072,141 @@ const ProtectedRoute = ({ children }) => {
 };
 
 export default ProtectedRoute;
+
+```
+---
+
+## FILE: src/components/admin/ResumeTailor.jsx
+```jsx
+import React from 'react';
+import { updateDoc, doc } from 'firebase/firestore';
+import { db } from '../../lib/db';
+import { Wand2, Loader2, Copy, Check, ArrowRight, ArrowDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const ResumeTailor = ({ applicationId, applicationData }) => {
+  const [copiedIndex, setCopiedIndex] = React.useState(null);
+
+  const handleGenerate = async () => {
+    if (!applicationId) return;
+    try {
+      await updateDoc(doc(db, "applications", applicationId), {
+        tailor_status: 'pending',
+        tailored_bullets: [] // Clear old
+      });
+    } catch (err) {
+      console.error("Trigger Failed:", err);
+    }
+  };
+
+  const handleCopy = (text, index) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(index);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const status = applicationData.tailor_status || 'idle';
+  const suggestions = applicationData.tailored_bullets || [];
+
+  return (
+    <div className="h-full flex flex-col bg-slate-50">
+      
+      {/* 🛠️ Toolbar */}
+      <div className="p-4 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-purple-100 rounded-lg text-purple-600">
+            <Wand2 size={20} />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-700">Resume Tailor</h3>
+            <p className="text-xs text-slate-400">AI-Powered Keyword Injection</p>
+          </div>
+        </div>
+        
+        {status === 'processing' ? (
+          <span className="flex items-center gap-2 text-sm text-purple-600 font-medium px-4 py-2 bg-purple-50 rounded-lg animate-pulse">
+            <Loader2 size={16} className="animate-spin" /> Optimizing History...
+          </span>
+        ) : (
+          <button 
+            onClick={handleGenerate}
+            className="px-4 py-2 text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg flex items-center gap-2 transition-all shadow-md active:scale-95"
+          >
+            <Wand2 size={16} /> {suggestions.length > 0 ? 'Re-Optimize' : 'Auto-Tailor Resume'}
+          </button>
+        )}
+      </div>
+
+      {/* 📄 Canvas */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {suggestions.length === 0 && status !== 'processing' && (
+          <div className="h-full flex flex-col items-center justify-center text-slate-400">
+            <Wand2 size={48} className="mb-4 opacity-20" />
+            <p className="text-sm">Click "Auto-Tailor" to generate ATS-optimized bullet points.</p>
+          </div>
+        )}
+
+        <div className="space-y-6 max-w-5xl mx-auto">
+          <AnimatePresence>
+            {suggestions.map((item, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+              >
+                {/* Header: Reasoning */}
+                <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    🎯 Strategy: <span className="text-slate-700 normal-case">{item.reasoning}</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-700 rounded-full">
+                    {item.confidence}% Match
+                  </span>
+                </div>
+
+                {/* Diff View */}
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-0 md:gap-0">
+                  
+                  {/* Left: Original */}
+                  <div className="p-5 bg-red-50/30 text-slate-600 border-b md:border-b-0 md:border-r border-slate-100 relative group">
+                    <span className="absolute top-2 left-2 text-[10px] font-bold text-red-400 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Original</span>
+                    <p className="text-sm leading-relaxed">{item.original}</p>
+                  </div>
+
+                  {/* Arrow Indicator */}
+                  <div className="bg-slate-50 flex items-center justify-center p-2 text-slate-300 border-b md:border-b-0 md:border-r border-slate-100">
+                    <ArrowRight size={16} className="hidden md:block" />
+                    <ArrowDown size={16} className="block md:hidden" />
+                  </div>
+
+                  {/* Right: Optimized */}
+                  <div className="p-5 bg-green-50/30 text-slate-800 relative group">
+                    <span className="absolute top-2 left-2 text-[10px] font-bold text-green-600 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Optimized</span>
+                    <p className="text-sm leading-relaxed font-medium">{item.optimized}</p>
+                    
+                    {/* Copy Button */}
+                    <button 
+                      onClick={() => handleCopy(item.optimized, idx)}
+                      className="absolute bottom-2 right-2 p-2 bg-white border border-green-200 text-green-600 rounded-lg hover:bg-green-50 transition-colors shadow-sm"
+                      title="Copy to Clipboard"
+                    >
+                      {copiedIndex === idx ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                  </div>
+
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ResumeTailor;
 
 ```
 ---
@@ -3932,6 +4316,178 @@ describe('JobTracker Component', () => {
 
     // 4. Verify Firestore Call
     expect(firestore.addDoc).toHaveBeenCalled();
+  });
+});
+
+```
+---
+
+## FILE: src/components/admin/__tests__/ResumeTailor.test.jsx
+```jsx
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import ResumeTailor from '../ResumeTailor';
+import JobTracker from '../JobTracker';
+import * as firestore from 'firebase/firestore';
+
+// ==========================================
+// 1. MOCKS & STUBS
+// ==========================================
+
+// 🔥 Mock Firebase Firestore
+vi.mock('firebase/firestore', () => ({
+  getFirestore: vi.fn(),
+  doc: vi.fn(() => 'mock_doc_ref'),
+  updateDoc: vi.fn(),
+  collection: vi.fn(),
+  addDoc: vi.fn(() => Promise.resolve({ id: 'test_doc_1' })),
+  serverTimestamp: vi.fn(),
+  onSnapshot: vi.fn(),
+}));
+
+vi.mock('../../lib/db', () => ({ db: {} }));
+
+// 🎥 Mock Framer Motion
+vi.mock('framer-motion', () => ({
+  motion: {
+    div: ({ children, layout, initial, animate, exit, transition, ...props }) => <div {...props}>{children}</div>,
+  },
+  AnimatePresence: ({ children }) => <>{children}</>,
+}));
+
+// 📋 Mock Navigator Clipboard
+const mockWriteText = vi.fn();
+Object.assign(navigator, {
+  clipboard: {
+    writeText: mockWriteText,
+  },
+});
+
+// 🧩 Mock Sibling Components for Integration Tests
+vi.mock('../AnalysisDashboard', () => ({ default: () => <div data-testid="analysis-dashboard">Analysis Dashboard</div> }));
+vi.mock('../CoverLetterGenerator', () => ({ default: () => <div data-testid="cover-letter">Cover Letter</div> }));
+
+describe('Feature: Resume Tailor', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // ==========================================
+  // PART 1: RESUME TAILOR (UI Component)
+  // ==========================================
+  describe('ResumeTailor Component', () => {
+    const appId = 'app_123';
+
+    it('renders Idle State correctly', () => {
+      const data = { tailor_status: 'idle', tailored_bullets: [] };
+      render(<ResumeTailor applicationId={appId} applicationData={data} />);
+      
+      expect(screen.getByText(/Auto-Tailor Resume/i)).toBeDefined();
+      expect(screen.getByText(/Click "Auto-Tailor"/i)).toBeDefined();
+    });
+
+    it('renders Processing State correctly', () => {
+      const data = { tailor_status: 'processing', tailored_bullets: [] };
+      render(<ResumeTailor applicationId={appId} applicationData={data} />);
+      
+      expect(screen.getByText(/Optimizing History.../i)).toBeDefined();
+    });
+
+    it('renders Results State (Diff View)', () => {
+      const data = {
+        tailor_status: 'complete',
+        tailored_bullets: [
+          {
+            original: 'Managed SQL DB.',
+            optimized: 'Orchestrated Azure SQL migration.',
+            reasoning: 'Added cloud keywords.',
+            confidence: 95
+          }
+        ]
+      };
+      render(<ResumeTailor applicationId={appId} applicationData={data} />);
+
+      // Verify Original (Red Context)
+      expect(screen.getByText('Managed SQL DB.')).toBeDefined();
+      expect(screen.getByText('Original')).toBeDefined();
+
+      // Verify Optimized (Green Context)
+      expect(screen.getByText('Orchestrated Azure SQL migration.')).toBeDefined();
+      expect(screen.getByText('Optimized')).toBeDefined();
+
+      // Verify Metadata
+      expect(screen.getByText('Added cloud keywords.')).toBeDefined();
+      expect(screen.getByText('95% Match')).toBeDefined();
+    });
+
+    it('copies text to clipboard when copy button is clicked', async () => {
+      const data = {
+        tailor_status: 'complete',
+        tailored_bullets: [{ original: 'Old', optimized: 'New Bullet', reasoning: 'Test', confidence: 90 }]
+      };
+      render(<ResumeTailor applicationId={appId} applicationData={data} />);
+
+      const copyBtn = screen.getByTitle('Copy to Clipboard');
+      fireEvent.click(copyBtn);
+
+      expect(mockWriteText).toHaveBeenCalledWith('New Bullet');
+    });
+
+    it('triggers Firestore update when Auto-Tailor is clicked', async () => {
+      const data = { tailor_status: 'idle', tailored_bullets: [] };
+      render(<ResumeTailor applicationId={appId} applicationData={data} />);
+
+      const generateBtn = screen.getByText(/Auto-Tailor Resume/i);
+      fireEvent.click(generateBtn);
+
+      expect(firestore.updateDoc).toHaveBeenCalledWith(
+        'mock_doc_ref',
+        expect.objectContaining({ tailor_status: 'pending', tailored_bullets: [] })
+      );
+    });
+  });
+
+  // ==========================================
+  // PART 2: JOB TRACKER (Integration)
+  // ==========================================
+  describe('JobTracker Integration', () => {
+    it('switches tabs and renders the Resume Tailor component', async () => {
+      // 1. Setup Mock Snapshot
+      firestore.onSnapshot.mockImplementation((docRef, callback) => {
+        callback({
+          exists: () => true,
+          data: () => ({
+            company: 'Test Corp',
+            role: 'Dev',
+            ai_status: 'complete',
+            tailor_status: 'idle',
+            tailored_bullets: []
+          })
+        });
+        return vi.fn();
+      });
+
+      render(<JobTracker />);
+
+      // 2. Simulate User submitting the form
+      fireEvent.change(screen.getByPlaceholderText('Company Name'), { target: { value: 'Test Corp' } });
+      fireEvent.change(screen.getByPlaceholderText('Role Title'), { target: { value: 'Dev' } });
+      fireEvent.change(screen.getByPlaceholderText('Paste Job Description...'), { target: { value: 'Job Desc' } });
+      fireEvent.click(screen.getByText('Analyze Job'));
+
+      // 3. Wait for Dashboard
+      await waitFor(() => {
+        expect(screen.getByTestId('analysis-dashboard')).toBeDefined();
+      });
+
+      // 4. Click the "Resume Tailor" Tab
+      const tailorTab = screen.getByText('Resume Tailor');
+      fireEvent.click(tailorTab);
+
+      // 5. Verify Resume Tailor is visible
+      expect(screen.getByText(/Auto-Tailor Resume/i)).toBeDefined();
+    });
   });
 });
 
@@ -6553,189 +7109,218 @@ afterEach(() => {
 ## FILE: update_docs.py
 ```py
 import os
-import json
-import re
-from datetime import datetime
 
-def read_file(path):
-    if not os.path.exists(path):
-        print(f"⚠️ File not found: {path}")
-        return None
-    with open(path, 'r', encoding='utf-8') as f:
-        return f.read()
+# ==========================================
+# 📚 DOCS UPGRADE INSTALLER (ROBUST)
+# ==========================================
+
+# Helper to safely render backticks in generated files
+# without breaking this chat's markdown formatting
+CB = "```" 
 
 def write_file(path, content):
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(content)
-    print(f"✅ Updated: {path}")
-
-def update_project_status():
-    path = 'docs/PROJECT_STATUS.md'
-    content = read_file(path)
-    if not content: return
-
-    # Update Version and Phase
-    content = re.sub(r'Version: .*', 'Version: v3.1.0-beta', content)
-    content = re.sub(r'Current Phase: .*', 'Current Phase: Phase 19 - The Content Factory (Active)', content)
-    content = re.sub(r'Status: .*', 'Status: 🟢 Sprint 19.2 Complete', content)
-
-    # Mark Sprints as Complete
-    content = content.replace('* [ ] Sprint 19.1:', '* [x] Sprint 19.1:')
-    content = content.replace('* [ ] Sprint 19.2:', '* [x] Sprint 19.2:')
-
-    write_file(path, content)
-
-def update_changelog():
-    path = 'docs/CHANGELOG.md'
-    content = read_file(path)
-    if not content: return
-
-    today = datetime.now().strftime('%Y-%m-%d')
-    new_entry = f"""## [v3.1.0-beta] - {today}
-### Added
-- **AI:** "Cover Letter Engine" (Cloud Function) using Gemini 2.5 Flash.
-- **UI:** Structured "Gap Analysis" rendering (Yellow Warning Cards).
-- **Export:** PDF generation via `react-to-print`.
-### Changed
-- **UX:** Restored "Thinking Brain" animation during analysis.
-- **Architecture:** Moved all AI logic to Server-Side Cloud Functions for security.
-
-"""
-    # Insert after the header description
-    if "## [v" in content:
-        content = re.sub(r'(## \[v)', new_entry + r'\1', content, count=1)
-    else:
-        # Fallback if no previous versions
-        content += "\n" + new_entry
-
-    write_file(path, content)
-
-def update_package_json():
-    path = 'package.json'
-    content = read_file(path)
-    if not content: return
-
+    """Writes content to a file, ensuring the directory exists."""
+    directory = os.path.dirname(path)
+    if directory and not os.path.exists(directory):
+        os.makedirs(directory, exist_ok=True)
+        print(f"📂 Created directory: {directory}")
+    
     try:
-        data = json.loads(content)
-        data['version'] = '3.1.0'
-        write_file(path, json.dumps(data, indent=2))
-    except json.JSONDecodeError:
-        print("❌ Failed to parse package.json")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content.strip())
+        print(f"✅ Created/Updated: {path}")
+    except Exception as e:
+        print(f"❌ Error writing {path}: {e}")
 
-def update_context_dump():
-    path = 'docs/CONTEXT_DUMP.md'
-    content = read_file(path)
-    if not content: return
+# ------------------------------------------------------------------
+# 1. ADR 001: Resume Tailor Strategy
+# ------------------------------------------------------------------
+adr_001_content = f"""
+# ADR 001: Resume Tailor Data Strategy (Delta Patching)
 
-    # Update Tech Stack Version
-    content = re.sub(r'Version: .*', 'Version: v3.1.0-beta', content)
+**Date:** 2026-01-28
+**Status:** Accepted
+**Context:** Sprint 19.3
 
-    # Update Backend Context
-    if "AI Isolation" in content:
-        new_backend_desc = """### 4. AI Isolation (Server-Side)
-* **Logic:** All AI operations reside in `functions/index.js`.
-    * `architectProject`: Callable (Gemini 3.0) for Resume Building.
-    * `analyzeApplication`: Trigger (Gemini 2.5) for Job Analysis.
-    * `generateCoverLetter`: Trigger (Gemini 2.5) for Content Generation.
-* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY`."""
-        
-        # Regex to replace the old AI Isolation block
-        content = re.sub(r'### 4\. AI Isolation.*?(\n\n|#)', new_backend_desc + r'\1', content, flags=re.DOTALL)
+## Context
+We needed a way to tailor the candidate's resume for specific Job Descriptions (JDs) to increase ATS matching scores.
+The "Master Resume" is stored in Firestore (`experience` collection). We faced a choice on how to persist these customizations.
 
-    write_file(path, content)
+## The Options Considered
+1.  **Shadow Resume:** Deep clone the entire resume tree for every application.
+    * *Pros:* Complete isolation.
+    * *Cons:* Massive data duplication, high storage costs, complex sync if Master changes.
+2.  **Ephemeral:** Generate on-the-fly in memory.
+    * *Pros:* Zero storage cost.
+    * *Cons:* Expensive API costs (re-generating on every page load), poor UX (waiting).
+3.  **Delta Patching (Selected):** Store only the specific bullet points that changed.
 
-def update_schema_architecture():
-    path = 'docs/SCHEMA_ARCHITECTURE.md'
-    content = read_file(path)
-    if not content: return
+## Decision
+We chose **Option 3: Delta Patching**.
+We store an array of `tailored_bullets` inside the `application` document. The UI renders the Master Resume, but "swaps" specific bullets with their tailored versions at runtime (or displays them side-by-side in Diff View).
 
-    new_schema_note = """
-## 4. Application Schema (Phase 19)
-The `applications` collection is the core of the Content Factory.
-* **Document ID:** Auto-generated.
-* **Fields:**
-    * `company` (string)
-    * `role` (string)
-    * `raw_text` (string) - Original JD.
-    * `ai_status` (string) - 'pending' | 'processing' | 'complete' | 'error'
-    * `match_score` (number)
-    * `gap_analysis` (array<string>) - Structured list of missing skills.
-    * `cover_letter_status` (string) - 'idle' | 'pending' | 'writing' | 'complete'
-    * `cover_letter_text` (string) - Markdown/Text content.
+## Consequences
+* **Positive:** Minimal storage footprint. Preserves the "Single Source of Truth" (Master Resume).
+* **Negative:** Requires client-side logic to merge/display the diffs.
+* **Guardrails:** We explicitly prompt the AI to *not* invent facts, only rephrase existing ones ("The Ethical Editor" protocol).
 """
-    if "## 4. Application Schema" not in content:
-        content += new_schema_note
-    
-    write_file(path, content)
 
-def update_roadmap():
-    path = 'docs/ROADMAP.md'
-    content = read_file(path)
-    if not content: return
+# ------------------------------------------------------------------
+# 2. CONTRIBUTING.md
+# ------------------------------------------------------------------
+contributing_content = f"""
+# 👷 Contributing to the Interactive Resume
 
-    # Ensure Phase 18 is moved to 21 (if not already done by previous edits)
-    if "Phase 18: Fortress" in content:
-        content = content.replace("Phase 18: Fortress", "Phase 21: Fortress")
-        content = content.replace("Sprint 18.1", "Sprint 21.1")
-        content = content.replace("Sprint 18.2", "Sprint 21.2")
-        content = content.replace("Sprint 18.3", "Sprint 21.3")
+Welcome to the development guide. This project uses a **Hybrid Cloud** architecture:
+* **Frontend:** React 19 + Vite (Local)
+* **Backend:** Firebase Cloud Functions (Remote/Serverless)
+* **Database:** Cloud Firestore (Remote)
 
-    write_file(path, content)
+## 1. Getting Started
 
-def update_prompt_testing():
-    path = 'docs/PROMPT_TESTING.md'
-    content = read_file(path)
-    if not content: return
+### Prerequisites
+* Node.js v20+
+* Firebase CLI (`npm install -g firebase-tools`)
+* Java (Required only if running local Emulators)
 
-    constraint = "    * **Firestore Mocking:** When mocking `firebase/firestore`, you MUST mock `getFirestore` specifically, or the SDK will crash."
-    
-    if "getFirestore" not in content:
-        content = content.replace("* **Stubbing:** Use `vi.stubEnv` for ALL environment variables", 
-                                  "* **Stubbing:** Use `vi.stubEnv` for ALL environment variables\n" + constraint)
-    
-    write_file(path, content)
+### Setup
+1.  **Clone the repo:**
+    {CB}bash
+    git clone [https://github.com/rpdouglas/interactive-resume.git](https://github.com/rpdouglas/interactive-resume.git)
+    {CB}
+2.  **Install Dependencies:**
+    {CB}bash
+    npm ci
+    cd functions && npm ci && cd ..
+    {CB}
+3.  **Environment Variables:**
+    Create a `.env.local` file in the root. **Do not commit this.**
+    {CB}ini
+    VITE_API_KEY=your_firebase_api_key
+    VITE_AUTH_DOMAIN=your_project.firebaseapp.com
+    VITE_PROJECT_ID=your_project_id
+    # ... other firebase config
+    {CB}
 
-def update_deployment():
-    path = 'docs/DEPLOYMENT.md'
-    content = read_file(path)
-    if not content: return
+## 2. The Development Loop
 
-    note = "\n\n## 6. Gen 2 Cloud Functions Quirk\nWhen deploying Gen 2 functions for the first time, you may see an `Error generating service identity`. This is a known timeout issue. **Wait 2 minutes and retry the deploy.** It usually succeeds on the second attempt."
-    
-    if "Gen 2 Cloud Functions Quirk" not in content:
-        content += note
-    
-    write_file(path, content)
+### A. Frontend Development (UI/UX)
+We use Vite for HMR (Hot Module Replacement).
+{CB}bash
+npm run dev
+{CB}
+* **Access:** `http://localhost:5173`
+* **Auth:** Uses your real Firebase Auth users (Production Data).
+* **Data:** Reads from the live Firestore (be careful with writes!).
 
-def update_security_model():
-    path = 'docs/SECURITY_MODEL.md'
-    content = read_file(path)
-    if not content: return
+### B. Backend Development (Cloud Functions)
+Functions (Gemini AI triggers) must be deployed to Google Cloud to work reliably with the live database, or run via emulators.
 
-    warning = """
-# ⚠️ DEV MODE ACTIVE (SKELETON KEY)
-**Current Status:** Authentication is bypassed. Database Rules are `allow read, write: if true`.
-**Do NOT deploy to Production without reverting `AuthContext` and `firestore.rules`.**
+**Option 1: Deploy to Cloud (Easiest)**
+{CB}bash
+firebase deploy --only functions
+{CB}
 
+**Option 2: Local Emulators (Advanced)**
+{CB}bash
+firebase emulators:start
+{CB}
+
+## 3. Branching Strategy
+* **`main`**: Production-ready code. Deployed automatically via GitHub Actions.
+* **`feature/SprintX.Y`**: Active development.
+* **Process:**
+    1.  Create Feature Branch.
+    2.  Develop & Test (`npm test`).
+    3.  Merge to Main -> Triggers Deploy.
+
+## 4. Testing
+We use Vitest. Tests **MUST** mock Firebase network calls.
+{CB}bash
+npm test
+{CB}
 """
-    if "DEV MODE ACTIVE" not in content:
-        content = warning + content
-    
-    write_file(path, content)
 
-# Execution Order
+# ------------------------------------------------------------------
+# 3. DEPLOYMENT.md (Refactored)
+# ------------------------------------------------------------------
+deployment_content = f"""
+# ☁️ Production Deployment & Infrastructure
+
+**Environment:** Firebase Hosting & Cloud Functions (Gen 2)
+**CI/CD:** GitHub Actions
+
+## 1. Automated Deployment (CI/CD)
+We utilize two primary workflows:
+
+### A. Preview Channels (Pull Requests)
+* **Trigger:** Open/Update PR.
+* **Action:** Builds the app and deploys to a temporary URL (e.g., `pr-123--ryandouglas-resume.web.app`).
+* **Secrets:** Uses `GITHUB_TOKEN` and `FIREBASE_SERVICE_ACCOUNT`.
+
+### B. Production Channel (Merge to Main)
+* **Trigger:** Push to `main`.
+* **Action:** Deploys to the live URL.
+* **Purge:** Clears CDN cache.
+
+## 2. Manual Deployment (CLI)
+If CI/CD fails, you can manually deploy from a local terminal.
+
+**Full Deploy:**
+{CB}bash
+npm run build
+firebase deploy
+{CB}
+
+**Partial Deploy (Functions Only):**
+*Use this when updating AI prompts to avoid rebuilding the frontend.*
+{CB}bash
+firebase deploy --only functions
+{CB}
+
+**Partial Deploy (Rules Only):**
+{CB}bash
+firebase deploy --only firestore:rules
+{CB}
+
+## 3. Infrastructure & Secrets
+
+### Cloud Functions Secrets (Gen 2)
+We use Google Cloud Secret Manager. DO NOT put API keys in `.env` files for Functions.
+
+**Setting a Secret:**
+{CB}bash
+firebase functions:secrets:set GOOGLE_API_KEY
+{CB}
+
+**Accessing in Code:**
+{CB}javascript
+const {{ onCall }} = require("firebase-functions/v2/https");
+exports.myFunc = onCall({{ secrets: ["GOOGLE_API_KEY"] }}, (req) => {{ ... }});
+{CB}
+
+### Security Headers
+To support Google Identity Services and potential SharedArrayBuffer usage, `firebase.json` enforces:
+* `Cross-Origin-Opener-Policy: unsafe-none`
+* `Cross-Origin-Embedder-Policy: unsafe-none`
+
+## 4. Database Security
+* **Rules:** Defined in `firestore.rules`.
+* **Policy:** Public Read (Resume Data) / Admin Write Only.
+* **Lockdown:** `applications` collection is strictly Admin Read/Write.
+"""
+
+# ==========================================
+# 🏁 MAIN EXECUTION
+# ==========================================
 if __name__ == "__main__":
-    print("📋 Starting Documentation Audit...")
-    update_project_status()
-    update_changelog()
-    update_package_json()
-    update_context_dump()
-    update_schema_architecture()
-    update_roadmap()
-    update_prompt_testing()
-    update_deployment()
-    update_security_model()
-    print("🏁 Documentation Synchronized successfully.")
+    print("📚 Implementing Documentation Audit Recommendations (Python Safe Mode)...")
+    
+    write_file("docs/ADR/001-resume-tailor-strategy.md", adr_001_content)
+    write_file("CONTRIBUTING.md", contributing_content)
+    write_file("docs/DEPLOYMENT.md", deployment_content)
+    
+    print("\n🎉 Documentation Architecture Upgraded Successfully.")
 ```
 ---
 
