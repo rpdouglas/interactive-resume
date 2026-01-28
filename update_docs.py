@@ -1,95 +1,184 @@
 import os
+import json
+import re
+from datetime import datetime
 
 def read_file(path):
-    if os.path.exists(path):
-        with open(path, 'r', encoding='utf-8') as f:
-            return f.read()
-    return ""
+    if not os.path.exists(path):
+        print(f"⚠️ File not found: {path}")
+        return None
+    with open(path, 'r', encoding='utf-8') as f:
+        return f.read()
 
 def write_file(path, content):
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
     print(f"✅ Updated: {path}")
 
-# 1. Update PROJECT_STATUS.md
-# ---------------------------
-status_path = 'docs/PROJECT_STATUS.md'
-status_content = """# 🟢 Project Status: Platform Expansion
+def update_project_status():
+    path = 'docs/PROJECT_STATUS.md'
+    content = read_file(path)
+    if not content: return
 
-> 🗺️ **Strategy:** See [docs/ROADMAP.md](./ROADMAP.md) for the long-term vision.
+    # Update Version and Phase
+    content = re.sub(r'Version: .*', 'Version: v3.1.0-beta', content)
+    content = re.sub(r'Current Phase: .*', 'Current Phase: Phase 19 - The Content Factory (Active)', content)
+    content = re.sub(r'Status: .*', 'Status: 🟢 Sprint 19.2 Complete', content)
 
-**Current Phase:** Phase 19 - The Content Factory
-**Version:** v3.0.0-dev
-**Status:** 🚀 Sprint 19.1 Starting
+    # Mark Sprints as Complete
+    content = content.replace('* [ ] Sprint 19.1:', '* [x] Sprint 19.1:')
+    content = content.replace('* [ ] Sprint 19.2:', '* [x] Sprint 19.2:')
 
-## 🎯 Current Objectives
-* [ ] Sprint 19.1: The Cover Letter Engine (Generative AI).
-* [ ] Sprint 19.2: The Outreach Bot.
-* [ ] Sprint 19.3: The Resume Tailor.
+    write_file(path, content)
 
-## ⏳ Backlog (Deferred)
-* Phase 20: The Strategist (Kanban & Prep).
-* Phase 21: Security Hardening (The Identity Shield).
+def update_changelog():
+    path = 'docs/CHANGELOG.md'
+    content = read_file(path)
+    if not content: return
 
-## ✅ Completed Roadmap
-* **Phase 17:** [x] Application Manager Complete.
-    * Sprint 17.1: Input Interface.
-    * Sprint 17.2: Vector Engine.
-    * Sprint 17.3: Analysis Dashboard (Real-time UI).
-* **Phase 16:** [x] The Backbone Shift (Firestore Migration).
-* **Phase 15:** [x] Chart Stabilization.
-* **v1.0.0:** [x] Gold Master Release.
-"""
-
-write_file(status_path, status_content)
-
-# 2. Update ROADMAP.md
-# --------------------
-roadmap_path = 'docs/ROADMAP.md'
-roadmap_content = """# 🗺️ Product Strategy & Roadmap
-
-**Vision:** Transform the platform from a static portfolio into an AI-powered Career Management System (CMS).
-**Status:** Active Development
-**Last Updated:** 2026-01-28
-
----
-
-## 🏭 Phase 19: The Content Factory (Current Focus)
-*Goal: Stop writing boilerplate. Let the AI generate high-quality tailored documents.*
-
-* **Sprint 19.1: The Cover Letter Engine**
-    * **Feature:** One-click PDF generation based on Resume + JD.
-    * **Tech:** Gemini Prompting + `react-to-print` / `jspdf`.
-* **Sprint 19.2: The Outreach Bot**
-    * **Feature:** Generate cold-outreach messages (LinkedIn/Email) tailored to the Hiring Manager.
-    * **Tech:** Clipboard API + Tone analysis.
-* **Sprint 19.3: The Resume Tailor**
-    * **Feature:** AI suggestions for rewriting specific bullet points to match JD keywords.
-
----
-
-## ♟️ Phase 20: The Strategist (Workflow)
-*Goal: Manage the campaign lifecycle and win the interview.*
-
-* **Sprint 20.1: The Application Kanban**
-    * **Feature:** Drag-and-drop board to track status (Applied, Interview, Offer).
-    * **Tech:** `dnd-kit`.
-* **Sprint 20.2: The Interview Simulator**
-    * **Feature:** AI acts as the interviewer, asking technical questions based on the JD.
-    * **Tech:** Browser Speech API.
-
----
-
-## 🛡️ Phase 21: Fortress & Foundation (Security)
-*Goal: Lock down the application before public release.*
-
-* **Sprint 21.1: The Identity Shield**
-    * **Objective:** Server-Side Auth Blocking (Fix IAM Permissions).
-* **Sprint 21.2: The Data Lockdown**
-    * **Objective:** Strict `firestore.rules`.
-* **Sprint 21.3: Cost Governor**
-    * **Objective:** API Rate Limiting.
+    today = datetime.now().strftime('%Y-%m-%d')
+    new_entry = f"""## [v3.1.0-beta] - {today}
+### Added
+- **AI:** "Cover Letter Engine" (Cloud Function) using Gemini 2.5 Flash.
+- **UI:** Structured "Gap Analysis" rendering (Yellow Warning Cards).
+- **Export:** PDF generation via `react-to-print`.
+### Changed
+- **UX:** Restored "Thinking Brain" animation during analysis.
+- **Architecture:** Moved all AI logic to Server-Side Cloud Functions for security.
 
 """
+    # Insert after the header description
+    if "## [v" in content:
+        content = re.sub(r'(## \[v)', new_entry + r'\1', content, count=1)
+    else:
+        # Fallback if no previous versions
+        content += "\n" + new_entry
 
-write_file(roadmap_path, roadmap_content)
+    write_file(path, content)
+
+def update_package_json():
+    path = 'package.json'
+    content = read_file(path)
+    if not content: return
+
+    try:
+        data = json.loads(content)
+        data['version'] = '3.1.0'
+        write_file(path, json.dumps(data, indent=2))
+    except json.JSONDecodeError:
+        print("❌ Failed to parse package.json")
+
+def update_context_dump():
+    path = 'docs/CONTEXT_DUMP.md'
+    content = read_file(path)
+    if not content: return
+
+    # Update Tech Stack Version
+    content = re.sub(r'Version: .*', 'Version: v3.1.0-beta', content)
+
+    # Update Backend Context
+    if "AI Isolation" in content:
+        new_backend_desc = """### 4. AI Isolation (Server-Side)
+* **Logic:** All AI operations reside in `functions/index.js`.
+    * `architectProject`: Callable (Gemini 3.0) for Resume Building.
+    * `analyzeApplication`: Trigger (Gemini 2.5) for Job Analysis.
+    * `generateCoverLetter`: Trigger (Gemini 2.5) for Content Generation.
+* **Secrets:** Keys are accessed via `process.env.GOOGLE_API_KEY`."""
+        
+        # Regex to replace the old AI Isolation block
+        content = re.sub(r'### 4\. AI Isolation.*?(\n\n|#)', new_backend_desc + r'\1', content, flags=re.DOTALL)
+
+    write_file(path, content)
+
+def update_schema_architecture():
+    path = 'docs/SCHEMA_ARCHITECTURE.md'
+    content = read_file(path)
+    if not content: return
+
+    new_schema_note = """
+## 4. Application Schema (Phase 19)
+The `applications` collection is the core of the Content Factory.
+* **Document ID:** Auto-generated.
+* **Fields:**
+    * `company` (string)
+    * `role` (string)
+    * `raw_text` (string) - Original JD.
+    * `ai_status` (string) - 'pending' | 'processing' | 'complete' | 'error'
+    * `match_score` (number)
+    * `gap_analysis` (array<string>) - Structured list of missing skills.
+    * `cover_letter_status` (string) - 'idle' | 'pending' | 'writing' | 'complete'
+    * `cover_letter_text` (string) - Markdown/Text content.
+"""
+    if "## 4. Application Schema" not in content:
+        content += new_schema_note
+    
+    write_file(path, content)
+
+def update_roadmap():
+    path = 'docs/ROADMAP.md'
+    content = read_file(path)
+    if not content: return
+
+    # Ensure Phase 18 is moved to 21 (if not already done by previous edits)
+    if "Phase 18: Fortress" in content:
+        content = content.replace("Phase 18: Fortress", "Phase 21: Fortress")
+        content = content.replace("Sprint 18.1", "Sprint 21.1")
+        content = content.replace("Sprint 18.2", "Sprint 21.2")
+        content = content.replace("Sprint 18.3", "Sprint 21.3")
+
+    write_file(path, content)
+
+def update_prompt_testing():
+    path = 'docs/PROMPT_TESTING.md'
+    content = read_file(path)
+    if not content: return
+
+    constraint = "    * **Firestore Mocking:** When mocking `firebase/firestore`, you MUST mock `getFirestore` specifically, or the SDK will crash."
+    
+    if "getFirestore" not in content:
+        content = content.replace("* **Stubbing:** Use `vi.stubEnv` for ALL environment variables", 
+                                  "* **Stubbing:** Use `vi.stubEnv` for ALL environment variables\n" + constraint)
+    
+    write_file(path, content)
+
+def update_deployment():
+    path = 'docs/DEPLOYMENT.md'
+    content = read_file(path)
+    if not content: return
+
+    note = "\n\n## 6. Gen 2 Cloud Functions Quirk\nWhen deploying Gen 2 functions for the first time, you may see an `Error generating service identity`. This is a known timeout issue. **Wait 2 minutes and retry the deploy.** It usually succeeds on the second attempt."
+    
+    if "Gen 2 Cloud Functions Quirk" not in content:
+        content += note
+    
+    write_file(path, content)
+
+def update_security_model():
+    path = 'docs/SECURITY_MODEL.md'
+    content = read_file(path)
+    if not content: return
+
+    warning = """
+# ⚠️ DEV MODE ACTIVE (SKELETON KEY)
+**Current Status:** Authentication is bypassed. Database Rules are `allow read, write: if true`.
+**Do NOT deploy to Production without reverting `AuthContext` and `firestore.rules`.**
+
+"""
+    if "DEV MODE ACTIVE" not in content:
+        content = warning + content
+    
+    write_file(path, content)
+
+# Execution Order
+if __name__ == "__main__":
+    print("📋 Starting Documentation Audit...")
+    update_project_status()
+    update_changelog()
+    update_package_json()
+    update_context_dump()
+    update_schema_architecture()
+    update_roadmap()
+    update_prompt_testing()
+    update_deployment()
+    update_security_model()
+    print("🏁 Documentation Synchronized successfully.")

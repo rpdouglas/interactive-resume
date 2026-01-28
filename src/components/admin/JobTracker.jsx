@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/db';
 import { collection, addDoc, serverTimestamp, onSnapshot, doc } from 'firebase/firestore';
-import { Briefcase, FileText, Save, Loader2 } from 'lucide-react';
+import { Briefcase, FileText, Save, Loader2, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnalysisDashboard from './AnalysisDashboard';
+import CoverLetterGenerator from './CoverLetterGenerator';
 
 const JobTracker = () => {
   const [formData, setFormData] = useState({
@@ -15,35 +16,27 @@ const JobTracker = () => {
   
   // State Machine: 'idle' | 'saving' | 'analyzing' | 'complete'
   const [viewState, setViewState] = useState('idle');
+  const [activeTab, setActiveTab] = useState('analysis'); // 'analysis' | 'letter'
   const [activeDocId, setActiveDocId] = useState(null);
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [applicationData, setApplicationData] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // 👂 Real-time Listener for the Active Document
+  // 👂 Real-time Listener
   useEffect(() => {
     if (!activeDocId) return;
-
-    console.log(`👂 Listening for updates on: ${activeDocId}`);
-    
     const unsubscribe = onSnapshot(doc(db, "applications", activeDocId), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
-        console.log("🔥 Firestore Update:", data.ai_status);
-
-        if (data.ai_status === 'processing') {
-          setViewState('analyzing');
-        } 
-        else if (data.ai_status === 'complete') {
-          setAnalysisResult(data);
-          setViewState('complete');
-        }
+        setApplicationData(data); // Sync full object
+        
+        if (data.ai_status === 'processing') setViewState('analyzing');
+        else if (data.ai_status === 'complete') setViewState('complete');
         else if (data.ai_status === 'error') {
-          setErrorMsg(data.error_log || "Unknown AI Error");
-          setViewState('idle'); // Allow retry
+          setErrorMsg(data.error_log);
+          setViewState('idle');
         }
       }
     });
-
     return () => unsubscribe();
   }, [activeDocId]);
 
@@ -55,27 +48,11 @@ const JobTracker = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setViewState('saving');
-    setErrorMsg('');
-
     try {
-      // 1. Write Initial Document
-      const payload = {
-        ...formData,
-        status: 'draft',
-        ai_status: 'pending', // ⚡ Trigger the Cloud Function
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp()
-      };
-
+      const payload = { ...formData, status: 'draft', ai_status: 'pending', created_at: serverTimestamp() };
       const docRef = await addDoc(collection(db, "applications"), payload);
-      
-      // 2. Set Active ID to trigger Listener
       setActiveDocId(docRef.id);
-      
-      // 3. UI waits for Listener to flip state to 'analyzing' -> 'complete'
-
     } catch (err) {
-      console.error("Submission Error:", err);
       setErrorMsg(err.message);
       setViewState('idle');
     }
@@ -85,97 +62,85 @@ const JobTracker = () => {
     setFormData({ company: '', role: '', raw_text: '', source_url: '' });
     setViewState('idle');
     setActiveDocId(null);
-    setAnalysisResult(null);
+    setApplicationData(null);
+    setActiveTab('analysis');
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-full flex flex-col relative">
+    <div className="max-w-6xl mx-auto h-full flex flex-col relative">
       <AnimatePresence mode="wait">
         
-        {/* 1️⃣ STATE: FORM INPUT (Idle / Saving) */}
+        {/* 1️⃣ FORM INPUT */}
         {(viewState === 'idle' || viewState === 'saving') && (
-          <motion.div 
-            key="form"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden"
-          >
-            {/* Header */}
+          <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
             <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <Briefcase className="text-blue-600" size={24} />
-                New Application
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                Paste a Job Description to initialize the AI analysis pipeline.
-              </p>
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2"><Briefcase className="text-blue-600" size={24} /> New Application</h2>
             </div>
-
-            {/* Form */}
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Company Name</label>
-                  <input type="text" name="company" required value={formData.company} onChange={handleChange} placeholder="e.g. Acme Corp" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-500 tracking-wider">Role Title</label>
-                  <input type="text" name="role" required value={formData.role} onChange={handleChange} placeholder="e.g. Senior React Developer" className="w-full p-3 rounded-lg bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
-                </div>
+                <input type="text" name="company" required value={formData.company} onChange={handleChange} placeholder="Company Name" className="p-3 rounded-lg bg-slate-50 border border-slate-200 outline-none" />
+                <input type="text" name="role" required value={formData.role} onChange={handleChange} placeholder="Role Title" className="p-3 rounded-lg bg-slate-50 border border-slate-200 outline-none" />
               </div>
-              <div className="space-y-2 flex-1 flex flex-col">
-                <label className="text-xs font-bold uppercase text-slate-500 tracking-wider flex justify-between">
-                  <span>Job Description (Raw Text)</span>
-                </label>
-                <div className="relative flex-1">
-                  <textarea name="raw_text" required value={formData.raw_text} onChange={handleChange} placeholder="Paste the full job description here..." className="w-full h-64 md:h-96 p-4 rounded-xl bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none resize-none font-mono text-sm leading-relaxed" />
-                  <div className="absolute right-4 top-4 text-slate-300 pointer-events-none"><FileText size={20} /></div>
-                </div>
-              </div>
+              <textarea name="raw_text" required value={formData.raw_text} onChange={handleChange} placeholder="Paste Job Description..." className="w-full h-64 p-4 rounded-xl bg-slate-50 border border-slate-200 outline-none resize-none font-mono text-sm" />
             </form>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10 flex items-center justify-between">
-              <div className="text-sm font-medium text-red-500">{errorMsg}</div>
-              <button onClick={handleSubmit} disabled={viewState === 'saving' || !formData.company || !formData.raw_text} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95">
-                {viewState === 'saving' ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-                {viewState === 'saving' ? 'Initializing...' : 'Analyze Job'}
+            <div className="p-4 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+              <button onClick={handleSubmit} disabled={viewState === 'saving'} className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold flex items-center justify-center gap-2">
+                {viewState === 'saving' ? <Loader2 className="animate-spin" /> : <Save />} Analyze Job
               </button>
             </div>
           </motion.div>
         )}
 
-        {/* 2️⃣ STATE: ANALYZING (Pulsing Brain) */}
+        {/* 2️⃣ LOADING (RESTORED VISUALS) */}
         {viewState === 'analyzing' && (
           <motion.div 
-            key="loading"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            key="loading" 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.9 }} 
             className="flex-1 flex flex-col items-center justify-center bg-white rounded-2xl border border-slate-100 p-8 text-center"
           >
+            {/* The Pulsing Brain Animation */}
             <div className="relative w-24 h-24 mb-6">
               <div className="absolute inset-0 rounded-full border-4 border-blue-100 animate-ping"></div>
               <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
               <div className="absolute inset-0 flex items-center justify-center text-4xl">🧠</div>
             </div>
+            
             <h3 className="text-xl font-bold text-slate-800">Analyzing Vectors...</h3>
             <p className="text-slate-500 mt-2 max-w-xs mx-auto">
-              Comparing your experience against {formData.company}'s requirements.
+              Comparing your experience against <span className="font-semibold text-blue-600">{formData.company}</span>'s requirements.
             </p>
           </motion.div>
         )}
 
-        {/* 3️⃣ STATE: COMPLETE (Dashboard) */}
-        {viewState === 'complete' && analysisResult && (
-          <motion.div 
-            key="results"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-1 h-full"
-          >
-            <AnalysisDashboard data={analysisResult} onReset={handleReset} />
+        {/* 3️⃣ WORKSPACE (TABS) */}
+        {viewState === 'complete' && applicationData && (
+          <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+            
+            {/* Nav Bar */}
+            <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50/80">
+              <div className="flex gap-2">
+                <button onClick={() => setActiveTab('analysis')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'analysis' ? 'bg-white shadow text-blue-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+                  Strategy & Gaps
+                </button>
+                <button onClick={() => setActiveTab('letter')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${activeTab === 'letter' ? 'bg-white shadow text-purple-600' : 'text-slate-500 hover:bg-slate-200'}`}>
+                  Cover Letter Engine
+                </button>
+              </div>
+              <button onClick={handleReset} className="text-slate-400 hover:text-slate-600 flex items-center gap-1 text-xs font-bold uppercase tracking-wider">
+                <ArrowLeft size={14} /> New App
+              </button>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden">
+              {activeTab === 'analysis' ? (
+                <AnalysisDashboard data={applicationData} onReset={handleReset} />
+              ) : (
+                <CoverLetterGenerator applicationId={activeDocId} applicationData={applicationData} />
+              )}
+            </div>
           </motion.div>
         )}
 

@@ -50,3 +50,16 @@ We implement a **Hybrid Data Strategy**:
 1.  **Attempt:** Fetch from Firestore.
 2.  **Catch:** If *any* error occurs (Quota, Offline, Rules), swallow the error and return `src/data/*.json`.
 3.  **Result:** The app never crashes, even if the database is down.
+
+## 4. Application Schema (Phase 19)
+The `applications` collection is the core of the Content Factory.
+* **Document ID:** Auto-generated.
+* **Fields:**
+    * `company` (string)
+    * `role` (string)
+    * `raw_text` (string) - Original JD.
+    * `ai_status` (string) - 'pending' | 'processing' | 'complete' | 'error'
+    * `match_score` (number)
+    * `gap_analysis` (array<string>) - Structured list of missing skills.
+    * `cover_letter_status` (string) - 'idle' | 'pending' | 'writing' | 'complete'
+    * `cover_letter_text` (string) - Markdown/Text content.
