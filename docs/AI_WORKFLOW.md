@@ -46,9 +46,14 @@
 ---
 
 ## 🔄 The Feedback Loop
-1.  **Product** defines.
-2.  **Architect** plans.
-3.  **Builder** codes.
-4.  **QA** breaks it.
+1.  **Product** defines 
+2.  **Architect** plans using PROMPT_FEATURE_REQUEST.md
+3.  **Builder** codes using PROMPT_APPROVAL.md
+4.  **QA** breaks it using PROMPT_TESTING.md and fixes tests using PROMPT_FIX_TESTS.md
 5.  **Security** locks it.
-6.  **Maintainer** records it.
+6.  **Maintainer** records it using POST_FEATURE.md
+
+## 7. The "Anti-Regression" Testing Protocol
+* **Rule:** Never modify source code (`src/`) to fix a test failure.
+* **Rule:** If a test fails, assume the test is outdated, not the code.
+* **Action:** Update `src/**/__tests__/*.jsx` to match the UI reality.

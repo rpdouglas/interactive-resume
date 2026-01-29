@@ -66,6 +66,7 @@ The `applications` collection is the core of the Content Factory.
 
 
 ### Application Schema (`applications/{id}`)
+* **Note:** `resume_snapshot` logic is defined here but implemented in Sprint 19.4.
 * `tailor_status`: 'idle' | 'pending' | 'processing' | 'complete' | 'error'
 * `tailored_bullets`: Array of Objects
     * `original`: String

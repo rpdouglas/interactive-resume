@@ -1,10 +1,10 @@
 /**
  * 🧠 The Fresh Nest Backend Brain
  * Includes:
- * 1. architectProject: Callable (Gemini 3.0)
- * 2. analyzeApplication: Trigger (Gemini 2.5)
- * 3. generateCoverLetter: Trigger (Gemini 2.5) - No Header Mode
- * 4. tailorResume: Trigger (Gemini 2.5) - NEW!
+ * 1. architectProject: Callable (Gemini 2.5 Flash)
+ * 2. analyzeApplication: Trigger (Gemini 2.5 Flash)
+ * 3. generateCoverLetter: Trigger (Gemini 2.5 Flash)
+ * 4. tailorResume: Trigger (Gemini 2.5 Flash)
  */
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
@@ -32,23 +32,69 @@ async function getResumeContext() {
   return { profile, skills, experience };
 }
 
-// --- 1. ARCHITECT ---
-const ARCHITECT_SYSTEM_PROMPT = "You are a Resume Architect. Convert raw notes to JSON. NO Markdown.";
+// --- 1. ARCHITECT (Standardized) ---
+const ARCHITECT_SYSTEM_PROMPT = `
+  You are a Management Consultant & Resume Architect. 
+  Convert raw project notes into a high-impact, professional JSON object.
+   
+  SCHEMA RULES:
+  - id: string (unique slug, lowercase, snake_case)
+  - title: string (concise & punchy, no "Project" prefix)
+  - skills: string[] (top 3-5 technical/business skills found in text)
+  - par: { 
+      problem: string (The challenge faced), 
+      action: string (What was done, using active verbs), 
+      result: string (The outcome, quantified with metrics if possible) 
+    }
+  - diagram: string (A valid Mermaid.js flowchart source code representing the logic/flow. DO NOT wrap in markdown blocks.)
+   
+  TONE: Professional, results-oriented, active verbs.
+   
+  RESPONSE FORMAT: Return raw JSON matching the schema only. No markdown formatting.
+`;
+
 exports.architectProject = onCall({ 
   cors: true, 
   secrets: ["GOOGLE_API_KEY"],
   timeoutSeconds: 60,
   maxInstances: 10
 }, async (request) => {
-  if (!request.auth) throw new HttpsError("unauthenticated", "Login required.");
+
+  console.log("🚀 Architect Function Triggered");
+
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "You must be logged in.");
+  }
+
   const apiKey = process.env.GOOGLE_API_KEY;
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" }});
-  const result = await model.generateContent([ARCHITECT_SYSTEM_PROMPT, request.data.rawText]);
-  return { data: JSON.parse(result.response.text()) }; 
+  if (!apiKey) {
+    throw new HttpsError("internal", "Server misconfiguration: API Key missing.");
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // ✅ STANDARDIZED: Using Gemini 2.5 Flash
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash", 
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    console.log("🤖 Calling Gemini API...");
+    const { rawText } = request.data;
+    const result = await model.generateContent([ARCHITECT_SYSTEM_PROMPT, rawText]);
+    const responseText = result.response.text();
+    
+    console.log("✅ Gemini Success.");
+    return JSON.parse(responseText);
+
+  } catch (error) {
+    console.error("🔥 AI GENERATION FAILED:", error);
+    throw new HttpsError("internal", error.message);
+  }
 });
 
-// --- 2. ANALYZE ---
+// --- 2. ANALYZE (Standardized) ---
 exports.analyzeApplication = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] }, 
   async (event) => {
@@ -62,6 +108,7 @@ exports.analyzeApplication = onDocumentWritten(
     const genAI = new GoogleGenerativeAI(apiKey);
     const resumeContext = await getResumeContext();
     
+    // ✅ STANDARDIZED
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash", generationConfig: { responseMimeType: "application/json" }});
 
     const prompt = `Analyze this JD against Resume.
@@ -87,7 +134,7 @@ exports.analyzeApplication = onDocumentWritten(
   }
 );
 
-// --- 3. COVER LETTER ---
+// --- 3. COVER LETTER (Standardized) ---
 exports.generateCoverLetter = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] },
   async (event) => {
@@ -104,6 +151,8 @@ exports.generateCoverLetter = onDocumentWritten(
       const apiKey = process.env.GOOGLE_API_KEY;
       const genAI = new GoogleGenerativeAI(apiKey);
       const resumeContext = await getResumeContext();
+      
+      // ✅ STANDARDIZED
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       
       const systemPrompt = `
@@ -124,7 +173,7 @@ exports.generateCoverLetter = onDocumentWritten(
   }
 );
 
-// --- 4. RESUME TAILOR (NEW) ---
+// --- 4. RESUME TAILOR (Standardized) ---
 exports.tailorResume = onDocumentWritten(
   { document: "applications/{docId}", secrets: ["GOOGLE_API_KEY"] },
   async (event) => {
@@ -133,7 +182,6 @@ exports.tailorResume = onDocumentWritten(
     const newData = snapshot.after.data();
     const oldData = snapshot.before.data();
 
-    // Trigger only when tailor_status flips to 'pending'
     if (newData.tailor_status !== 'pending') return;
     if (oldData && oldData.tailor_status === 'pending') return;
 
@@ -145,7 +193,7 @@ exports.tailorResume = onDocumentWritten(
       const genAI = new GoogleGenerativeAI(apiKey);
       const resumeContext = await getResumeContext();
 
-      // Use JSON Mode for strict schema
+      // ✅ STANDARDIZED
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash",
         generationConfig: { responseMimeType: "application/json" }
